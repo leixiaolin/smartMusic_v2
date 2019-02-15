@@ -12,7 +12,7 @@ import tensorflow.contrib.slim as slim
 
 
 labels_nums = 4  # 类别个数
-batch_size = 16  #
+batch_size = 20  #
 resize_height = 224  # 指定存储图片高度
 resize_width = 224  # 指定存储图片宽度
 depths = 3
@@ -44,31 +44,7 @@ def net_evaluation(sess,loss,accuracy,val_images_batch,val_labels_batch,val_nums
     mean_acc = np.array(val_accs, dtype=np.float32).mean()
     return mean_loss, mean_acc
 
-def evaluation_detail(sess,score,classIds,val_images_batch,val_labels_batch,val_nums):
-    val_max_steps = int(val_nums / batch_size)
-    allClasses = []
-    allYs = []
-    allScores = []
-    for _ in range(val_max_steps):
-        val_x, val_y = sess.run([val_images_batch, val_labels_batch])
-        val_score,val_classIds = sess.run([score,classIds], feed_dict={input_images: val_x, input_labels: val_y, keep_prob:1.0, is_training: False})
-        val_y = sess.run(tf.argmax(val_y, 1))
-        allClasses = np.hstack((allClasses,val_classIds))
-        allYs = np.hstack((allYs,val_y))
-        allScores.append(val_score)
-    print(array_diff(allClasses,allYs))
-    return allScores,allClasses,allYs
-
-def array_diff(allClasses,allYs):
-    diffs = []
-    types = ['A','B','C','D']
-    for i in range(len(allClasses)):
-        if allClasses[i] != allYs[i]:
-            diffs.append(types[int(allYs[i])] + ' predict to ' + types[int(allClasses[i])])
-    return diffs
-
-
-def step_train(train_op,loss,accuracy,score,classIds,
+def step_train(train_op,loss,accuracy,
                train_images_batch,train_labels_batch,train_nums,train_log_step,
                val_images_batch,val_labels_batch,val_nums,val_log_step,
                snapshot_prefix,snapshot):
@@ -113,8 +89,6 @@ def step_train(train_op,loss,accuracy,score,classIds,
             if i % val_log_step == 0:
                 mean_loss, mean_acc = net_evaluation(sess, loss, accuracy, val_images_batch, val_labels_batch, val_nums)
                 print("%s: Step [%d]  val Loss : %f, valuation accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
-                if train_acc > 0.8 and mean_acc > 0.3:
-                    val_score, val_classIds, val_y = evaluation_detail(sess,score, classIds, val_images_batch, val_labels_batch,val_nums)
 
             # 模型保存:每迭代snapshot次或者最后一次保存模型
             if (i % snapshot == 0 and i > 0) or i == max_steps:
@@ -183,8 +157,6 @@ def train(train_record_file,
     loss = tf.losses.get_total_loss(add_regularization_losses=True)#添加正则化损失loss=2.2
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float32))
 
-    score = tf.nn.softmax(out, name='score')
-    classIds = tf.argmax(out, 1)
     # Specify the optimization scheme:
     # optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
 
@@ -210,7 +182,7 @@ def train(train_record_file,
 
 
     # 循环迭代过程
-    step_train(train_op, loss, accuracy,score,classIds,
+    step_train(train_op, loss, accuracy,
                train_images_batch, train_labels_batch, train_nums, train_log_step,
                val_images_batch, val_labels_batch, val_nums, val_log_step,
                snapshot_prefix, snapshot)
@@ -220,8 +192,8 @@ if __name__ == '__main__':
     # train_record_file='dataset/record/train.tfrecords'
     # val_record_file='dataset/record/val.tfrecords'
 
-    train_record_file = './onsets/record/train.tfrecords'
-    val_record_file = './onsets/record/val.tfrecords'
+    train_record_file = './rhythm/record/train.tfrecords'
+    val_record_file = './rhythm/record/val.tfrecords'
 
     train_log_step=100
     base_lr = 0.001  # 学习率
@@ -230,7 +202,7 @@ if __name__ == '__main__':
 
     val_log_step=200
     snapshot=2000#保存文件间隔
-    snapshot_prefix='models/model.ckpt'
+    snapshot_prefix='models/alex/model.ckpt'
     train(train_record_file=train_record_file,
           train_log_step=train_log_step,
           train_param=train_param,

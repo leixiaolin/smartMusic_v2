@@ -8,7 +8,7 @@ from PIL import Image
 import re
 
 #COOKED_DIR = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节奏二\\'
-plotpath = 'F:\\specgram\\'
+#plotpath = 'F:\\specgram\\'
 #savepath = 'F:\\mfcc_pic\\2\\'
 
 score = 0
@@ -20,22 +20,13 @@ def load_and_trim(path):
     audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
 
     return audio, sr
-path_index = np.array(['一','二','三','四','五','六','七','八','九','十'])
+path_index = np.array(['1.31MP3','2.2MP3','2019-01-29'])
 for i in range(1,11):
-    COOKED_DIR = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏'+ path_index[i-1] + '\\'
+    COOKED_DIR = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/'+ path_index[i-1] + '/'
     #savepath = 'F:\\mfcc_pic\\'+ str(i) +'\\'
     for root, dirs, files in os.walk(COOKED_DIR):
         print("Root = ", root, "dirs = ", dirs, "files = ", files)
 
-        base_onsets = []
-        for filename in files:
-            if "." in filename:
-                Filename = filename.split(".")[0]
-            if Filename.find('标准') > 0 or Filename.find('100') > 0:
-                path_one = COOKED_DIR + filename
-                y, sr = load_and_trim(path_one)
-                base_onsets = librosa.onset.onset_detect(y)
-                break
 
         index = 0
         for filename in files:
@@ -46,11 +37,6 @@ for i in range(1,11):
                 index = index + 1
             path_one = COOKED_DIR + filename
             y, sr = load_and_trim(path_one)
-            # onsets_frames = librosa.onset.onset_detect(y)
-            # #D = librosa.stft(y)
-            # # librosa.display.specshow(librosa.amplitude_to_db(D))
-            # plt.vlines(onsets_frames, 0, sr, color='b', linestyle='solid')
-            # plt.vlines(base_onsets, 0, sr, color='r', linestyle='dashed')
             CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
             librosa.display.specshow(CQT)
             #plt.ylabel('Frequency')
@@ -68,7 +54,7 @@ for i in range(1,11):
             #plt.rcParams['figure.dpi'] = 300  # 分辨率
             if filename.find('标准') > 0:
                 saveFileName = '100-A'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/train/A/'
+                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/A/'
             # elif filename.find('分') > 0:
             #     score = filename.split("分")[0].split(".")[1]  # 提取分值
             # elif filename.find('(') > 0:
@@ -83,19 +69,19 @@ for i in range(1,11):
 
             if int(score) >=90:
                 grade = 'A'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/train/A/'
+                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/A/'
             elif int(score) >= 75:
                 grade = 'B'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/train/B/'
+                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/B/'
             elif int(score) >=60:
                 grade = 'C'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/train/C/'
+                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/C/'
             elif int(score) >=1:
                 grade = 'D'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/train/D/'
+                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/D/'
             else:
                 grade = 'E'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/train/E/'
+                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/E/'
             saveFileName = str(score) + '-' + grade
             file_sum = os.listdir(savepath)
             saveFileName = str(len(file_sum)+1) + '-' + saveFileName
