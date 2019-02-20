@@ -9,6 +9,7 @@
 
 import os
 import os.path
+from random import shuffle
 
 
 def write_txt(content, filename, mode='w'):
@@ -65,7 +66,9 @@ def get_files_list(dir):
                 labels = 3
             # elif curr_file == 'E':
             #     labels = 4
-            files_list.append([os.path.join(curr_file, filename), labels])
+            if(curr_file != 'E'):
+                files_list.append([os.path.join(curr_file, filename), labels])
+    shuffle(files_list)  # 将语音文件随机排列
     return files_list
 
 

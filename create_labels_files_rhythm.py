@@ -65,7 +65,8 @@ def get_files_list(dir):
                 labels = 3
             # elif curr_file == 'E':
             #     labels = 4
-            files_list.append([os.path.join(curr_file, filename), labels])
+            if (curr_file != 'E'):  #不包括'E'
+                files_list.append([os.path.join(curr_file, filename), labels])
     return files_list
 
 

@@ -6,7 +6,7 @@ import pdb
 import cv2
 import os
 import glob
-import slim.nets.alaxnet as alaxnet
+import slim.nets.alexnet as alaxnet
 
 from create_tf_record import *
 import tensorflow.contrib.slim as slim
@@ -30,22 +30,29 @@ def  predict(models_path,image_dir,labels_filename,labels_nums, data_format):
     saver = tf.train.Saver()
     saver.restore(sess, models_path)
     images_list=glob.glob(os.path.join(image_dir,'*.jpg'))
+    score_total = 0
     for image_path in images_list:
         im=read_image(image_path,resize_height,resize_width,normalization=True)
         im=im[np.newaxis,:]
         #pred = sess.run(f_cls, feed_dict={x:im, keep_prob:1.0})
         pre_score,pre_label = sess.run([score,class_id], feed_dict={input_images:im})
         max_score=pre_score[0,pre_label]
-        print("{} is: pre labels:{},name:{} score: {}".format(image_path,pre_label,labels[pre_label], max_score))
+        #print("{} is: pre labels:{},name:{} score: {}".format(image_path, pre_label, labels[pre_label], max_score))
+        if image_path.split(".jpg")[0].split("-")[2] == labels[pre_label]:
+            score_total += 1
+        else:
+            print("{} is predicted as label::{} ".format(image_path,labels[pre_label]))
+
+    print("valuation accuracy is {}".format(score_total/len(images_list)))
     sess.close()
 
 
 if __name__ == '__main__':
 
-    class_nums=5
-    image_dir='./test_image'
-    labels_filename='./dataset/label.txt'
-    models_path='./models/v3/best_models_9800_0.8474.ckpt'
+    class_nums=4
+    image_dir='./onsets/val/A'
+    labels_filename='./onsets/label.txt'
+    models_path='./models/onsets/alex/model.ckpt-10000'
 
     batch_size = 1  #
     resize_height = 224  # 指定存储图片高度

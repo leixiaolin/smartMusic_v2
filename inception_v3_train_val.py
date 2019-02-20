@@ -196,12 +196,12 @@ if __name__ == '__main__':
 
     train_log_step=100
     base_lr = 0.01  # 学习率
-    max_steps = 10000  # 迭代次数
+    max_steps = 1000  # 迭代次数
     train_param=[base_lr,max_steps]
 
     val_log_step=200
     snapshot=2000#保存文件间隔
-    snapshot_prefix='./models/v3/model.ckpt'
+    snapshot_prefix='./models/onsets/v3/model.ckpt'
     train(train_record_file=train_record_file,
           train_log_step=train_log_step,
           train_param=train_param,

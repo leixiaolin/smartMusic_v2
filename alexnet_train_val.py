@@ -100,7 +100,7 @@ def step_train(train_op,loss,accuracy,score,classIds,
             batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
             _, train_loss = sess.run([train_op, loss], feed_dict={input_images: batch_input_images,
                                                                   input_labels: batch_input_labels,
-                                                                  keep_prob: 0.70, is_training: True})
+                                                                  keep_prob: 0.55, is_training: True})
             # train测试(这里仅测试训练集的一个batch)
             if i % train_log_step == 0:
                 train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
@@ -161,6 +161,7 @@ def train(train_record_file,
     val_nums=get_example_nums(val_record_file)
     print('train nums:%d,val nums:%d'%(train_nums,val_nums))
 
+    regularizer = slim.l2_regularizer(0.0005)
     # 从record中读取图片和labels数据
     # train数据,训练数据一般要求打乱顺序shuffle=True
     train_images, train_labels = read_records(train_record_file, resize_height, resize_width, type='normalization')
@@ -230,7 +231,7 @@ if __name__ == '__main__':
 
     val_log_step=200
     snapshot=2000#保存文件间隔
-    snapshot_prefix='models/model.ckpt'
+    snapshot_prefix='./models/onsets/alex/model.ckpt'
     train(train_record_file=train_record_file,
           train_log_step=train_log_step,
           train_param=train_param,

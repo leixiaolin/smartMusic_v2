@@ -6,7 +6,7 @@ import numpy as np
 import pdb
 import os
 from datetime import datetime
-import slim.nets.inception_v1 as inception_v1
+import slim.nets.inception_resnet_v2 as inception_resnet_v2
 from create_tf_record import *
 import tensorflow.contrib.slim as slim
 
@@ -76,7 +76,7 @@ def step_train(train_op,loss,accuracy,
             batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
             _, train_loss = sess.run([train_op, loss], feed_dict={input_images: batch_input_images,
                                                                   input_labels: batch_input_labels,
-                                                                  keep_prob: 0.6, is_training: True})
+                                                                  keep_prob: 0.8, is_training: True})
             # train测试(这里仅测试训练集的一个batch)
             if i % train_log_step == 0:
                 train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
@@ -148,8 +148,8 @@ def train(train_record_file,
                                                           one_hot=True, shuffle=False)
 
     # Define the model:
-    with slim.arg_scope(inception_v1.inception_v1_arg_scope()):
-        out, end_points = inception_v1.inception_v1(inputs=input_images, num_classes=labels_nums, dropout_keep_prob=keep_prob, is_training=is_training)
+    with slim.arg_scope(inception_resnet_v2.inception_resnet_v2_arg_scope()):
+        out, end_points = inception_resnet_v2.inception_resnet_v2(inputs=input_images, num_classes=labels_nums, dropout_keep_prob=keep_prob, is_training=is_training)
 
     # Specify the loss function: tf.losses定义的loss函数都会自动添加到loss函数,不需要add_loss()了
     tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out)#添加交叉熵损失loss=1.6
@@ -158,13 +158,13 @@ def train(train_record_file,
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float32))
 
     # Specify the optimization scheme:
-    # optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
 
 
     # global_step = tf.Variable(0, trainable=False)
     # learning_rate = tf.train.exponential_decay(0.05, global_step, 150, 0.9)
     #
-    optimizer = tf.train.MomentumOptimizer(learning_rate=base_lr,momentum= 0.9)
+    # optimizer = tf.train.MomentumOptimizer(learning_rate, 0.9)
     # # train_tensor = optimizer.minimize(loss, global_step)
     # train_op = slim.learning.create_train_op(loss, optimizer,global_step=global_step)
 
@@ -196,13 +196,13 @@ if __name__ == '__main__':
     val_record_file = './onsets/record/val.tfrecords'
 
     train_log_step=100
-    base_lr = 0.001  # 学习率
+    base_lr = 0.005  # 学习率
     max_steps = 10000  # 迭代次数
     train_param=[base_lr,max_steps]
 
     val_log_step=200
     snapshot=2000#保存文件间隔
-    snapshot_prefix='models/model.ckpt'
+    snapshot_prefix='./models/model.ckpt'
     train(train_record_file=train_record_file,
           train_log_step=train_log_step,
           train_param=train_param,

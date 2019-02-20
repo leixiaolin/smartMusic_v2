@@ -6,12 +6,15 @@ import librosa
 import librosa.display
 from PIL import Image
 import re
+import shutil
+import os
 
 #COOKED_DIR = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节奏二\\'
 plotpath = 'F:\\specgram\\'
 #savepath = 'F:\\mfcc_pic\\2\\'
 
 score = 0
+path_index = np.array(['一','二','三','四','五','六','七','八','九','十'])
 def load_and_trim(path):
     audio, sr = librosa.load(path)
     energy = librosa.feature.rmse(audio)
@@ -20,7 +23,22 @@ def load_and_trim(path):
     audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
 
     return audio, sr
-path_index = np.array(['一','二','三','四','五','六','七','八','九','十'])
+
+tmp = ['A','B','C','D','E']
+dis_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/train'
+scr_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/val'
+def clear_dir(dis_dir,scr_dir):
+    for i in tmp:
+        d_dir = dis_dir + '/' + i
+        shutil.rmtree(d_dir)
+        os.mkdir(d_dir)
+
+        s_dir = scr_dir + '/' + i
+        shutil.rmtree(s_dir)
+        os.mkdir(s_dir)
+
+#清空文件夹
+clear_dir(dis_dir,scr_dir)
 for i in range(1,11):
     COOKED_DIR = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏'+ path_index[i-1] + '\\'
     #savepath = 'F:\\mfcc_pic\\'+ str(i) +'\\'
