@@ -12,7 +12,7 @@ import tensorflow.contrib.slim as slim
 
 
 labels_nums = 4  # 类别个数
-batch_size = 16  #
+batch_size = 32  #
 resize_height = 224  # 指定存储图片高度
 resize_width = 224  # 指定存储图片宽度
 depths = 3

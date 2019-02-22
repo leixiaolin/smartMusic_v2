@@ -8,6 +8,7 @@ from PIL import Image
 import re
 import shutil
 import os
+from create_base import *
 
 #COOKED_DIR = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节奏二\\'
 plotpath = 'F:\\specgram\\'
@@ -15,6 +16,16 @@ plotpath = 'F:\\specgram\\'
 
 score = 0
 path_index = np.array(['一','二','三','四','五','六','七','八','九','十'])
+codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
+                  '[2000;1000,1000;500,500,1000;2000]',
+                  '[1000,1000;500,500,1000;1000,1000;2000]',
+                  '[1000,--(1000);1000,--(1000);500,250,250,1000;--(1000),1000]',
+                  '[500;1000,500,1000,500;500,500,500,250,250,500,500;250,250,500,500,1000]',
+                  '[1000,--(1000);1000,--(1000);1000,-(500),500;1000,1000]',
+                  '[750,250,500,500,500,-(500);500,1000,500,500,-(500);750,250,500,500,500,-(500)]',
+                  '[500,1000,500,500,250,250;1000,500,750,250,500;3000]',
+                  '[500,500,500;1000,500;500,500,500;1500;500,500,500;1000,500;500;1000;1500]',
+                  '[500,500,1000;500,500;1000;375,125,250,250,375,125,250,250;500,500,1000]'])
 def load_and_trim(path):
     audio, sr = librosa.load(path)
     energy = librosa.feature.rmse(audio)
@@ -60,17 +71,26 @@ for i in range(1,11):
             print(filename)
             if filename.find('wav') <= 0:
                 continue
+            elif filename.find('shift') > 0:
+                continue
             else:
                 index = index + 1
             path_one = COOKED_DIR + filename
             y, sr = load_and_trim(path_one)
-            # onsets_frames = librosa.onset.onset_detect(y)
-            # #D = librosa.stft(y)
-            # # librosa.display.specshow(librosa.amplitude_to_db(D))
-            # plt.vlines(onsets_frames, 0, sr, color='b', linestyle='solid')
-            # plt.vlines(base_onsets, 0, sr, color='r', linestyle='dashed')
-            CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
-            librosa.display.specshow(CQT)
+            onsets_frames = librosa.onset.onset_detect(y)
+            # 节拍时间点
+            onstm = librosa.frames_to_time(onsets_frames, sr=sr)
+            print(onstm)
+            duration = librosa.get_duration(y, sr=sr) # 获取音频时长
+            print("duration is {}".format(duration))
+            # 标准节拍时间点
+            base_onsets = onsets_base(codes[i-1],duration,onstm[0])
+            print(base_onsets)
+            plt.vlines(onstm, 0, sr, color='b', linestyle='solid')
+            plt.vlines(base_onsets[:-1], 0, sr, color='r', linestyle='dashed')
+            plt.vlines(base_onsets[-1], 0, sr, color='white', linestyle='dashed')
+            # CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+            # librosa.display.specshow(CQT)
             #plt.ylabel('Frequency')
             #plt.xlabel('Time(s)')
             #plt.show()
@@ -116,7 +136,8 @@ for i in range(1,11):
                 savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/train/E/'
             saveFileName = str(score) + '-' + grade
             file_sum = os.listdir(savepath)
-            saveFileName = str(len(file_sum)+1) + '-' + saveFileName
+            #saveFileName = str(len(file_sum)+1) + '-' + filename.split(".wav")[0] + '-' + saveFileName
+            saveFileName = str(len(file_sum) + 1) + '-' + saveFileName
             plt.savefig(savepath + saveFileName + '.jpg',  bbox_inches='tight', pad_inches=0)
             plt.clf()
             saveFileName = ''

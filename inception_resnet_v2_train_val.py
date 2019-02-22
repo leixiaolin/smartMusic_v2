@@ -12,7 +12,7 @@ import tensorflow.contrib.slim as slim
 
 
 labels_nums = 4  # 类别个数
-batch_size = 16  #
+batch_size = 32  #
 resize_height = 224  # 指定存储图片高度
 resize_width = 224  # 指定存储图片宽度
 depths = 3
@@ -76,7 +76,7 @@ def step_train(train_op,loss,accuracy,
             batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
             _, train_loss = sess.run([train_op, loss], feed_dict={input_images: batch_input_images,
                                                                   input_labels: batch_input_labels,
-                                                                  keep_prob: 0.3, is_training: True})
+                                                                  keep_prob: 0.7, is_training: True})
             # train测试(这里仅测试训练集的一个batch)
             if i % train_log_step == 0:
                 train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,

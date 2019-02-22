@@ -6,6 +6,7 @@ import librosa
 import librosa.display
 from PIL import Image
 import re
+import shutil
 
 #COOKED_DIR = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节奏二\\'
 #plotpath = 'F:\\specgram\\'
@@ -20,8 +21,28 @@ def load_and_trim(path):
     audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
 
     return audio, sr
-path_index = np.array(['1.31MP3','2.2MP3','2019-01-29'])
-for i in range(1,11):
+#path_index = np.array(['1.31MP3','2.2MP3','2019-01-29'])
+#save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/'
+path_index = np.array(['1.31MP3','2.2MP3','2.18MP3','2019-01-29'])
+save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/'
+
+
+tmp = ['A','B','C','D','E']
+dis_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train'
+scr_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/val'
+def clear_dir(dis_dir,scr_dir):
+    for i in tmp:
+        d_dir = dis_dir + '/' + i
+        shutil.rmtree(d_dir)
+        os.mkdir(d_dir)
+
+        s_dir = scr_dir + '/' + i
+        shutil.rmtree(s_dir)
+        os.mkdir(s_dir)
+
+#清空文件夹
+clear_dir(save_path,save_path)
+for i in range(1,5):
     COOKED_DIR = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/'+ path_index[i-1] + '/'
     #savepath = 'F:\\mfcc_pic\\'+ str(i) +'\\'
     for root, dirs, files in os.walk(COOKED_DIR):
@@ -69,22 +90,23 @@ for i in range(1,11):
 
             if int(score) >=90:
                 grade = 'A'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/A/'
+                savepath = save_path + 'A/'
             elif int(score) >= 75:
                 grade = 'B'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/B/'
+                savepath = save_path + 'B/'
             elif int(score) >=60:
                 grade = 'C'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/C/'
+                savepath = save_path + 'C/'
             elif int(score) >=1:
                 grade = 'D'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/D/'
+                savepath = save_path + 'D/'
             else:
                 grade = 'E'
-                savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/train/E/'
+                savepath = save_path + 'E/'
             saveFileName = str(score) + '-' + grade
             file_sum = os.listdir(savepath)
-            saveFileName = str(len(file_sum)+1) + '-' + saveFileName
+            #saveFileName = str(len(file_sum)+1) + '-' + filename.split(".wav")[0] + '-' + saveFileName
+            saveFileName = str(len(file_sum) + 1) + '-' + saveFileName
             plt.savefig(savepath + saveFileName + '.jpg',  bbox_inches='tight', pad_inches=0)
             plt.clf()
             saveFileName = ''

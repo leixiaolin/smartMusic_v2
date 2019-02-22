@@ -202,7 +202,7 @@ if __name__ == '__main__':
 
     val_log_step=200
     snapshot=2000#保存文件间隔
-    snapshot_prefix='models/alex/model.ckpt'
+    snapshot_prefix='models/rhythm/alex/model.ckpt'
     train(train_record_file=train_record_file,
           train_log_step=train_log_step,
           train_param=train_param,

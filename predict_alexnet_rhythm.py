@@ -50,9 +50,9 @@ def  predict(models_path,image_dir,labels_filename,labels_nums, data_format):
 if __name__ == '__main__':
 
     class_nums=4
-    image_dir='./onsets/val/D/'
-    labels_filename='./onsets/label.txt'
-    models_path='./models/onsets/alex/model.ckpt-10000'
+    image_dir='./rhythm/val/D'
+    labels_filename='./rhythm/label.txt'
+    models_path='./models/rhythm/alex/model.ckpt-10000'
 
     batch_size = 1  #
     resize_height = 224  # 指定存储图片高度
