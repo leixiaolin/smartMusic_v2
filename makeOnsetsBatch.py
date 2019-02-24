@@ -9,6 +9,7 @@ import re
 import shutil
 import os
 from create_base import *
+from create_labels_files import write_txt
 
 #COOKED_DIR = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节奏二\\'
 plotpath = 'F:\\specgram\\'
@@ -50,6 +51,10 @@ def clear_dir(dis_dir,scr_dir):
 
 #清空文件夹
 clear_dir(dis_dir,scr_dir)
+
+# 保存新文件名与原始文件的对应关系
+files_list = []
+new_old_txt = './onsets/new_and_old.txt'
 for i in range(1,11):
     COOKED_DIR = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏'+ path_index[i-1] + '\\'
     #savepath = 'F:\\mfcc_pic\\'+ str(i) +'\\'
@@ -140,20 +145,6 @@ for i in range(1,11):
             saveFileName = str(len(file_sum) + 1) + '-' + saveFileName
             plt.savefig(savepath + saveFileName + '.jpg',  bbox_inches='tight', pad_inches=0)
             plt.clf()
+            files_list.append([savepath + saveFileName + '.jpg', filename])
             saveFileName = ''
-            '''
-            infile = plotpath + Filename + '.jpg'
-
-            outfile = savepath + saveFileName + '.jpg'
-            im = Image.open(infile).convert("L")
-            (x, y) = im.size  # read image size
-            x_s = 224  # define standard width
-            y_s = 224  # calc height based on standard width
-            out = im.resize((x_s, y_s), Image.ANTIALIAS)  # resize image with high-quality
-            out.save(outfile)
-            print
-            'original size: ', x, y
-            print
-            'adjust size: ', x_s, y_s
-            '''
-
+write_txt(files_list, new_old_txt, mode='w')
