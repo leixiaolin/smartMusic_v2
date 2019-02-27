@@ -20,7 +20,13 @@ def load_and_trim(path):
 
     return audio, sr
 
-y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律2.100分.wav')
+y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律6.100分.wav')
+plt.figure(figsize=(15, 5))
 ps = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
-librosa.display.specshow(librosa.power_to_db(ps, ref = np.max),x_axis='time', y_axis='mel')
+#librosa.display.specshow(librosa.power_to_db(ps, ref = np.max),x_axis='time', y_axis='mel')
+librosa.display.specshow(librosa.power_to_db(ps, ref = np.max))
+plt.axis('off')
+# plt.axes().get_xaxis().set_visible(False)
+# plt.axes().get_yaxis().set_visible(False)
+plt.savefig('f:/3.png', bbox_inches='tight', pad_inches=0)
 plt.show()

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import librosa.display
 import numpy as np
 
+
 # 1. Get the file path to the included audio example
 # Sonify detected beat events
 # 定义加载语音文件并去掉两端静音的函数
@@ -17,10 +18,16 @@ def load_and_trim(path):
 
 #y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
 y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律3.100分.wav')
+hop_length = 512
+#chromagram = librosa.feature.chroma_cqt(y, sr=sr, hop_length=hop_length)
+chromagram = librosa.feature.chroma_cqt(y, sr=sr)
+# chromagram[11,:] = 1
+# plt.figure(figsize=(15, 5))
+# librosa.display.specshow(chromagram, x_axis='time', y_axis='chroma', hop_length=hop_length, cmap='coolwarm')
+# plt.colorbar()
+# plt.show()
 
-CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref = np.max)
-#librosa.display.specshow(CQT)
-librosa.display.specshow(CQT, y_axis='cqt_note')
-plt.colorbar(format='%+2.0f dB')
-plt.title('Constant-Q power spectrogram (note)')
+chromagram *= 255.0
+chromagram = chromagram[::-1]
+plt.imshow(chromagram)
 plt.show()
