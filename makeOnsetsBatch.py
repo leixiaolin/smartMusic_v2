@@ -30,7 +30,7 @@ codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
 def load_and_trim(path):
     audio, sr = librosa.load(path)
     energy = librosa.feature.rmse(audio)
-    frames = np.nonzero(energy >= np.max(energy) / 5)
+    frames = np.nonzero(energy >= np.max(energy) / 10)
     indices = librosa.core.frames_to_samples(frames)[1]
     audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
 
@@ -81,21 +81,36 @@ for i in range(1,11):
             else:
                 index = index + 1
             path_one = COOKED_DIR + filename
+            print(path_one)
             y, sr = load_and_trim(path_one)
-            onsets_frames = librosa.onset.onset_detect(y)
-            # 节拍时间点
-            onstm = librosa.frames_to_time(onsets_frames, sr=sr)
-            print(onstm)
-            duration = librosa.get_duration(y, sr=sr) # 获取音频时长
-            print("duration is {}".format(duration))
-            # 标准节拍时间点
-            base_onsets = onsets_base(codes[i-1],duration,onstm[0])
-            print(base_onsets)
-            #librosa.display.waveplot(y, sr=sr)
-            #plt.show()
-            plt.vlines(onstm,  -1*np.max(y),np.max(y), color='b', linestyle='solid')
-            plt.vlines(base_onsets[:-1],  -1*np.max(y),np.max(y), color='r', linestyle='dashed')
-            plt.vlines(base_onsets[-1],  -1*np.max(y),np.max(y), color='white', linestyle='dashed')
+            # onsets_frames = librosa.onset.onset_detect(y)
+            #
+            # # 获取每个帧的能量
+            # energy = librosa.feature.rmse(y)
+            # energy_mean = np.mean(energy)  # 获取能量均值
+            # energy_gap = energy_mean * 0.95
+            # onsets_frames = [x for x in onsets_frames if energy[0][x] > energy_gap]  # 筛选能量过低的伪节拍点
+
+            if len(y)>0:
+                onsets_frames = get_real_onsets_frames(y)
+                if len(onsets_frames)<3:
+                    continue
+
+                print("onsets_frames is {}".format(onsets_frames))
+
+                # 节拍时间点
+                onstm = librosa.frames_to_time(onsets_frames, sr=sr)
+                print("onstm is {}".format(onstm))
+                duration = librosa.get_duration(y, sr=sr) # 获取音频时长
+                print("duration is {}".format(duration))
+                # 标准节拍时间点
+                base_onsets = onsets_base(codes[i-1],duration,onstm[0])
+                print(base_onsets)
+                librosa.display.waveplot(y, sr=sr)
+                #plt.show()
+                plt.vlines(onstm,  -1*np.max(y),np.max(y), color='b', linestyle='solid')
+            # plt.vlines(base_onsets[:-1],  -1*np.max(y),np.max(y), color='r', linestyle='dashed')
+            # plt.vlines(base_onsets[-1],  -1*np.max(y),np.max(y), color='white', linestyle='dashed')
             # CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
             # librosa.display.specshow(CQT)
             #plt.ylabel('Frequency')
