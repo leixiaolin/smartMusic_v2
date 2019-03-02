@@ -52,6 +52,59 @@ def onsets_base(code,time,start_point):
     ds.append(time)
     return ds
 
+def get_real_onsets_frames(y):
+    y_max = max(y)
+    # y = np.array([x if x > y_max*0.01 else y_max*0.01 for x in y])
+    # 获取每个帧的能量
+    energy = librosa.feature.rmse(y)
+    print(np.mean(energy))
+    energy_diff = np.diff(energy)
+    #print(energy_diff)
+    onsets_frames = librosa.onset.onset_detect(y)
+
+    print(onsets_frames)
+    print(np.diff(onsets_frames))
+
+    some_y = [energy[0][x] for x in onsets_frames]
+    print("some_y is {}".format(some_y)) # 节拍点对应帧的能量
+    energy_mean = (np.sum(some_y) - np.max(some_y))/(len(some_y)-1)  # 获取能量均值
+    print("energy_mean for some_y is {}".format(energy_mean))
+    energy_gap = energy_mean * 0.3
+    some_energy_diff = [energy_diff[0][x] if x < len(energy_diff) else energy_diff[0][x-1]  for x in onsets_frames]
+    energy_diff_mean = np.mean(some_energy_diff)
+    print("some_energy_diff is {}".format(some_energy_diff))
+    print("energy_diff_meanis {}".format(energy_diff_mean))
+    onsets_frames = [x for x in onsets_frames if energy[0][x] > energy_gap]  # 筛选能量过低的伪节拍点
+
+    r,c = energy_diff.shape
+    if onsets_frames[-1] >= c:
+        first = onsets_frames[0]
+        last = onsets_frames[-1]
+        onsets_frames = [x for x in onsets_frames[1:-1] if energy[0][x] > energy[0][x - 1] and energy[0][x + 1] > energy[0][x]]  # 只选择上升沿的节拍点
+        onsets_frames.append(last)
+        onsets_frames.insert(0,first)
+    else:
+        first = onsets_frames[0]
+        onsets_frames = [x for x in onsets_frames[1:] if energy[0][x] > energy[0][x -1] and energy[0][x + 1] > energy[0][x] ]  # 只选择上升沿的节拍点
+        onsets_frames.insert(0,first)
+
+
+    # 筛选过密的节拍点
+    onsets_frames_new = []
+    for i in range(0, len(onsets_frames)):
+        if i == 0:
+            onsets_frames_new.append(onsets_frames[i])
+            continue
+        if onsets_frames[i] - onsets_frames[i - 1] <= 3:
+            middle = int((onsets_frames[i] + onsets_frames[i - 1]) / 2)
+            # middle = onsets_frames[i]
+            onsets_frames_new.pop()
+            onsets_frames_new.append(middle)
+        else:
+            onsets_frames_new.append(onsets_frames[i])
+    onsets_frames = onsets_frames_new
+    return onsets_frames
+
 if __name__ == '__main__':
     start_point = 0.2
     time = 6.45
