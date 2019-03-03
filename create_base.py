@@ -51,6 +51,37 @@ def onsets_base(code,time,start_point):
 
     ds.append(time)
     return ds
+def get_min_max_total(s):
+    if s is None or len(s) < 1:
+        print("input is empty")
+
+    s = s.replace('[','').replace(']','')
+    tmp = s.split(';')
+    print(tmp)
+    result = []
+    for c in tmp:
+        if c.find(","):  # 包括","的情况，即有多个数值
+            cc = c.split(",")
+            for ccc in cc:
+                if ccc.find("(") > 0: # 空音的情况
+                    score = re.sub("\D", "", ccc)  # 筛选数字
+                    score = "-" + score
+                    result.append(score)
+                else:
+                    result.append(ccc)
+        else: # 不包括","的情况，即只有一个数值
+            if c.find("(") > 0:  # 空音的情况
+                score = re.sub("\D", "", c)  # 筛选数字
+                score = -1 * score
+                result.append(score)
+            else:
+                result.append(c)
+    result = [int(x) for x in result]
+    min = np.min(result)
+    max = np.max(result)
+    total = np.sum(result)
+    last = result[-1]
+    return min,max,last,total
 
 def get_real_onsets_frames(y):
     y_max = max(y)
