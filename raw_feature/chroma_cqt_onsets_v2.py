@@ -11,7 +11,7 @@ from create_base import *
 def load_and_trim(path):
     audio, sr = librosa.load(path)
     energy = librosa.feature.rmse(audio)
-    frames = np.nonzero(energy >= np.max(energy) / 10)
+    frames = np.nonzero(energy >= np.max(energy) / 5)
     indices = librosa.core.frames_to_samples(frames)[1]
     audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
 
@@ -24,7 +24,7 @@ hop_length = 1048
 #chromagram = librosa.feature.chroma_cqt(y, sr=sr, hop_length=hop_length)
 chromagram = librosa.feature.chroma_cqt(y, sr=sr)
 # chromagram[11,:] = 1
-plt.figure(figsize=(4, 4))
+plt.figure(figsize=(15, 5))
 
 # 原始音色图
 # librosa.display.specshow(chromagram, x_axis='time', y_axis='chroma', cmap='coolwarm')
@@ -47,9 +47,9 @@ for x in range(len(c_max_diff)):
 
 for x in range(h):
     #img.item(x, c_max[x], 0)
-    img.itemset((c_max[x],x), 1)
-    img.itemset((c_max[x],x), 1)
-    img.itemset((c_max[x],x), 1)
+    img.itemset((c_max[x],x), 0.5)
+    img.itemset((c_max[x],x), 0.5)
+    img.itemset((c_max[x],x), 0.5)
 
 # 最强音色图
 # librosa.display.specshow(img, x_axis='time',  cmap='coolwarm')
@@ -85,14 +85,20 @@ for i,v in enumerate(onsets_base_frames[1:]):
     if v == 337:
         print('=====')
     for f in range(v0,v):
-        chromagram.itemset((pitch_v[i],f), -0.5)
-        chromagram.itemset((pitch_v[i],f), -0.5)
-        chromagram.itemset((pitch_v[i],f), -0.5)
+        if img.item(pitch_v[i],f) == 0.5:
+            img.itemset((pitch_v[i],f), 1)
+            img.itemset((pitch_v[i],f), 1)
+            img.itemset((pitch_v[i],f), 1)
+        else:
+            img.itemset((pitch_v[i], f), 0.8)
+            img.itemset((pitch_v[i], f), 0.8)
+            img.itemset((pitch_v[i], f), 0.8)
     v0 = v
 
 start_point = 0.02
 ds = onsets_base(code,time,start_point)
 print("ds is {}".format(ds))
 plt.vlines(ds, 0, sr, color='b', linestyle='solid')
-librosa.display.specshow(chromagram, x_axis='time',  cmap='coolwarm')
+librosa.display.specshow(img, x_axis='time',  cmap='coolwarm')
+#librosa.display.specshow(chromagram, x_axis='time',  cmap='coolwarm')
 plt.show()
