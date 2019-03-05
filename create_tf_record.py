@@ -323,7 +323,7 @@ if __name__ == '__main__':
     shuffle=True
     log=5
     # 产生train.record文件
-    image_dir='./onsets/train'
+    image_dir='./onsets/test'
     train_labels = './onsets/train.txt'  # 图片路径
     train_record_output = './onsets/record/train.tfrecords'
     create_records(image_dir,train_labels, train_record_output, resize_height, resize_width,shuffle,log)

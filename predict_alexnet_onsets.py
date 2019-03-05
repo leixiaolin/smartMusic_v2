@@ -40,6 +40,7 @@ def  predict(models_path,image_dir,labels_filename,labels_nums, data_format):
         #print("{} is: pre labels:{},name:{} score: {}".format(image_path, pre_label, labels[pre_label], max_score))
         if image_path.split(".jpg")[0].split("-")[2] == labels[pre_label]:
             score_total += 1
+            print("{} is predicted as label::{} ".format(image_path, labels[pre_label]))
         else:
             print("{} is predicted as label::{} ".format(image_path,labels[pre_label]))
 
@@ -50,7 +51,7 @@ def  predict(models_path,image_dir,labels_filename,labels_nums, data_format):
 if __name__ == '__main__':
 
     class_nums=4
-    image_dir='./onsets/val/D/'
+    image_dir='./onsets/val/A/'
     labels_filename='./onsets/label.txt'
     models_path='./models/onsets/alex/model.ckpt-10000'
 

@@ -1,6 +1,6 @@
 import os
 
-mp3_path = "F:/项目/花城音乐项目/样式数据/2.18MP3/"
+mp3_path = "F:/项目/花城音乐项目/样式数据/音乐样本2019-01-29/ALL节奏所有的/"
 save_path= 'F:/项目/花城音乐项目/样式数据/ALL/节奏/'
 
 mp3_file = os.listdir(mp3_path)

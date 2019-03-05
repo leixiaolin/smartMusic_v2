@@ -84,7 +84,7 @@ def get_files_list(dir):
 #     write_txt(val_data, val_txt, mode='w')
 
 if __name__ == '__main__':
-    train_dir = './onsets/train'
+    train_dir = './onsets/test'
     train_txt = './onsets/train.txt'
     train_data = get_files_list(train_dir)
     write_txt(train_data, train_txt, mode='w')

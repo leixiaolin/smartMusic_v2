@@ -10,6 +10,7 @@ import re
 import shutil
 from create_base import *
 from create_labels_files import *
+from myDtw import *
 
 score = 0
 save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
@@ -80,7 +81,11 @@ clear_dir(save_path,save_path)
 
 # 保存新文件名与原始文件的对应关系
 files_list = []
-
+files_list_a = []
+files_list_b = []
+files_list_c = []
+files_list_d = []
+new_old_txt = './onsets/best_dtw.txt'
 files = list_all_files(src_path)
 
 print(files)
@@ -115,11 +120,14 @@ for filename in files:
 
 
         # 标准节拍时间点
-        base_onsets = onsets_base(codes[type_index], duration, onstm[0])
-        print("base_onsets is {}".format(base_onsets))
         base_frames = onsets_base_frames(codes[type_index],total_frames_number)
         print("base_frames is {}".format(base_frames))
-        librosa.display.waveplot(y, sr=sr)
+
+        min_d, best_y = get_dtw_min(onsets_frames, base_frames, 25)
+        base_onsets = librosa.frames_to_time(best_y, sr=sr)
+        print("base_onsets is {}".format(base_onsets))
+
+        #librosa.display.waveplot(y, sr=sr)
         # plt.show()
         plt.vlines(onstm, -1 * np.max(y), np.max(y), color='b', linestyle='solid')
     plt.vlines(base_onsets[:-1],  -1*np.max(y),np.max(y), color='r', linestyle='dashed')
@@ -135,6 +143,8 @@ for filename in files:
     #plt.rcParams['savefig.dpi'] = 300  # 图片像素
     #plt.figure(figsize=(10, 10))
     #plt.rcParams['figure.dpi'] = 300  # 分辨率
+    dirname, filename = os.path.split(filename)
+
     if filename.find('标准') > 0:
         saveFileName = '100-A'
         savepath = save_path + 'A/'
@@ -153,27 +163,36 @@ for filename in files:
     if int(score) >=90:
         grade = 'A'
         savepath = save_path + 'A/'
+        files_list_a.append([filename.split('.wav')[0] + '-' + grade,min_d])
     elif int(score) >= 75:
         grade = 'B'
         savepath = save_path + 'B/'
+        files_list_b.append([filename.split('.wav')[0] + '-' + grade, min_d])
     elif int(score) >=60:
         grade = 'C'
         savepath = save_path + 'C/'
+        files_list_c.append([filename.split('.wav')[0] + '-' + grade, min_d])
     elif int(score) >=1:
         grade = 'D'
         savepath = save_path + 'D/'
+        files_list_d.append([filename.split('.wav')[0] + '-' + grade, min_d])
     else:
         grade = 'E'
         savepath = save_path + 'E/'
 
-    dirname, filename = os.path.split(filename)
-    #saveFileName = filename.split('.wav')[0] + '-' + grade
-    saveFileName = str(score) + '-' + grade
+
+    saveFileName = filename.split('.wav')[0] + '-' + grade
+    #saveFileName = str(score) + '-' + grade
     file_sum = os.listdir(savepath)
     #saveFileName = str(len(file_sum)+1) + '-' + filename.split(".wav")[0] + '-' + saveFileName
-    saveFileName = str(len(file_sum) + 1) + '-' + saveFileName
+    #saveFileName = str(len(file_sum) + 1) + '-' + saveFileName
     saveFileName = saveFileName
     plt.savefig(savepath + saveFileName + '.jpg',  bbox_inches='tight', pad_inches=0)
     plt.clf()
-    files_list.append([savepath + saveFileName + '.jpg', filename])
     saveFileName = ''
+
+t1 = np.vstack((files_list_a,files_list_b))
+t2 = np.vstack((files_list_c,files_list_d))
+
+files_list = np.vstack((t1,t2))
+write_txt(files_list, new_old_txt, mode='w')

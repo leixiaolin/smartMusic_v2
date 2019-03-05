@@ -50,7 +50,7 @@ def  predict(models_path,image_dir,labels_filename,labels_nums, data_format):
 if __name__ == '__main__':
 
     class_nums=4
-    image_dir='./onsets/val/A/'
+    image_dir='./onsets/test/B/'
     labels_filename='./onsets/label.txt'
     models_path='./models/onsets/resnet/model.ckpt-10000'
 

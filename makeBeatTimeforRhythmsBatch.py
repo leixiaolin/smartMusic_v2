@@ -84,6 +84,9 @@ for i in range(1,5):
                 librosa.display.waveplot(y, sr=sr)
                 #plt.show()
                 plt.vlines(onstm,  -1*np.max(y),np.max(y), color='b', linestyle='solid')
+
+            CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+            librosa.display.specshow(CQT)
             #plt.ylabel('Frequency')
             #plt.xlabel('Time(s)')
             #plt.show()
