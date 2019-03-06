@@ -49,6 +49,19 @@ def get_total_frames_number(path):
 
     return total
 
+def check_three_hit(onsets_frames,base_frames):
+    result = 0
+    all = np.hstack((onsets_frames,base_frames))
+    all.sort()
+    for i in range(1,len(all)-1):
+        if (all[i] in onsets_frames and all[i-1] in onsets_frames and all[i+1] in onsets_frames \
+            and all[i] not in base_frames and all[i-1] not in base_frames and all[i+1] not in base_frames)\
+            or (all[i]  in base_frames and all[i-1] in base_frames and all[i+1] in base_frames\
+            and all[i] not in onsets_frames and all[i-1] not in onsets_frames and all[i+1] not in onsets_frames):
+            result = 1
+            break
+    return str(result)
+
 def list_all_files(rootdir):
     import os
     _files = []
@@ -90,6 +103,7 @@ files = list_all_files(src_path)
 
 print(files)
 index = 0
+#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40303（100）.wav']
 for filename in files:
     print(filename)
     if filename.find('wav') <= 0:
@@ -123,15 +137,21 @@ for filename in files:
         base_frames = onsets_base_frames(codes[type_index],total_frames_number)
         print("base_frames is {}".format(base_frames))
 
-        min_d, best_y = get_dtw_min(onsets_frames, base_frames, 25)
+        min_d, best_y = get_dtw_min(onsets_frames, base_frames, 35)
         base_onsets = librosa.frames_to_time(best_y, sr=sr)
         print("base_onsets is {}".format(base_onsets))
+
+        #节拍数之差
+        diff_real_base = len(onsets_frames) - len(base_frames)
+
+        #判断是否有未吻合的三连节拍,1是有，0是无
+        three_hit = check_three_hit(onsets_frames, best_y)
 
         #librosa.display.waveplot(y, sr=sr)
         # plt.show()
         plt.vlines(onstm, -1 * np.max(y), np.max(y), color='b', linestyle='solid')
-    plt.vlines(base_onsets[:-1],  -1*np.max(y),np.max(y), color='r', linestyle='dashed')
-    plt.vlines(base_onsets[-1],  -1*np.max(y),np.max(y), color='white', linestyle='dashed')
+    plt.vlines(base_onsets,  -1*np.max(y),np.max(y), color='r', linestyle='dashed')
+    #plt.vlines(base_onsets[-1],  -1*np.max(y),np.max(y), color='white', linestyle='dashed')
     #plt.show()
     fig = matplotlib.pyplot.gcf()
     fig.set_size_inches(4, 4)
@@ -163,19 +183,19 @@ for filename in files:
     if int(score) >=90:
         grade = 'A'
         savepath = save_path + 'A/'
-        files_list_a.append([filename.split('.wav')[0] + '-' + grade,min_d])
+        files_list_a.append([filename.split('.wav')[0] + '-' + grade,min_d,diff_real_base,three_hit])
     elif int(score) >= 75:
         grade = 'B'
         savepath = save_path + 'B/'
-        files_list_b.append([filename.split('.wav')[0] + '-' + grade, min_d])
+        files_list_b.append([filename.split('.wav')[0] + '-' + grade, min_d,diff_real_base,three_hit])
     elif int(score) >=60:
         grade = 'C'
         savepath = save_path + 'C/'
-        files_list_c.append([filename.split('.wav')[0] + '-' + grade, min_d])
+        files_list_c.append([filename.split('.wav')[0] + '-' + grade, min_d,diff_real_base,three_hit])
     elif int(score) >=1:
         grade = 'D'
         savepath = save_path + 'D/'
-        files_list_d.append([filename.split('.wav')[0] + '-' + grade, min_d])
+        files_list_d.append([filename.split('.wav')[0] + '-' + grade, min_d,diff_real_base,three_hit])
     else:
         grade = 'E'
         savepath = save_path + 'E/'
@@ -187,7 +207,7 @@ for filename in files:
     #saveFileName = str(len(file_sum)+1) + '-' + filename.split(".wav")[0] + '-' + saveFileName
     #saveFileName = str(len(file_sum) + 1) + '-' + saveFileName
     saveFileName = saveFileName
-    plt.savefig(savepath + saveFileName + '.jpg',  bbox_inches='tight', pad_inches=0)
+    plt.savefig(savepath + saveFileName+ '_'+ str(min_d) + '.jpg',  bbox_inches='tight', pad_inches=0)
     plt.clf()
     saveFileName = ''
 

@@ -82,7 +82,7 @@ def onsets_base_frames(code,frames_number):
         else:
             off -= int(r)
 
-    ds.append(frames_number)
+    #ds.append(frames_number)
     return ds
 
 def get_min_max_total(s):
