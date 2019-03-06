@@ -3,7 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 #filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏一/节奏1.100分.wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律一（8）(90).wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/2.2MP3/旋律一（8）(90).wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2林(20).wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4卢(65).wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏一/节奏1.100分.wav'
 
 def load_and_trim(path):
     audio, sr = librosa.load(path)

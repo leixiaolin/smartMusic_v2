@@ -10,7 +10,8 @@ filepath = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节
 #filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏8.40分.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（11）（60）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（1）(90).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏五/节奏5.20分.wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏五/节奏5.20分.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2.4(90).wav'
 # 2. Load the audio as a waveform `y`
 #    Store the sampling rate as `sr`z
 
@@ -29,7 +30,7 @@ codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
 def load_and_trim(path):
     audio, sr = librosa.load(path)
     energy = librosa.feature.rmse(audio)
-    frames = np.nonzero(energy >= np.max(energy) / 10)
+    frames = np.nonzero(energy >= np.max(energy) / 5)
     indices = librosa.core.frames_to_samples(frames)[1]
     audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
 
