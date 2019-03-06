@@ -278,7 +278,12 @@ def get_onsets_by_all(y,sr):
         if first_frame == 0:
             first_frame = 1
         result.insert(0, first_frame)
-    return  result
+    result_strength  ={}
+
+    for x in result:
+        max1 = np.max([onset_env_v1[x]/np.max(onset_env_v1), onset_env_v2[x]/np.max(onset_env_v2), onset_env_v3[x]/np.max(onset_env_v3)])
+        result_strength[x] = max1
+    return  result,result_strength
 
 '''
   结合三种特征（onset_strength、onset_strength_median、CQT）,通过阀值来提取节拍点,

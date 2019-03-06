@@ -103,7 +103,8 @@ files = list_all_files(src_path)
 
 print(files)
 index = 0
-#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40303（100）.wav']
+# 测试单个文件
+#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1（三）(95).wav']
 for filename in files:
     print(filename)
     if filename.find('wav') <= 0:
@@ -118,7 +119,7 @@ for filename in files:
     total_frames_number = get_total_frames_number(filename)
     if len(y) > 0:
         #onsets_frames = get_real_onsets_frames(y)
-        onsets_frames = get_onsets_by_all(y,sr)
+        onsets_frames,onsets_frames_strength = get_onsets_by_all(y,sr)
         #onsets_frames = get_onsets_by_all_v2(y, sr,len(codes[type_index])+2)
         if len(onsets_frames) < 3:
             continue
@@ -137,7 +138,7 @@ for filename in files:
         base_frames = onsets_base_frames(codes[type_index],total_frames_number)
         print("base_frames is {}".format(base_frames))
 
-        min_d, best_y = get_dtw_min(onsets_frames, base_frames, 35)
+        min_d, best_y = get_dtw_min(onsets_frames, base_frames, 65)
         base_onsets = librosa.frames_to_time(best_y, sr=sr)
         print("base_onsets is {}".format(base_onsets))
 
