@@ -417,26 +417,26 @@ def get_real_onsets_frames_rhythm(y):
     return onsets_frames
 
 def get_onsets_index_by_filename(filename):
-    if filename.find("节奏1") > 0 or filename.find("节奏一") > 0 or filename.find("节奏题一") > 0 or filename.find("节奏题1") > 0:
+    if filename.find("节奏1") >= 0 or filename.find("节奏一") >= 0 or filename.find("节奏题一") >= 0 or filename.find("节奏题1") >= 0:
         return 0
-    elif filename.find("节奏2") > 0 or filename.find("节奏二") > 0 or filename.find("节奏题二") > 0 or filename.find("节奏题2") > 0:
-        return 0
-    elif filename.find("节奏3") > 0 or filename.find("节奏三") > 0 or filename.find("节奏题三") > 0 or filename.find("节奏题3") > 0:
-        return 0
-    elif filename.find("节奏4") > 0 or filename.find("节奏四") > 0 or filename.find("节奏题四") > 0 or filename.find("节奏题4") > 0:
-        return 0
-    elif filename.find("节奏5") > 0 or filename.find("节奏五") > 0 or filename.find("节奏题五") > 0 or filename.find("节奏题5") > 0:
-        return 0
-    elif filename.find("节奏6") > 0 or filename.find("节奏六") > 0 or filename.find("节奏题六") > 0 or filename.find("节奏题6") > 0:
-        return 0
-    elif filename.find("节奏7") > 0 or filename.find("节奏七") > 0 or filename.find("节奏题七") > 0 or filename.find("节奏题7") > 0:
-        return 0
-    elif filename.find("节奏8") > 0 or filename.find("节奏八") > 0 or filename.find("节奏题八") > 0 or filename.find("节奏题8") > 0:
-        return 0
-    elif filename.find("节奏9") > 0 or filename.find("节奏九") > 0 or filename.find("节奏题九") > 0 or filename.find("节奏题9") > 0:
-        return 0
-    elif filename.find("节奏10") > 0 or filename.find("节奏十") > 0 or filename.find("节奏题十") > 0 or filename.find("节奏题10") > 0:
-        return 0
+    elif filename.find("节奏2") >= 0 or filename.find("节奏二") >= 0 or filename.find("节奏题二") >= 0 or filename.find("节奏题2") >= 0:
+        return 1
+    elif filename.find("节奏3") >= 0 or filename.find("节奏三") >= 0 or filename.find("节奏题三") >= 0 or filename.find("节奏题3") >= 0:
+        return 2
+    elif filename.find("节奏4") >= 0 or filename.find("节奏四") >= 0 or filename.find("节奏题四") >= 0 or filename.find("节奏题4") >= 0:
+        return 3
+    elif filename.find("节奏5") >= 0 or filename.find("节奏五") >= 0 or filename.find("节奏题五") >= 0 or filename.find("节奏题5") >= 0:
+        return 4
+    elif filename.find("节奏6") >= 0 or filename.find("节奏六") >= 0 or filename.find("节奏题六") >= 0 or filename.find("节奏题6") >= 0:
+        return 5
+    elif filename.find("节奏7") >= 0 or filename.find("节奏七") >= 0 or filename.find("节奏题七") >= 0 or filename.find("节奏题7") >= 0:
+        return 6
+    elif filename.find("节奏8") >= 0 or filename.find("节奏八") >= 0 or filename.find("节奏题八") >= 0 or filename.find("节奏题8") >= 0:
+        return 7
+    elif filename.find("节奏9") >= 0 or filename.find("节奏九") >= 0 or filename.find("节奏题九") >= 0 or filename.find("节奏题9") >= 0:
+        return 8
+    elif filename.find("节奏10") >= 0 or filename.find("节奏十") >= 0 or filename.find("节奏题十") >= 0 or filename.find("节奏题10") >= 0:
+        return 9
     else:
         return -1
 
