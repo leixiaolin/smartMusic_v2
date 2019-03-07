@@ -209,7 +209,7 @@ def get_onsets_by_all(y,sr):
     gap1 = 0.5
     gap2 = 0.5
     gap3 = 0.75
-    gap4 = 10
+    gap4 = 5
     onset_env_v1 = librosa.onset.onset_strength(y=y, sr=sr)
     max_onset_env_v1 = [x if onset_env_v1[i] > onset_env_v1[i - 1] and onset_env_v1[i] > onset_env_v1[i + 1] and onset_env_v1[i] > np.max(
         onset_env_v1) * gap1 else 0 for i, x in enumerate(onset_env_v1[1:-1])]
@@ -269,8 +269,8 @@ def get_onsets_by_all(y,sr):
             if max1 >= max2:
                 continue
             else:
-                result.pop()
-                result.append(all_onset[i+1])
+                tmp = result.pop()
+                result.append(tmp + int((all_onset[i+1] - tmp)/2))
     print("all_onset is {}".format(result))
     # 获取起始点
     first_frame = get_bigin(y, result[0])
