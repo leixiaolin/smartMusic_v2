@@ -270,7 +270,8 @@ def get_onsets_by_all(y,sr):
                 continue
             else:
                 tmp = result.pop()
-                result.append(tmp + int((all_onset[i+1] - tmp)/2))
+                #result.append(tmp + int((all_onset[i+1] - tmp)/2))
+                result.append(all_onset[i+1])
     print("all_onset is {}".format(result))
     # 获取起始点
     first_frame = get_bigin(y, result[0])
