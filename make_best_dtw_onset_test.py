@@ -16,10 +16,10 @@ from grade import *
 
 
 score = 0
-# save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
-# src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
-save_path = './onsets/test'
-src_path = './onsets/mp3/2.27节奏'
+save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
+src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
+#save_path = './onsets/test'
+#src_path = './onsets/mp3/2.27节奏'
 
 # save_path = ''
 tmp = ['A','B','C','D','E']
@@ -113,7 +113,7 @@ files = list_all_files(src_path)
 print(files)
 index = 0
 # 测试单个文件
-#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1（三）(95).wav']
+#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏六（5）（80）.wav']
 for filename in files:
     print(filename)
     if filename.find('wav') <= 0:
@@ -136,20 +136,21 @@ for filename in files:
 
         print("onsets_frames is {}".format(onsets_frames))
 
-        # 节拍时间点
-        onstm = librosa.frames_to_time(onsets_frames, sr=sr)
-        print("onstm is {}".format(onstm))
-        duration = librosa.get_duration(y, sr=sr)  # 获取音频时长
-        #print("duration is {}".format(duration))
 
 
         # 标准节拍时间点
         base_frames = onsets_base_frames(codes[type_index],total_frames_number)
         print("base_frames is {}".format(base_frames))
 
-        min_d, best_y = get_dtw_min(onsets_frames, base_frames, 65)
+        min_d, best_y,onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
         base_onsets = librosa.frames_to_time(best_y, sr=sr)
         print("base_onsets is {}".format(base_onsets))
+
+        # 节拍时间点
+        onstm = librosa.frames_to_time(onsets_frames, sr=sr)
+        print("onstm is {}".format(onstm))
+        duration = librosa.get_duration(y, sr=sr)  # 获取音频时长
+        #print("duration is {}".format(duration))
 
         #节拍数之差
         diff_real_base = len(onsets_frames) - len(base_frames)

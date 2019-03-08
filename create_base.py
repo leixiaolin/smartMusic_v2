@@ -7,6 +7,17 @@ import math
 pitch_base = ['C','D','E','F','G','A','B']
 pitch_number = ['1','2','3','4','5','6','7']
 pitch_v = [0,2,4,5,7,9,11]
+
+def load_and_trim(path):
+    audio, sr = librosa.load(path)
+    energy = librosa.feature.rmse(audio)
+    frames = np.nonzero(energy >= np.max(energy) / 5)
+    indices = librosa.core.frames_to_samples(frames)[1]
+    audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
+
+    return audio, sr
+
+
 def get_basetime(s):
     if s is None or len(s) < 1:
         print("input is empty")
@@ -440,6 +451,15 @@ def get_onsets_index_by_filename(filename):
         return 9
     else:
         return -1
+
+def get_total_frames_number(path):
+    audio, sr = librosa.load(path)
+    energy = librosa.feature.rmse(audio)
+    frames = np.nonzero(energy >= np.max(energy) / 5)
+
+    total = frames[1][-1]
+
+    return total
 
 
 if __name__ == '__main__':
