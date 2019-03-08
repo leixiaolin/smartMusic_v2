@@ -21,18 +21,20 @@ def get_dtw_min(x,y,move_range):
     min_d = 1000000
     min_index = 0
     best_y = y
+    if x[-1] - x[0] < y[-1] - y[0] and x[-1] < y[-1]: # 需要移动实唱线的情况
+        x = [m + y[-1] - x[-1] for m in x]
     for i in np.arange(0, move_range):
         y2 = [j + i for j in y]
-        print("y2 is {}".format(y2))
+        #print("y2 is {}".format(y2))
         d, cost_matrix, acc_cost_matrix, path = dtw(x, y2, dist=euclidean_norm)
         ds.append(d)
         if d < min_d:
             min_index = i
             min_d = d
             best_y = y2
-        print("d is {}".format(d))
+        #print("d is {}".format(d))
     print("best index is {}".format(min_index))
-    return round(min_d, 2),best_y
+    return round(min_d, 2),best_y,x
 
 # You can also visualise the accumulated cost and the shortest path
 import matplotlib.pyplot as plt
@@ -41,5 +43,5 @@ import matplotlib.pyplot as plt
 # plt.plot(path[0], path[1], 'w')
 # plt.show()
 
-min_d,best_y = get_dtw_min(x,y,5)
-print("min_d,best_y is {},{}".format(min_d,best_y))
+#min_d,best_y = get_dtw_min(x,y,5)
+#print("min_d,best_y is {},{}".format(min_d,best_y))
