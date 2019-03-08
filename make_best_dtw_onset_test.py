@@ -11,13 +11,22 @@ import shutil
 from create_base import *
 from create_labels_files import *
 from myDtw import *
+from find_mismatch import *
+from grade import *
+
 
 score = 0
-save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
-src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
+# save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
+# src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
+save_path = './onsets/test'
+src_path = './onsets/mp3/2.27节奏'
+
+# save_path = ''
 tmp = ['A','B','C','D','E']
-dis_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test'
-scr_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test'
+# dis_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test'
+# scr_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test'
+dis_dir = ''
+
 new_old_txt = './rhythm/new_and_old.txt'
 codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
                   '[2000;1000,1000;500,500,1000;2000]',
@@ -217,3 +226,9 @@ t2 = np.vstack((files_list_c,files_list_d))
 
 files_list = np.vstack((t1,t2))
 write_txt(files_list, new_old_txt, mode='w')
+
+# 先获取多唱漏唱的情况
+
+
+
+
