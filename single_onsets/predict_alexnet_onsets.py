@@ -38,11 +38,11 @@ def  predict(models_path,image_dir,labels_filename,labels_nums, data_format):
         pre_score,pre_label = sess.run([score,class_id], feed_dict={input_images:im})
         max_score=pre_score[0,pre_label]
         #print("{} is: pre labels:{},name:{} score: {}".format(image_path, pre_label, labels[pre_label], max_score))
-        if image_path.split(".jpg")[0].split("-")[2] == labels[pre_label]:
-            score_total += 1
-            print("{} is predicted as label::{} ".format(image_path, labels[pre_label]))
-        else:
-            print("{} is predicted as label::{} ".format(image_path,labels[pre_label]))
+        # if int(image_path.split(".jpg")[0].split("-")[1]) == pre_label[0]:
+        #     score_total += 1
+        #     print("{} is predicted as label::{} ".format(image_path, labels[pre_label]))
+        # else:
+        #     print("{} is predicted as label::{} ".format(image_path,labels[pre_label]))
 
     print("valuation accuracy is {}".format(score_total/len(images_list)))
     sess.close()
@@ -50,10 +50,10 @@ def  predict(models_path,image_dir,labels_filename,labels_nums, data_format):
 
 if __name__ == '__main__':
 
-    class_nums=4
-    image_dir='./onsets/val/A/'
-    labels_filename='./onsets/label.txt'
-    models_path='./models/onsets/alex/model.ckpt-10000'
+    class_nums=2
+    image_dir='./data/test/'
+    labels_filename='./data/label.txt'
+    models_path='./models/alex/model.ckpt-10000'
 
     batch_size = 1  #
     resize_height = 224  # 指定存储图片高度
