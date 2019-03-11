@@ -18,23 +18,10 @@ import cv2
 import os
 import glob
 import slim.nets.alexnet as alaxnet
-
+import os
 from create_tf_record import *
 import tensorflow.contrib.slim as slim
 
-#savepath = 'e:/test_image/'
-savepath = './single_onsets/data/test/'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1.3(95).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1（二）(100).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40227（100）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1林(70).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2_40314（100）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2_40409（98）.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2林(25).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2语(85).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏10_40411（85）.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏10-04（80）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏九（2）（95）.wav'
 
 
 def clear_dir(dis_dir):
@@ -51,7 +38,7 @@ def load_and_trim(path):
 
     return audio, sr
 
-def get_single_onsets(filename):
+def get_single_onsets(filename,curr_num):
     y, sr = librosa.load(filename)
     #librosa.display.waveplot(y, sr=sr)
     #onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
@@ -89,10 +76,11 @@ def get_single_onsets(filename):
         plt.axis('off')
         plt.axes().get_xaxis().set_visible(False)
         plt.axes().get_yaxis().set_visible(False)
-        plt.savefig(savepath + str(i+1) + '.jpg', bbox_inches='tight', pad_inches=0)
+        plt.savefig(savepath + str(curr_num) + '.png', bbox_inches='tight', pad_inches=0)
         plt.clf()
+        curr_num += 1
     #plt.show()
-    return onset_frames,onsets_frames_strength
+    return onset_frames,onsets_frames_strength,curr_num
 
 def  predict(image_dir,onset_frames,onsets_frames_strength,models_path):
     class_nums = 2
@@ -146,22 +134,54 @@ def  predict(image_dir,onset_frames,onsets_frames_strength,models_path):
     return onsets,onsets_strength
 
 if __name__ ==  '__main__':
-
+    # savepath = 'e:/test_image/'
+    savepath = './single_onsets/data/test/'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1.3(95).wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1（二）(100).wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40227（100）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1林(70).wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2_40314（100）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2_40409（98）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2林(25).wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2语(85).wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏10_40411（85）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏10-04（80）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏九（2）（95）.wav'
     labels_filename = './single_onsest/data/label.txt'
     models_path = './single_onsets/models/alex/model.ckpt-10000'
 
     # 清空文件夹
     image_dir = './single_onsets/data/test'
-    clear_dir(image_dir)
-    onset_frames, onsets_frames_strength = get_single_onsets(filename)
-    print("onset_frames,onsets_frames_strength is {},{}".format(onset_frames,onsets_frames_strength))
-    if onset_frames:
-        onsets, onsets_strength = predict(image_dir,onset_frames,onsets_frames_strength,models_path)
-        print("onsets, onsets_strength is {},{}".format(onsets, onsets_strength))
-        y, sr = librosa.load(filename)
-        librosa.display.waveplot(y, sr=sr)
-        onsets_time = librosa.frames_to_time(onsets, sr=sr)
-        onset_frames_time = librosa.frames_to_time(onset_frames,sr = sr)
-        plt.vlines(onsets_time, -1 * np.max(y), np.max(y), color='r', linestyle='solid')
-        plt.vlines(onset_frames_time, -1 * np.max(y), np.max(y), color='b', linestyle='dashed')
-        plt.show()
+    if not os.path.exists(image_dir):
+        os.mkdir(image_dir)
+    # clear_dir(image_dir)
+
+    '''
+    一次性自动生成所有图片
+    '''
+    # 要切割的文件路径列表
+    dir_list = ['./mp3/2.18WAV/','./mp3/2.27WAV/']
+    # 每个文件夹下要处理的图片数量（超过最大会按最大值处理）
+    num = 200
+    # 文件名计数
+    curr_num = 1
+    for dir in dir_list:
+        file_list = os.listdir(dir)
+        if num > len(file_list):
+            num = len(file_list)
+        for i in range(0,num):
+            onset_frames, onsets_frames_strength,curr_num = get_single_onsets(dir+file_list[i],curr_num)
+            print("onset_frames,onsets_frames_strength is {},{}".format(onset_frames,onsets_frames_strength))
+
+
+
+    # if onset_frames:
+    #     onsets, onsets_strength = predict(image_dir,onset_frames,onsets_frames_strength,models_path)
+    #     print("onsets, onsets_strength is {},{}".format(onsets, onsets_strength))
+    #     y, sr = librosa.load(filename)
+    #     librosa.display.waveplot(y, sr=sr)
+    #     onsets_time = librosa.frames_to_time(onsets, sr=sr)
+    #     onset_frames_time = librosa.frames_to_time(onset_frames,sr = sr)
+    #     plt.vlines(onsets_time, -1 * np.max(y), np.max(y), color='r', linestyle='solid')
+    #     plt.vlines(onset_frames_time, -1 * np.max(y), np.max(y), color='b', linestyle='dashed')
+    #     plt.show()
