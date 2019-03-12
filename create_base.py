@@ -3,6 +3,7 @@ import librosa
 import matplotlib.pyplot as plt
 import re
 import math
+from viterbi import *
 
 pitch_base = ['C','D','E','F','G','A','B']
 pitch_number = ['1','2','3','4','5','6','7']
@@ -461,6 +462,11 @@ def get_total_frames_number(path):
 
     return total
 
+def get_onset_rmse_viterbi(y,silence_threshold):
+    times, states = get_viterbi_state(y, silence_threshold)
+    states_diff = np.diff(states)
+    result = [i for i, x in enumerate(states_diff) if x == 1]
+    return times,result
 
 if __name__ == '__main__':
     start_point = 0.2
