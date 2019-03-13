@@ -4,7 +4,38 @@ import matplotlib.pyplot as plt
 import re
 import math
 from viterbi import *
+from note_frequency import *
 
+codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
+                  '[2000;1000,1000;500,500,1000;2000]',
+                  '[1000,1000;500,500,1000;1000,1000;2000]',
+                  '[1000,--(1000);1000,--(1000);500,250,250,1000;--(1000),1000]',
+                  '[500;1000,500,1000,500;500,500,500,250,250,500,500;250,250,500,500,1000]',
+                  '[1000,--(1000);1000,--(1000);1000,-(500),500;1000,1000]',
+                  '[750,250,500,500,500,-(500);500,1000,500,500,-(500);750,250,500,500,500,-(500)]',
+                  '[500,1000,500,500,250,250;1000,500,750,250,500;3000]',
+                  '[500,500,500;1000,500;500,500,500;1500;500,500,500;1000,500;500;1000;1500]',
+                  '[500,500,1000;500,500;1000;375,125,250,250,375,125,250,250;500,500,1000]'])
+note_codes = np.array(['[3,3,3,3,3,3,3,5,1,2,3]',
+                       '[5,5,3,2,1,2,5,3,2]',
+                       '[5,5,3,2,1,2,2,3,2,6,5]',
+                       '[5,1,7,1,2,1,7,6,5,2,4,3,6,5]',
+                       '[3,6,7,1,2,1,7,6,3]',
+                       '[1,7,1,2,3,2,1,7,6,7,1,2,7,1,7,1,12,1]',
+                       '[5,6,1,6,2,3,1,6,5]',
+                       '[5,5,6,5,6,5,1,3,0,2,2,5,2,1]',
+                       '[3,2,1,2,1,1,2,3,4,5,3,6,5,5,3]',
+                       '[3,4,5,1,7,6,5]'])
+rhythm_codes = np.array(['[500,500,1000;500,500,1000;500,500,750,250;2000]',
+                        '[1000,1000;500,500,1000;1000,500,500; 2000]',
+                        '[1000,1000;500,500,1000;500,250,250,250;2000]',
+                        '[500,1000,500;250,250,250,250,500,500;500,500,500,500;2000]',
+                        '[1000;500,500,1000;500,500,500,500;2000]',
+                        '[500;500,500,500,500;500,500,500,500;500,500,500,500;250,250,250,250,500]',
+                        '[1000,750,250,2000;500,500,500,500,2000]',
+                        '[1000,1000,1000,500,500;1000,1000,1000,--(1000);250,750,1000,1000;1000,4000]',
+                        '[1500,500,500,500;2500,500;1000,500,500,500,500;2500,500]',
+                        '[500,500;1500,500,500,500;2000]'])
 pitch_base = ['C','D','E','F','G','A','B']
 pitch_number = ['1','2','3','4','5','6','7']
 pitch_v = [0,2,4,5,7,9,11]
@@ -429,6 +460,54 @@ def get_real_onsets_frames_rhythm(y):
     onsets_frames = onsets_frames_new
     return onsets_frames
 
+def get_onsets_frames_by_cqt_for_rhythm(y,sr):
+    gap4 = 15
+    cqt_gap = 0.3
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr,
+                                             aggregate=np.median,
+                                             fmax=8000, n_mels=512)
+    # print("onset_env is {}".format(onset_env))
+    max_onset_env = [x if onset_env[i] > onset_env[i - 1] and onset_env[i] > onset_env[i + 1] and onset_env[i] > np.max(
+        onset_env) * cqt_gap else 0 for i, x in enumerate(onset_env[1:-1])]
+    max_onset_env.append(0)
+    max_onset_env.insert(0, 0)
+    max_onset_env_index = [i for i, x in enumerate(onset_env[1:-1]) if
+                           onset_env[i] > onset_env[i - 1] and onset_env[i] > onset_env[i + 1] and onset_env[
+                               i] > np.max(onset_env) * cqt_gap]
+    print("max_onset_env_index is {}".format(max_onset_env_index))
+
+    all_onset = []
+    all_onset = np.hstack((all_onset, max_onset_env_index))
+    news_ids = []
+    for id in all_onset:
+        if id not in news_ids:
+            news_ids.append(int(id))
+    all_onset = news_ids
+    all_onset.sort()
+    all_onset_diff = np.diff(all_onset)
+
+    result = [all_onset[0]]
+    for i, v in enumerate(all_onset_diff):
+        if v > gap4:
+            result.append(all_onset[i + 1])
+        else:
+            max1 = max_onset_env[i]
+            max2 = max_onset_env[i + 1]
+            if max1 >= max2:
+                continue
+            else:
+                result.pop()
+                result.append(all_onset[i + 1])
+    print("all_onset is {}".format(result))
+    # 获取起始点
+    first_frame = get_bigin(y, result[0])
+    if first_frame < result[0]:
+        if first_frame == 0:
+            first_frame = 1
+        result.insert(0, first_frame)
+    return result
+
+
 def get_onsets_index_by_filename(filename):
     if filename.find("节奏1") >= 0 or filename.find("节奏一") >= 0 or filename.find("节奏题一") >= 0 or filename.find("节奏题1") >= 0:
         return 0
@@ -468,6 +547,50 @@ def get_onset_rmse_viterbi(y,silence_threshold):
     result = [i for i, x in enumerate(states_diff) if x == 1]
     return times,result
 
+def get_nearly_note(input,step):
+    for x in range(0,len(input),step):
+        min_gap = 10000
+        if np.abs(input[x] - const.do) < min_gap:
+            min = const.do
+            min_gap = np.abs(input[x] - const.do)
+        if np.abs(input[x] - const.do_up) < min_gap:
+            min = const.do_up
+            min_gap = np.abs(input[x] - const.do_up)
+        if np.abs(input[x] - const.re) < min_gap:
+            min = const.re
+            min_gap = np.abs(input[x] - const.re)
+        if np.abs(input[x] - const.re_up) < min_gap:
+            min = const.re_up
+            min_gap = np.abs(input[x] - const.re_up)
+        if np.abs(input[x] - const.mi) < min_gap:
+            min = const.mi
+            min_gap = np.abs(input[x] - const.mi)
+        if np.abs(input[x] - const.fa) < min_gap:
+            min = const.fa
+            min_gap = np.abs(input[x] - const.fa)
+        if np.abs(input[x] - const.fa_up) < min_gap:
+            min = const.fa_up
+            min_gap = np.abs(input[x] - const.fa_up)
+        if np.abs(input[x] - const.so) < min_gap:
+            min = const.so
+            min_gap = np.abs(input[x] - const.so)
+        if np.abs(input[x] - const.so_up) < min_gap:
+            min = const.so_up
+            min_gap = np.abs(input[x] - const.so_up)
+        if np.abs(input[x] - const.la) < min_gap:
+            min = const.la
+            min_gap = np.abs(input[x] - const.la)
+        if np.abs(input[x] - const.la_up) < min_gap:
+            min = const.la_up
+            min_gap = np.abs(input[x] - const.la_up)
+        if np.abs(input[x] - const.xi) < min_gap:
+            min = const.xi
+            min_gap = np.abs(input[x] - const.xi)
+        start = x
+        end = np.min([x + step,len(input)])
+
+        input[start:end] = min
+    return input
 if __name__ == '__main__':
     start_point = 0.2
     time = 6.45
