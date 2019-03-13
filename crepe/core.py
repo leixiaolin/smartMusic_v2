@@ -153,7 +153,7 @@ def to_viterbi_cents(salience):
                      range(len(observations))])
 
 
-def get_activation(audio, sr, model_capacity='small', center=True, step_size=10,
+def get_activation(audio, sr, model_capacity='full', center=True, step_size=10,
                    verbose=1):
     """
     
@@ -212,7 +212,7 @@ def get_activation(audio, sr, model_capacity='small', center=True, step_size=10,
     return model.predict(frames, verbose=verbose)
 
 
-def predict(audio, sr, model_capacity='small',
+def predict(audio, sr, model_capacity='full',
             viterbi=False, center=True, step_size=10, verbose=1):
     """
     Perform pitch estimation on given audio
@@ -270,7 +270,7 @@ def predict(audio, sr, model_capacity='small',
     return time, frequency, confidence, activation
 
 
-def process_file(file, output=None, model_capacity='small', viterbi=False,
+def process_file(file, output=None, model_capacity='full', viterbi=False,
                  center=True, save_activation=False, save_plot=False,
                  plot_voicing=False, step_size=10, verbose=True):
     """
