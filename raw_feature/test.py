@@ -11,11 +11,12 @@ filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01�
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1.1(95).wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2（四）(96).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2卢(98).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.3(55).wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2卢(98).wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1.1(95).wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.3(55).wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（10）（75）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（8）（100）.wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（8）（100）.wav'
 
 
 sr, audio = wavfile.read(filename)
@@ -31,6 +32,15 @@ frequency = ArithmeticAverage(frequency.copy(), step)
 
 frequency = expand_output(frequency,step,len)
 frequency = get_nearly_note(frequency,step)
+plt.axhline(y=262,color='r',linestyle='dashed')
+plt.axhline(y=294,color='r',linestyle='dashed')
+plt.axhline(y=330,color='r',linestyle='dashed')
+plt.axhline(y=349,color='r',linestyle='dashed')
+plt.axhline(y=392,color='r',linestyle='dashed')
+plt.axhline(y=440,color='r',linestyle='dashed')
+plt.axhline(y=494,color='r',linestyle='dashed')
 plt.plot(time,frequency)
+plt.ylim(200,500)
+
 plt.show()
 print(frequency)

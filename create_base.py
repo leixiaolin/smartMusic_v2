@@ -128,6 +128,172 @@ def onsets_base_frames(code,frames_number):
     #ds.append(frames_number)
     return ds
 
+def onsets_base_frames_rhythm(index,frames_number):
+    result = get_basetime(rhythm_codes[index])
+    print(result)
+    total = 0
+    for r in result:
+        if int(r) > 0:  # 不是空音
+            total += int(r)
+        else:
+            total -= int(r)
+
+    off = 0  # 累积时长，用于计算后面每个节拍点的位置
+    ds = []
+    for i, r in enumerate(result):
+        if int(r) > 0:  # 不是空音
+            ds.append(math.ceil(frames_number * off / total))
+            off += int(r)
+        else:
+            off -= int(r)
+
+    #ds.append(frames_number)
+    return ds
+
+'''
+找波峰
+'''
+def get_next_peak(y):
+    index = -1
+    y_diff = np.diff(y)
+    for i in range(len(y_diff)):
+        if y_diff[i] >= 0 and y_diff[i+1] < 0:
+            index = i + 1
+            break
+    return index
+
+'''
+找波谷
+'''
+def get_next_trough(y):
+    index = -1
+    y_diff = np.diff(y)
+    for i in range(len(y_diff)-1):
+        if y_diff[i] <= 0 and y_diff[i+1] > 0:
+            index = i + 1
+            break
+    return index
+
+'''
+找所有波峰
+'''
+def get_all_peak(y):
+    points = []
+    start = 0
+    next_peak = get_next_peak(y)
+    if next_peak < 0:
+        return points
+    while start < len(y):
+        start += next_peak
+        points.append(start)
+        next_peak = get_next_peak(y[start + 1:])
+        if next_peak < 0:
+            break
+    return points
+
+'''
+根据波峰找出所有的节拍起始点
+'''
+def get_all_onsets_starts(rms):
+    points = []
+    peak_points = get_all_peak(rms)
+    if peak_points:
+        peak_points_time = librosa.frames_to_time(peak_points)
+        # plt.vlines(peak_points_time, 0,np.max(rms), color='r', linestyle='dashed')
+    trough_points = get_all_trough(rms)
+    # trough_points.sort()
+    # trough_points = np.sort(trough_points, axis=None)
+    if trough_points:
+        trough_points_time = librosa.frames_to_time(trough_points)
+        # plt.vlines(trough_points_time, 0,np.max(rms), color='b', linestyle='dashed')
+    all_points = np.hstack((peak_points, trough_points))
+    all_points = list(set(all_points))
+    all_points.sort()
+    print("all_points is {}".format(all_points))
+    peak_trough_rms = [rms[x] for x in all_points]
+    peak_trough_rms_diff = np.diff(peak_trough_rms)
+    print("peak_trough_rms_diff is {}".format(peak_trough_rms_diff))
+    # want_all_points = [x for i,x in enumerate(all_points) if i < len(all_points)-1 and (peak_trough_rms_diff[i]>1 or peak_trough_rms_diff[i]<-1)]
+    want_all_points = []
+    for i in range(len(all_points) - 1):
+        if peak_trough_rms_diff[i] > 1:
+            want_all_points.append(all_points[i])
+        # if peak_trough_rms_diff[i]<-1:
+        #     want_all_points.append(all_points[i+1])
+
+    first_max = np.max(rms[0:want_all_points[0]])
+    if first_max - rms[want_all_points[0]] > 0.8:
+        tmp = rms[0:want_all_points[0]]
+        tmp_diff = np.diff(tmp)
+        index = [i for i,x in enumerate(tmp_diff) if x>0.3 or x == np.max(tmp_diff)]
+        #index[0] = 0
+        want_all_points.insert(0, index[0])
+    return want_all_points
+'''
+根据波谷找出所有的节拍结束点
+'''
+def get_all_onsets_ends(rms):
+    points = []
+    peak_points = get_all_peak(rms)
+    if peak_points:
+        peak_points_time = librosa.frames_to_time(peak_points)
+        # plt.vlines(peak_points_time, 0,np.max(rms), color='r', linestyle='dashed')
+    trough_points = get_all_trough(rms)
+    # trough_points.sort()
+    # trough_points = np.sort(trough_points, axis=None)
+    if trough_points:
+        trough_points_time = librosa.frames_to_time(trough_points)
+        # plt.vlines(trough_points_time, 0,np.max(rms), color='b', linestyle='dashed')
+    all_points = np.hstack((peak_points, trough_points))
+    all_points = list(set(all_points))
+    all_points.sort()
+    print("all_points is {}".format(all_points))
+    peak_trough_rms = [rms[x] for x in all_points]
+    peak_trough_rms_diff = np.diff(peak_trough_rms)
+    print("peak_trough_rms_diff is {}".format(peak_trough_rms_diff))
+    # want_all_points = [x for i,x in enumerate(all_points) if i < len(all_points)-1 and (peak_trough_rms_diff[i]>1 or peak_trough_rms_diff[i]<-1)]
+    want_all_points = []
+    for i in range(len(all_points) - 1):
+        if peak_trough_rms_diff[i]<-1:
+            want_all_points.append(all_points[i+1])
+    return want_all_points
+
+def get_all_peak(y):
+    points = []
+    start = 0
+    next_peak = get_next_peak(y)
+    if next_peak < 0:
+        return points
+    while start < len(y):
+        start += next_peak
+        points.append(start)
+        next_peak = get_next_peak(y[start + 1:])
+        if next_peak < 0:
+            break
+    return points
+
+'''
+找所有波谷
+'''
+def get_all_trough(y):
+    points = []
+    start = 0
+    next_trough = get_next_trough(y)
+    if next_trough < 0:
+        return points
+    while start < len(y):
+        start += next_trough
+        points.append(start)
+        next_trough = get_next_trough(y[start + 1:])
+        if next_trough < 0:
+            break
+    return points
+
+'''
+找所有上升沿的起点
+'''
+
+
 def get_min_max_total(s):
     if s is None or len(s) < 1:
         print("input is empty")
@@ -491,13 +657,14 @@ def get_onsets_frames_by_cqt_for_rhythm(y,sr):
         if v > gap4:
             result.append(all_onset[i + 1])
         else:
-            max1 = max_onset_env[i]
-            max2 = max_onset_env[i + 1]
-            if max1 >= max2:
-                continue
-            else:
-                result.pop()
-                result.append(all_onset[i + 1])
+            pass
+            # max1 = max_onset_env[i]
+            # max2 = max_onset_env[i + 1]
+            # if max1 >= max2:
+            #     continue
+            # else:
+            #     result.pop()
+            #     result.append(all_onset[i + 1])
     print("all_onset is {}".format(result))
     # 获取起始点
     first_frame = get_bigin(y, result[0])
@@ -528,6 +695,30 @@ def get_onsets_index_by_filename(filename):
     elif filename.find("节奏9") >= 0 or filename.find("节奏九") >= 0 or filename.find("节奏题九") >= 0 or filename.find("节奏题9") >= 0:
         return 8
     elif filename.find("节奏10") >= 0 or filename.find("节奏十") >= 0 or filename.find("节奏题十") >= 0 or filename.find("节奏题10") >= 0:
+        return 9
+    else:
+        return -1
+
+def get_onsets_index_by_filename_rhythm(filename):
+    if filename.find("旋律1") >= 0 or filename.find("旋律一") >= 0 or filename.find("视唱一") >= 0 or filename.find("视唱1") >= 0:
+        return 0
+    elif filename.find("旋律2") >= 0 or filename.find("旋律二") >= 0 or filename.find("视唱二") >= 0 or filename.find("旋律题2") >= 0:
+        return 1
+    elif filename.find("旋律3") >= 0 or filename.find("旋律三") >= 0 or filename.find("视唱三") >= 0 or filename.find("旋律题3") >= 0:
+        return 2
+    elif filename.find("旋律4") >= 0 or filename.find("旋律四") >= 0 or filename.find("视唱四") >= 0 or filename.find("视唱4") >= 0:
+        return 3
+    elif filename.find("旋律5") >= 0 or filename.find("旋律五") >= 0 or filename.find("视唱五") >= 0 or filename.find("视唱5") >= 0:
+        return 4
+    elif filename.find("旋律6") >= 0 or filename.find("旋律六") >= 0 or filename.find("视唱六") >= 0 or filename.find("视唱6") >= 0:
+        return 5
+    elif filename.find("旋律7") >= 0 or filename.find("旋律七") >= 0 or filename.find("视唱七") >= 0 or filename.find("视唱7") >= 0:
+        return 6
+    elif filename.find("旋律8") >= 0 or filename.find("旋律八") >= 0 or filename.find("视唱八") >= 0 or filename.find("视唱8") >= 0:
+        return 7
+    elif filename.find("旋律9") >= 0 or filename.find("旋律九") >= 0 or filename.find("视唱九") >= 0 or filename.find("视唱9") >= 0:
+        return 8
+    elif filename.find("旋律10") >= 0 or filename.find("旋律十") >= 0 or filename.find("视唱十") >= 0 or filename.find("视唱10") >= 0:
         return 9
     else:
         return -1
