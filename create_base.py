@@ -194,7 +194,7 @@ def get_all_peak(y):
 '''
 根据波峰找出所有的节拍起始点
 '''
-def get_all_onsets_starts(rms):
+def get_all_onsets_starts(rms,gap):
     points = []
     peak_points = get_all_peak(rms)
     if peak_points:
@@ -216,7 +216,7 @@ def get_all_onsets_starts(rms):
     # want_all_points = [x for i,x in enumerate(all_points) if i < len(all_points)-1 and (peak_trough_rms_diff[i]>1 or peak_trough_rms_diff[i]<-1)]
     want_all_points = []
     for i in range(len(all_points) - 1):
-        if peak_trough_rms_diff[i] > 1:
+        if peak_trough_rms_diff[i] > gap:
             want_all_points.append(all_points[i])
         # if peak_trough_rms_diff[i]<-1:
         #     want_all_points.append(all_points[i+1])
@@ -226,13 +226,15 @@ def get_all_onsets_starts(rms):
         tmp = rms[0:want_all_points[0]]
         tmp_diff = np.diff(tmp)
         index = [i for i,x in enumerate(tmp_diff) if x>0.3 or x == np.max(tmp_diff)]
-        #index[0] = 0
+        if index[0] == 0:
+            index[0] = 1
         want_all_points.insert(0, index[0])
+    want_all_points = get_local_min(rms, want_all_points, 4)
     return want_all_points
 '''
 根据波谷找出所有的节拍结束点
 '''
-def get_all_onsets_ends(rms):
+def get_all_onsets_ends(rms,gap):
     points = []
     peak_points = get_all_peak(rms)
     if peak_points:
@@ -254,9 +256,33 @@ def get_all_onsets_ends(rms):
     # want_all_points = [x for i,x in enumerate(all_points) if i < len(all_points)-1 and (peak_trough_rms_diff[i]>1 or peak_trough_rms_diff[i]<-1)]
     want_all_points = []
     for i in range(len(all_points) - 1):
-        if peak_trough_rms_diff[i]<-1:
+        if peak_trough_rms_diff[i]<gap:
             want_all_points.append(all_points[i+1])
+    want_all_points = get_local_min(rms,want_all_points,4)
     return want_all_points
+
+def get_local_min(rms,want_all_points,offset):
+    result = []
+    for i, x in enumerate(want_all_points):
+        if i < len(want_all_points) - 1 and np.max(rms[want_all_points[i]:want_all_points[i+1]]) < 1.5 or rms[want_all_points[i]]>2.5:
+            continue
+
+        start = x - offset
+        end = x + offset
+        if start < 0:
+            start = 0
+        if end >=len(rms):
+            end = len(rms) - 1
+        local_rms = rms[start:end]
+        if np.min(local_rms) < rms[x]:
+            index = np.where(local_rms==np.min(local_rms))
+            tmp = start + index[0][0]
+            if tmp == 0:
+                tmp += 1
+            result.append(tmp)
+        else:
+            result.append(x)
+    return result
 
 def get_all_peak(y):
     points = []
