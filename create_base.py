@@ -156,7 +156,7 @@ def onsets_base_frames_rhythm(index,frames_number):
 def get_next_peak(y):
     index = -1
     y_diff = np.diff(y)
-    for i in range(len(y_diff)):
+    for i in range(len(y_diff)-1):
         if y_diff[i] >= 0 and y_diff[i+1] < 0:
             index = i + 1
             break
@@ -190,6 +190,47 @@ def get_all_peak(y):
         if next_peak < 0:
             break
     return points
+
+'''
+根据波峰找出所有的节拍起始点
+'''
+def get_all_onsets_starts_for_beat(rms,gap):
+    points = []
+    peak_points = get_all_peak(rms)
+    if peak_points:
+        peak_points_time = librosa.frames_to_time(peak_points)
+        # plt.vlines(peak_points_time, 0,np.max(rms), color='r', linestyle='dashed')
+    trough_points = get_all_trough(rms)
+    # trough_points.sort()
+    # trough_points = np.sort(trough_points, axis=None)
+    if trough_points:
+        trough_points_time = librosa.frames_to_time(trough_points)
+        # plt.vlines(trough_points_time, 0,np.max(rms), color='b', linestyle='dashed')
+    all_points = np.hstack((peak_points, trough_points))
+    all_points = list(set(all_points))
+    all_points.sort()
+    print("all_points is {}".format(all_points))
+    peak_trough_rms = [rms[x] for x in all_points]
+    peak_trough_rms_diff = np.diff(peak_trough_rms)
+    print("peak_trough_rms_diff is {}".format(peak_trough_rms_diff))
+    # want_all_points = [x for i,x in enumerate(all_points) if i < len(all_points)-1 and (peak_trough_rms_diff[i]>1 or peak_trough_rms_diff[i]<-1)]
+    want_all_points = []
+    for i in range(len(all_points) - 1):
+        if peak_trough_rms_diff[i] > gap:
+            want_all_points.append(all_points[i])
+        # if peak_trough_rms_diff[i]<-1:
+        #     want_all_points.append(all_points[i+1])
+
+    first_max = np.max(rms[0:want_all_points[0]])
+    if first_max - rms[want_all_points[0]] > 0.8:
+        tmp = rms[0:want_all_points[0]]
+        tmp_diff = np.diff(tmp)
+        index = [i for i,x in enumerate(tmp_diff) if x>0.3 or x == np.max(tmp_diff)]
+        if index[0] == 0:
+            index[0] = 1
+        want_all_points.insert(0, index[0])
+    want_all_points = get_local_best_for_beat(rms, want_all_points, 18)
+    return want_all_points
 
 '''
 根据波峰找出所有的节拍起始点
@@ -282,6 +323,29 @@ def get_local_min(rms,want_all_points,offset):
             result.append(tmp)
         else:
             result.append(x)
+    return result
+
+def get_local_best_for_beat(rms,want_all_points,offset):
+    result = []
+    for i, x in enumerate(want_all_points):
+        if i < len(want_all_points) - 1 and np.max(rms[want_all_points[i]:want_all_points[i+1]]) < 1.0 or rms[want_all_points[i]]>2.5:
+            continue
+
+        start = x
+        end = x + offset
+        if start < 0:
+            start = 0
+        if end >=len(rms):
+            end = len(rms) - 1
+        local_rms = rms[start:end]
+        local_rms_diff = np.diff(local_rms)
+        local_rms_diff = [local_rms_diff[i] + local_rms_diff[i+1] for i in range(len(local_rms_diff)-1)]
+        index = np.where(local_rms_diff == np.max(local_rms_diff))
+
+        tmp = start + index[0][0]
+        if tmp == 0:
+            tmp += 1
+        result.append(tmp)
     return result
 
 def get_all_peak(y):
