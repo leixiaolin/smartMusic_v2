@@ -13,14 +13,17 @@ filepath = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节
 #filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律2.100分.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（1）(90).wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（2）（90分）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40434（30）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4卢(65).wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2-01（80）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4-02（68）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏5_40240（30）.wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01（95）.wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2（四）(96).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1.1(95).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1.1(95).wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.3(55).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4卢(65).wav'
+
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（10）（75）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（8）（100）.wav'
 
@@ -86,6 +89,7 @@ print("rms_diff is {}".format(rms_diff))
 
 print("rms max is {}".format(np.max(rms)))
 all_peak_points = get_all_onsets_starts(rms,0.7)
+#all_peak_points = get_all_onsets_starts_for_beat(rms,0.6)
 # all_trough_points = get_all_onsets_ends(rms,-0.4)
 # want_all_points = np.hstack((all_peak_points, all_trough_points))
 # want_all_points = list(set(want_all_points))
@@ -155,8 +159,8 @@ else:
 base_onsets = librosa.frames_to_time(best_y, sr=sr)
 plt.vlines(base_onsets,  0,np.max(rms), color='r', linestyle='dashed')
 # 找出漏唱的线的帧
-standard_y = want_all_points
-recognize_y = best_y
+standard_y = want_all_points.copy()
+recognize_y = best_y.copy()
 miss_onsets = get_mismatch_line(standard_y,recognize_y)
 miss_onsets_time = librosa.frames_to_time(miss_onsets[1], sr=sr)
 plt.vlines(miss_onsets_time,  0,np.max(rms), color='black', linestyle='dashed')
@@ -189,9 +193,35 @@ plt.vlines(want_all_points_time, 0,sr, color='y', linestyle='solid')
 
 plt.subplot(5,1,5)
 c_max = np.argmax(CQT, axis=0)
+# note_start,note_end,note_number = find_note_number(c_max,all_peak_points[0],all_peak_points[1])
+# note_start_time = librosa.frames_to_time([note_start])
+#print("note_number is {}".format(note_number))
 c_max_diff = np.diff(c_max)
 plt.plot(times,c_max)
 plt.xlim(0,np.max(times))
 plt.vlines(want_all_points_time, np.min(c_max),np.max(c_max), color='y', linestyle='solid')
+#plt.text(note_start_time, note_number, note_number)
+for i in range(len(all_peak_points)-1):
+    note_start,note_end,note_number = find_note_number_by_range(c_max,all_peak_points[i],all_peak_points[i+1])
+    note_start_time = librosa.frames_to_time([note_start])
+    plt.text(note_start_time, note_number, note_number)
+    if i ==0:
+        first_note_number = note_number
+print(all_peak_points[-1])
+note_start,note_end,note_number = find_note_number_by_range(c_max,all_peak_points[-1],len(c_max)-1)
+note_start_time = librosa.frames_to_time([note_start])
+find_note = find_note_number(note_number,5)
+note_number_gap = first_note_number - find_note[0]
+plt.text(note_start_time, note_number, find_note)
+find_note = find_note_number(note_number,3)
+find_note = [x + note_number_gap for x in find_note]
+print("find_note is {}".format(find_note))
 print("c_max is {}".format(c_max))
+index = np.where(c_max == find_note[0])
+note_start_time = librosa.frames_to_time([index])
+plt.vlines(note_start_time, np.min(c_max),np.max(c_max), color='black', linestyle='solid')
+if len(find_note)>1:
+    index = np.where(c_max == find_note[1])
+    note_start_time = librosa.frames_to_time([index])
+    plt.vlines(note_start_time, np.min(c_max), np.max(c_max), color='black', linestyle='solid')
 plt.show()

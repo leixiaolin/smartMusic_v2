@@ -270,8 +270,9 @@ def get_all_onsets_starts(rms,gap):
         if index[0] == 0:
             index[0] = 1
         want_all_points.insert(0, index[0])
-    want_all_points = get_local_min(rms, want_all_points, 4)
+    want_all_points = get_local_best_for_beat(rms, want_all_points, 20)
     return want_all_points
+
 '''
 根据波谷找出所有的节拍结束点
 '''
@@ -415,6 +416,66 @@ def get_min_max_total(s):
     total = np.sum(result)
     last = result[-1]
     return min,max,last,total
+
+def find_note_number_by_range(cqt_max,cerrent,next):
+    cqt_max_sub = cqt_max[cerrent:next]
+    if len(cqt_max_sub)<1:
+        return -1,-1,-1
+    a_diff = np.diff(cqt_max_sub)
+    a_find = [i for i in range(1, len(a_diff)) if
+              (a_diff[i - 1] != 0 and a_diff[i] == 0) or (a_diff[i - 1] == 0 and a_diff[i] != 0)]
+    starts = [i for i in range(1, len(a_diff)) if (a_diff[i - 1] != 0 and a_diff[i] == 0)]
+    ends = [i for i in range(0, len(a_diff) - 1) if (a_diff[i] == 0 and a_diff[i + 1] != 0 and i> 0)]
+    if a_diff[0] == 0 and a_diff[1] == 0:
+        starts.insert(0,0)
+    # starts_ends = zip(starts,ends)
+    #print(a_diff)
+    #print(a_find)
+    max = -1
+    max_x = -1
+    max_y = -1
+    for x, y in zip(starts, ends):
+        #print(x, y)
+        if y - x > max:
+            max = y - x
+            max_x = x
+            max_y = y
+    #print(max_x, max_y)
+    if -1 == max_x:
+        print("note number no found,param is {},{}".format(cerrent,next))
+        return -1,-1,-1
+    else:
+        return cerrent + max_x,cerrent + max_y,cqt_max[cerrent + max_x]
+
+def find_note_number(note_number,find_note):
+    if note_number >= 0 and note_number <= 11:
+        offset = 0
+    elif note_number >=12 and note_number <=23:
+        offset = 12
+    elif note_number >=24 and note_number <=35:
+        offset = 24
+    elif note_number >= 36 and note_number <= 47:
+        offset = 36
+    elif note_number >= 48 and note_number <= 59:
+        offset = 48
+    elif note_number >= 60 and note_number <= 71:
+        offset = 60
+    if 1 == find_note:
+        return [int(offset + 0),int(offset + 1)]
+    elif 2 == find_note:
+        return [int(offset + 2),int(offset + 3)]
+    elif 3 == find_note:
+        return [int(offset + 4)]
+    elif 4 == find_note:
+        return [int(offset + 5), int(offset + 6)]
+    elif 5 == find_note:
+        return [int(offset + 7), int(offset + 8)]
+    elif 6 == find_note:
+        return [int(offset + 9), int(offset + 10)]
+    elif 7 == find_note:
+        return [int(offset + 11)]
+
+
 
 def get_real_onsets_frames(y):
     y_max = max(y)
