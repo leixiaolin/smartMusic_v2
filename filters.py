@@ -43,6 +43,18 @@ def SlidingAverage(inputs, per):
 
 
 '''
+递推去毛刺滤波法
+'''
+
+
+def deburring(inputs, step):
+    for i in range(0, len(inputs) - step):
+        if inputs[i] == inputs[i + step]:
+            for j in range(1,step):
+                inputs[i + j] = inputs[i]
+    return inputs
+
+'''
 中位值平均滤波法
 '''
 
