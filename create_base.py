@@ -5,6 +5,7 @@ import re
 import math
 from viterbi import *
 from note_frequency import *
+from filters import *
 
 codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
                   '[2000;1000,1000;500,500,1000;2000]',
@@ -151,6 +152,31 @@ def onsets_base_frames_rhythm(index,frames_number):
     return ds
 
 '''
+根据当前位置获取最小帧距
+'''
+def get_min_range_frames_rhythm(frame_numbers,current_frames_number):
+    #所有节拍的起点
+    #frame_numbers =onsets_base_frames_rhythm(index, frames_total)
+
+    frame_numbers_diff = np.diff(frame_numbers)
+
+    #判断当前位置位于哪一个节拍中
+    index = [i for i in range(0,len(frame_numbers)-1) if frame_numbers[i] <= current_frames_number and frame_numbers[i+1] >= current_frames_number ]
+
+    if len(index)<1:
+        return np.min(frame_numbers)
+
+    start = index[0] - 1
+    if start < 0:
+        start = 0
+    end = index[0] + 2
+    if end > len(frame_numbers_diff):
+        end = len(frame_numbers_diff)
+    sub_frame_numbers_diff = frame_numbers_diff[start:end]
+    min_frame_width = int(np.min(sub_frame_numbers_diff) * 0.4)
+    return min_frame_width
+
+'''
 找波峰
 '''
 def get_next_peak(y):
@@ -267,9 +293,10 @@ def get_all_onsets_starts(rms,gap):
         tmp = rms[0:want_all_points[0]]
         tmp_diff = np.diff(tmp)
         index = [i for i,x in enumerate(tmp_diff) if x>0.3 or x == np.max(tmp_diff)]
-        if index[0] == 0:
-            index[0] = 1
-        want_all_points.insert(0, index[0])
+        if len(index)>0:
+            if index[0] == 0:
+                index[0] = 1
+            want_all_points.insert(0, index[0])
     want_all_points = get_local_best_for_beat(rms, want_all_points, 20)
     return want_all_points
 
@@ -303,6 +330,31 @@ def get_all_onsets_ends(rms,gap):
     want_all_points = get_local_min(rms,want_all_points,4)
     return want_all_points
 
+def get_onsets_by_cqt_rms(y, sr,base_frames,threshold):
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=sr), ref=np.max)
+    w, h = CQT.shape
+    CQT[40:w, :] = -100
+    CQT[0:20, :] = -100
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    rms = [x / np.std(rms) if x / np.std(rms) > np.max(rms)*0.45 else 0 for x in rms]
+    #rms = rms / np.std(rms)
+    all_peak_points = get_all_onsets_starts(rms, threshold)
+    c_max = np.argmax(CQT, axis=0)
+    c_max = deburring(c_max, 10)
+    note_min_step = 7 #最小节拍长度
+    all_notes_start = find_all_notes_start(c_max,base_frames, note_min_step)
+    for x in all_notes_start:
+        note_start,note_end,_ = x
+        if rms[note_start] > rms[note_start +1]: #下降沿的大概率不是节拍起点
+            continue
+        indexs = [1  for x in all_peak_points if np.abs(x - note_start) <10]
+        if len(indexs)<1 and rms[note_start]>0.7 and rms[note_start]<3:
+            all_peak_points.append(note_start)
+    all_peak_points = list(set(all_peak_points))
+    all_peak_points.sort()
+    return all_peak_points
+
 def get_local_min(rms,want_all_points,offset):
     result = []
     for i, x in enumerate(want_all_points):
@@ -329,8 +381,12 @@ def get_local_min(rms,want_all_points,offset):
 def get_local_best_for_beat(rms,want_all_points,offset):
     result = []
     for i, x in enumerate(want_all_points):
-        if i < len(want_all_points) - 1 and np.max(rms[want_all_points[i]:want_all_points[i+1]]) < 1.0 or rms[want_all_points[i]]>2.5:
+        if i < len(want_all_points) - 1 and (np.max(rms[want_all_points[i]:want_all_points[i+1]]) < 1.0 or rms[want_all_points[i]]>2.5):
             continue
+        if i < len(want_all_points) - 1:
+            sub_rms = rms[want_all_points[i]:want_all_points[i+1]]
+            if np.max(sub_rms)- want_all_points[i]>1.5:
+                offset = np.where(sub_rms == np.max(sub_rms))[0][0]
 
         start = x
         end = x + offset
@@ -340,10 +396,12 @@ def get_local_best_for_beat(rms,want_all_points,offset):
             end = len(rms) - 1
         local_rms = rms[start:end]
         local_rms_diff = np.diff(local_rms)
-        local_rms_diff = [local_rms_diff[i] + local_rms_diff[i+1] for i in range(len(local_rms_diff)-1)]
-        index = np.where(local_rms_diff == np.max(local_rms_diff))
-
-        tmp = start + index[0][0]
+        if len(local_rms_diff)>1:
+            local_rms_diff = [local_rms_diff[i] + local_rms_diff[i+1] for i in range(len(local_rms_diff)-1)]
+            index = np.where(local_rms_diff == np.max(local_rms_diff))
+            tmp = start + index[0][0]
+        else:
+            tmp = start
         if tmp == 0:
             tmp += 1
         result.append(tmp)
@@ -419,11 +477,11 @@ def get_min_max_total(s):
 
 def find_note_number_by_range(cqt_max,cerrent,next):
     cqt_max_sub = cqt_max[cerrent:next]
-    if len(cqt_max_sub)<1:
+    if len(cqt_max_sub)<2:
         return -1,-1,-1
     a_diff = np.diff(cqt_max_sub)
-    a_find = [i for i in range(1, len(a_diff)) if
-              (a_diff[i - 1] != 0 and a_diff[i] == 0) or (a_diff[i - 1] == 0 and a_diff[i] != 0)]
+    # a_find = [i for i in range(1, len(a_diff)) if
+    #           (a_diff[i - 1] != 0 and a_diff[i] == 0) or (a_diff[i - 1] == 0 and a_diff[i] != 0)]
     starts = [i for i in range(1, len(a_diff)) if (a_diff[i - 1] != 0 and a_diff[i] == 0)]
     ends = [i for i in range(0, len(a_diff) - 1) if (a_diff[i] == 0 and a_diff[i + 1] != 0 and i> 0)]
     if a_diff[0] == 0 and a_diff[1] == 0:
@@ -446,9 +504,28 @@ def find_note_number_by_range(cqt_max,cerrent,next):
         return -1,-1,-1
     else:
         return cerrent + max_x,cerrent + max_y,cqt_max[cerrent + max_x]
+def find_all_notes_start(cqt_max,base_frames,note_min_step):
+    result = []
+    cqt_max_sub = cqt_max
+    if len(cqt_max_sub)<1:
+        return -1,-1,-1
+    a_diff = np.diff(cqt_max_sub)
+    # a_find = [i for i in range(1, len(a_diff)) if
+    #           (a_diff[i - 1] != 0 and a_diff[i] == 0) or (a_diff[i - 1] == 0 and a_diff[i] != 0)]
+    starts = [i for i in range(1, len(a_diff)) if (a_diff[i - 1] != 0 and a_diff[i] == 0)]
+    ends = [i for i in range(0, len(a_diff) - 1) if (a_diff[i] == 0 and a_diff[i + 1] != 0 and i> 0)]
+    if a_diff[0] == 0 and a_diff[1] == 0:
+        starts.insert(0,0)
+
+    for x, y in zip(starts, ends):
+        #print(x, y)
+        note_min_step = get_min_range_frames_rhythm(base_frames, x)
+        if y - x > note_min_step:
+            result.append([x,y,cqt_max[x]])
+    return result
 
 def find_note_number(note_number,find_note):
-    if note_number >= 0 and note_number <= 11:
+    if note_number <= 11:
         offset = 0
     elif note_number >=12 and note_number <=23:
         offset = 12
