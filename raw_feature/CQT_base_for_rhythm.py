@@ -18,7 +18,7 @@ filepath = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4卢(65).wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2-01（80）.wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4-02（68）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1桢(100).wav'
+filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10.2(90).wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01（95）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2（四）(96).wav'
@@ -31,7 +31,7 @@ filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1桢(100
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律7_40218（20）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（9）（100）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
-# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
 
 # 2. Load the audio as a waveform `y`
 #    Store the sampling rate as `sr`
@@ -99,10 +99,9 @@ rms = [x / np.std(rms) if x / np.std(rms) > np.max(rms)*0.4 else 0 for x in rms]
 rms_diff = np.diff(rms)
 print("rms_diff is {}".format(rms_diff))
 # 标准节拍时间点
-type_index = get_onsets_index_by_filename(filename)
+type_index = get_onsets_index_by_filename_rhythm(filename)
 total_frames_number = get_total_frames_number(filename)
-#base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
-base_frames = onsets_base_frames(codes[type_index],total_frames_number)
+base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
 base_onsets = librosa.frames_to_time(base_frames, sr=sr)
 print("rms max is {}".format(np.max(rms)))
 #all_peak_points = get_all_onsets_starts(rms,0.7)
@@ -110,7 +109,6 @@ print("rms max is {}".format(np.max(rms)))
 topN = len(base_frames)
 all_peak_points = get_topN_peak_by_denoise(rms,0.45,topN)
 onsets_frames = get_real_onsets_frames_rhythm(y)
-onsets_frames = []
 
 #all_peak_points = get_all_onsets_starts_for_beat(rms,0.6)
 # all_trough_points = get_all_onsets_ends(rms,-0.4)

@@ -138,7 +138,9 @@ for filename in files:
     CQT[0:20, :] = -100
 
     rms = librosa.feature.rmse(y=y)[0]
-    rms = rms / np.std(rms)
+    rms = [x / np.std(rms) for x in rms]
+    rms = [x / np.std(rms) if x / np.std(rms) > np.max(rms) * 0.4 else 0 for x in rms]
+    # rms = rms/ np.std(rms)
     rms_diff = np.diff(rms)
     #print("rms_diff is {}".format(rms_diff))
     # 标准节拍时间点
@@ -148,7 +150,28 @@ for filename in files:
     base_onsets = librosa.frames_to_time(base_frames, sr=sr)
     print("rms max is {}".format(np.max(rms)))
     # all_peak_points = get_all_onsets_starts(rms,0.7)
-    all_peak_points = get_onsets_by_cqt_rms(y, 16000, base_frames, 0.7)
+    #all_peak_points = get_onsets_by_cqt_rms(y, 16000, base_frames, 0.7)
+    topN = len(base_frames)
+    all_peak_points = get_topN_peak_by_denoise(rms, 0.45, topN)
+    onsets_frames = get_real_onsets_frames_rhythm(y)
+
+    # all_peak_points = get_all_onsets_starts_for_beat(rms,0.6)
+    # all_trough_points = get_all_onsets_ends(rms,-0.4)
+    want_all_points = np.hstack((all_peak_points, onsets_frames))
+    want_all_points = list(set(want_all_points))
+    want_all_points.sort()
+    want_all_points_diff = np.diff(want_all_points)
+    # 去掉挤在一起的线
+    result = [want_all_points[0]]
+    for i, v in enumerate(want_all_points_diff):
+        if v > 4:
+            result.append(want_all_points[i + 1])
+        else:
+            pass
+    want_all_points = result
+    # want_all_points = [x for i,x in enumerate(all_points) if i < len(all_points)-1 and (peak_trough_rms_diff[i]>1)]
+    print("want_all_points is {}".format(want_all_points))
+    want_all_points_time = librosa.frames_to_time(want_all_points)
     # all_peak_points = get_all_onsets_starts_for_beat(rms,0.6)
     # all_trough_points = get_all_onsets_ends(rms,-0.4)
     # want_all_points = np.hstack((all_peak_points, all_trough_points))
@@ -169,7 +192,7 @@ for filename in files:
 
     # librosa.display.specshow(CQT)
     plt.figure(figsize=(10, 6))
-    plt.subplot(5, 1, 1)  # 要生成两行两列，这是第一个图plt.subplot('行','列','编号')
+    plt.subplot(4, 1, 1)  # 要生成两行两列，这是第一个图plt.subplot('行','列','编号')
     # plt.colorbar(format='%+2.0f dB')
     # plt.title('Constant-Q power spectrogram (note)')
     librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
@@ -184,7 +207,7 @@ for filename in files:
     q1, q2 = CQT.shape
     print(plt.figure)
 
-    plt.subplot(5, 1, 2)  # 要生成两行两列，这是第一个图plt.subplot('行','列','编号')
+    plt.subplot(4, 1, 2)  # 要生成两行两列，这是第一个图plt.subplot('行','列','编号')
     librosa.display.waveplot(y, sr=sr)
     plt.vlines(want_all_points_time, -1 * np.max(y), np.max(y), color='y', linestyle='solid')
 
@@ -193,7 +216,7 @@ for filename in files:
     # base_onsets = onsets_base(codes[11], duration, onstm[0])
     # plt.vlines(base_onsets[:-1], -1*np.max(y),np.max(y), color='r', linestyle='dashed')
     # plt.vlines(base_onsets[-1], -1*np.max(y),np.max(y), color='white', linestyle='dashed')
-    plt.subplot(5, 1, 3)
+    plt.subplot(4, 1, 3)
     times = librosa.frames_to_time(np.arange(len(rms)))
     plt.plot(times, rms)
     # plt.axhline(0.02, color='r', alpha=0.5)
@@ -220,31 +243,31 @@ for filename in files:
     miss_onsets_time = librosa.frames_to_time(miss_onsets[1], sr=sr)
     plt.vlines(miss_onsets_time, 0, np.max(rms), color='black', linestyle='dashed')
 
-    plt.subplot(5, 1, 4)
-    chromagram = librosa.feature.chroma_cqt(y, sr=sr)
+    # plt.subplot(4, 1, 4)
+    # chromagram = librosa.feature.chroma_cqt(y, sr=sr)
+    #
+    # c_max = np.argmax(chromagram, axis=0)
+    # # print("c_max is {}".format(c_max))
+    # c_max_diff = np.diff(c_max)  # 一阶差分
+    # img = np.zeros(chromagram.shape, dtype=np.float32)
+    # w, h = chromagram.shape
+    # for x in range(len(c_max_diff)):
+    #     # img.item(x, c_max[x], 0)
+    #     if x > 0 and (c_max_diff[x] == 1 or c_max_diff[x] == -1):
+    #         c_max[x] = c_max[x - 1]
+    #
+    # for x in range(h):
+    #     # img.item(x, c_max[x], 0)
+    #     img.itemset((c_max[x], x), 1)
+    #     img.itemset((c_max[x], x), 1)
+    #     img.itemset((c_max[x], x), 1)
+    # # 最强音色图
+    # img = get_max_strength(CQT)
+    # librosa.display.specshow(img, x_axis='time', y_axis='chroma', cmap='coolwarm')
+    # # plt.vlines(base_onsets, 0, sr, color='y', linestyle='solid')
+    # plt.vlines(want_all_points_time, 0, sr, color='y', linestyle='solid')
 
-    c_max = np.argmax(chromagram, axis=0)
-    # print("c_max is {}".format(c_max))
-    c_max_diff = np.diff(c_max)  # 一阶差分
-    img = np.zeros(chromagram.shape, dtype=np.float32)
-    w, h = chromagram.shape
-    for x in range(len(c_max_diff)):
-        # img.item(x, c_max[x], 0)
-        if x > 0 and (c_max_diff[x] == 1 or c_max_diff[x] == -1):
-            c_max[x] = c_max[x - 1]
-
-    for x in range(h):
-        # img.item(x, c_max[x], 0)
-        img.itemset((c_max[x], x), 1)
-        img.itemset((c_max[x], x), 1)
-        img.itemset((c_max[x], x), 1)
-    # 最强音色图
-    img = get_max_strength(CQT)
-    librosa.display.specshow(img, x_axis='time', y_axis='chroma', cmap='coolwarm')
-    # plt.vlines(base_onsets, 0, sr, color='y', linestyle='solid')
-    plt.vlines(want_all_points_time, 0, sr, color='y', linestyle='solid')
-
-    plt.subplot(5, 1, 5)
+    plt.subplot(4, 1, 4)
     c_max = np.argmax(CQT, axis=0)
     # c_max = deburring(c_max, 3)
     # note_start,note_end,note_number = find_note_number(c_max,all_peak_points[0],all_peak_points[1])
