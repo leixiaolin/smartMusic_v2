@@ -333,7 +333,7 @@ def get_all_onsets_ends(rms,gap):
 def get_onsets_by_cqt_rms(y, sr,base_frames,threshold):
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=sr), ref=np.max)
     w, h = CQT.shape
-    CQT[40:w, :] = -100
+    CQT[50:w, :] = -100
     CQT[0:20, :] = -100
     rms = librosa.feature.rmse(y=y)[0]
     rms = [x / np.std(rms) for x in rms]
@@ -787,14 +787,47 @@ def get_onsets_by_all_v2(y,sr,onsets_total):
             first_frame = 1
         result.insert(0, first_frame)
     return  result
+def get_peak_trough_by_denoise(rms,threshold):
+    result = []
+    all_max_sub_rms = []
+    #rms = [x / np.std(rms) if x / np.std(rms) > np.max(rms) * threshold else 0 for x in rms]
+    starts = [i for i in range(0,len(rms)-1) if rms[i] == 0 and rms[i+1] > np.max(rms) * 0.4 ]
+    ends = [i for i in range(0,len(rms)-1) if rms[i] > np.max(rms) * 0.4 and rms[i + 1] == 0 ]
+    if ends[0]<starts[0]:
+        #ends.pop(0)
+        starts.insert(0,1)
+    for i in range(0,len(starts)):
+        start = starts[i]
+        if i>=len(ends):
+            end = len(rms)-1
+        else:
+            end = ends[i]
+        if np.abs(end - start)<5:
+            continue
+        max_sub_rms = np.max(rms[start:end])
+        result.append([start,end,max_sub_rms])
+        all_max_sub_rms.append(max_sub_rms)
+    return result,all_max_sub_rms
 
-def find_n_largest(a,total):
+def get_topN_peak_by_denoise(rms,threshold,topN):
+    result = []
+    all_peak_trough,all_max_sub_rms = get_peak_trough_by_denoise(rms,threshold)
+    topN_indexs = find_n_largest(all_max_sub_rms,topN)
+    for i in range(0,len(topN_indexs)):
+        index = topN_indexs[i]
+        start,end,rms = all_peak_trough[index]
+        if start == 0:
+            start = 1
+        result.append(start)
+    return result
+
+def find_n_largest(a,topN):
     import heapq
 
     a = list(a)
     #a = [43, 5, 65, 4, 5, 8, 87]
 
-    re1 = heapq.nlargest(total, a)  # 求最大的三个元素，并排序
+    re1 = heapq.nlargest(topN, a)  # 求最大的三个元素，并排序
     re1.sort()
     #re2 = map(a.index, heapq.nlargest(total, a))  # 求最大的三个索引    nsmallest与nlargest相反，求最小
     re2 = [i for i,x in enumerate(a) if x in re1]
@@ -831,7 +864,8 @@ def get_real_onsets_frames_rhythm(y):
     print("some_y is {}".format(some_y)) # 节拍点对应帧的能量
     energy_mean = (np.sum(some_y) - np.max(some_y))/(len(some_y)-1)  # 获取能量均值
     print("energy_mean for some_y is {}".format(energy_mean))
-    energy_gap = energy_mean * 0.3
+    energy_gap = energy_mean * 0.8
+    #energy_gap = np.max(energy[0][0:20])*0.8
     some_energy_diff = [energy_diff[0][x] if x < len(energy_diff) else energy_diff[0][x-1]  for x in onsets_frames]
     energy_diff_mean = np.mean(some_energy_diff)
     print("some_energy_diff is {}".format(some_energy_diff))
@@ -904,25 +938,25 @@ def get_onsets_frames_by_cqt_for_rhythm(y,sr):
 
 
 def get_onsets_index_by_filename(filename):
-    if filename.find("节奏1") >= 0 or filename.find("节奏一") >= 0 or filename.find("节奏题一") >= 0 or filename.find("节奏题1") >= 0:
+    if filename.find("节奏1") >= 0 or filename.find("节奏一") >= 0 or filename.find("节奏题一") >= 0 or filename.find("节奏题1") >= 0 or filename.find("节1") >= 0:
         return 0
-    elif filename.find("节奏2") >= 0 or filename.find("节奏二") >= 0 or filename.find("节奏题二") >= 0 or filename.find("节奏题2") >= 0:
+    elif filename.find("节奏2") >= 0 or filename.find("节奏二") >= 0 or filename.find("节奏题二") >= 0 or filename.find("节奏题2") >= 0 or filename.find("节2") >= 0:
         return 1
-    elif filename.find("节奏3") >= 0 or filename.find("节奏三") >= 0 or filename.find("节奏题三") >= 0 or filename.find("节奏题3") >= 0:
+    elif filename.find("节奏3") >= 0 or filename.find("节奏三") >= 0 or filename.find("节奏题三") >= 0 or filename.find("节奏题3") >= 0 or filename.find("节3") >= 0:
         return 2
-    elif filename.find("节奏4") >= 0 or filename.find("节奏四") >= 0 or filename.find("节奏题四") >= 0 or filename.find("节奏题4") >= 0:
+    elif filename.find("节奏4") >= 0 or filename.find("节奏四") >= 0 or filename.find("节奏题四") >= 0 or filename.find("节奏题4") >= 0 or filename.find("节4") >= 0:
         return 3
-    elif filename.find("节奏5") >= 0 or filename.find("节奏五") >= 0 or filename.find("节奏题五") >= 0 or filename.find("节奏题5") >= 0:
+    elif filename.find("节奏5") >= 0 or filename.find("节奏五") >= 0 or filename.find("节奏题五") >= 0 or filename.find("节奏题5") >= 0 or filename.find("节5") >= 0:
         return 4
-    elif filename.find("节奏6") >= 0 or filename.find("节奏六") >= 0 or filename.find("节奏题六") >= 0 or filename.find("节奏题6") >= 0:
+    elif filename.find("节奏6") >= 0 or filename.find("节奏六") >= 0 or filename.find("节奏题六") >= 0 or filename.find("节奏题6") >= 0 or filename.find("节6") >= 0:
         return 5
-    elif filename.find("节奏7") >= 0 or filename.find("节奏七") >= 0 or filename.find("节奏题七") >= 0 or filename.find("节奏题7") >= 0:
+    elif filename.find("节奏7") >= 0 or filename.find("节奏七") >= 0 or filename.find("节奏题七") >= 0 or filename.find("节奏题7") >= 0 or filename.find("节7") >= 0:
         return 6
-    elif filename.find("节奏8") >= 0 or filename.find("节奏八") >= 0 or filename.find("节奏题八") >= 0 or filename.find("节奏题8") >= 0:
+    elif filename.find("节奏8") >= 0 or filename.find("节奏八") >= 0 or filename.find("节奏题八") >= 0 or filename.find("节奏题8") >= 0 or filename.find("节8") >= 0:
         return 7
-    elif filename.find("节奏9") >= 0 or filename.find("节奏九") >= 0 or filename.find("节奏题九") >= 0 or filename.find("节奏题9") >= 0:
+    elif filename.find("节奏9") >= 0 or filename.find("节奏九") >= 0 or filename.find("节奏题九") >= 0 or filename.find("节奏题9") >= 0 or filename.find("节9") >= 0:
         return 8
-    elif filename.find("节奏10") >= 0 or filename.find("节奏十") >= 0 or filename.find("节奏题十") >= 0 or filename.find("节奏题10") >= 0:
+    elif filename.find("节奏10") >= 0 or filename.find("节奏十") >= 0 or filename.find("节奏题十") >= 0 or filename.find("节奏题10") >= 0 or filename.find("节10") >= 0:
         return 9
     else:
         return -1
