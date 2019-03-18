@@ -791,19 +791,24 @@ def get_peak_trough_by_denoise(rms,threshold):
     result = []
     all_max_sub_rms = []
     #rms = [x / np.std(rms) if x / np.std(rms) > np.max(rms) * threshold else 0 for x in rms]
-    starts = [i for i in range(0,len(rms)-1) if rms[i] == 0 and rms[i+1] > np.max(rms) * 0.4 ]
-    ends = [i for i in range(0,len(rms)-1) if rms[i] > np.max(rms) * 0.4 and rms[i + 1] == 0 ]
+    starts = [i for i in range(0,len(rms)-1) if rms[i] == 0 and rms[i+1] > threshold ]
+    ends = [i for i in range(0,len(rms)-1) if rms[i] > threshold and rms[i + 1] == 0 ]
+    if len(starts) == 0 or len(ends) == 0:
+        return [],[]
     if ends[0]<starts[0]:
         #ends.pop(0)
         starts.insert(0,1)
+    else:
+        ends.append(len(rms) - 1)
     for i in range(0,len(starts)):
         start = starts[i]
         if i>=len(ends):
             end = len(rms)-1
         else:
             end = ends[i]
-        if np.abs(end - start)<5:
+        if np.abs(end - start)<1 or start > end:
             continue
+        print("start,end is {},{}".format(start,end))
         max_sub_rms = np.max(rms[start:end])
         result.append([start,end,max_sub_rms])
         all_max_sub_rms.append(max_sub_rms)
@@ -811,7 +816,13 @@ def get_peak_trough_by_denoise(rms,threshold):
 
 def get_topN_peak_by_denoise(rms,threshold,topN):
     result = []
-    all_peak_trough,all_max_sub_rms = get_peak_trough_by_denoise(rms,threshold)
+    total = 0
+    while True:
+        all_peak_trough,all_max_sub_rms = get_peak_trough_by_denoise(rms,threshold)
+        threshold *= 0.95
+        total += 1
+        if len(all_peak_trough) >= topN or total > 10:
+            break
     topN_indexs = find_n_largest(all_max_sub_rms,topN)
     for i in range(0,len(topN_indexs)):
         index = topN_indexs[i]
@@ -938,7 +949,9 @@ def get_onsets_frames_by_cqt_for_rhythm(y,sr):
 
 
 def get_onsets_index_by_filename(filename):
-    if filename.find("节奏1") >= 0 or filename.find("节奏一") >= 0 or filename.find("节奏题一") >= 0 or filename.find("节奏题1") >= 0 or filename.find("节1") >= 0:
+    if filename.find("节奏10") >= 0 or filename.find("节奏十") >= 0 or filename.find("节奏题十") >= 0 or filename.find("节奏题10") >= 0 or filename.find("节10") >= 0:
+        return 9
+    elif filename.find("节奏1") >= 0 or filename.find("节奏一") >= 0 or filename.find("节奏题一") >= 0 or filename.find("节奏题1") >= 0 or filename.find("节1") >= 0:
         return 0
     elif filename.find("节奏2") >= 0 or filename.find("节奏二") >= 0 or filename.find("节奏题二") >= 0 or filename.find("节奏题2") >= 0 or filename.find("节2") >= 0:
         return 1
@@ -956,8 +969,6 @@ def get_onsets_index_by_filename(filename):
         return 7
     elif filename.find("节奏9") >= 0 or filename.find("节奏九") >= 0 or filename.find("节奏题九") >= 0 or filename.find("节奏题9") >= 0 or filename.find("节9") >= 0:
         return 8
-    elif filename.find("节奏10") >= 0 or filename.find("节奏十") >= 0 or filename.find("节奏题十") >= 0 or filename.find("节奏题10") >= 0 or filename.find("节10") >= 0:
-        return 9
     else:
         return -1
 

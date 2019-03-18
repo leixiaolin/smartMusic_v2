@@ -105,6 +105,7 @@ print(files)
 index = 0
 # 测试单个文件
 #files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏六（5）（80）.wav']
+#files = ['F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏一（2）（100）.wav']
 for filename in files:
     print(filename)
     if filename.find('wav') <= 0:
@@ -120,8 +121,8 @@ for filename in files:
     #y, sr = get_foreground(y, sr) # 分离前景音
     silence_threshold = 0.2
     need_vocal_separation = check_need_vocal_separation(y, silence_threshold)
-    if need_vocal_separation:
-        y, sr = get_foreground(y, sr)  # 分离前景音
+    # if need_vocal_separation:
+    #     y, sr = get_foreground(y, sr)  # 分离前景音
     total_frames_number = get_total_frames_number(filename)
     if len(y) > 0:
         #onsets_frames = get_real_onsets_frames(y)
@@ -131,23 +132,28 @@ for filename in files:
         CQT[50:w, :] = -100
         CQT[0:20, :] = -100
 
-        rms = librosa.feature.rmse(y=y)[0]
-        rms = [x / np.std(rms) for x in rms]
-        rms = [x / np.std(rms) if x / np.std(rms) > np.max(rms) * 0.4 else 0 for x in rms]
-        # rms = rms/ np.std(rms)
-        rms_diff = np.diff(rms)
-        print("rms_diff is {}".format(rms_diff))
         # 标准节拍时间点
         type_index = get_onsets_index_by_filename(filename)
         total_frames_number = get_total_frames_number(filename)
+        # base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
         base_frames = onsets_base_frames(codes[type_index], total_frames_number)
         base_onsets = librosa.frames_to_time(base_frames, sr=sr)
+
+        first_frame = base_frames[1] - base_frames[0]
+        rms = librosa.feature.rmse(y=y)[0]
+        rms = [x / np.std(rms) for x in rms]
+        first_frame_rms = rms[0:first_frame]
+        first_frame_rms_max = np.max(first_frame_rms)
+        # rms = [x / np.std(rms) if x / np.std(rms) > first_frame_rms_max*0.8 else 0 for x in rms]
+        rms = [x if x > first_frame_rms_max * 0.6 else 0 for x in rms]
+        # rms = rms/ np.std(rms)
+        rms_diff = np.diff(rms)
+        # print("rms_diff is {}".format(rms_diff))
         print("rms max is {}".format(np.max(rms)))
-        all_peak_points = get_all_onsets_starts(rms,0.7)
+        # all_peak_points = get_all_onsets_starts(rms,0.7)
         # all_peak_points = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
         topN = len(base_frames)
-        #all_peak_points = get_topN_peak_by_denoise(rms, 0.45, topN)
-        #all_peak_points = []
+        all_peak_points = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN)
         #onsets_frames = get_real_onsets_frames_rhythm(y)
         #_, onsets_frames = get_onset_rmse_viterbi(y, 0.35)
         #onsets_frames = get_all_onsets_starts_for_beat(rms, 0.6)
@@ -159,14 +165,15 @@ for filename in files:
         want_all_points = list(set(want_all_points))
         want_all_points.sort()
         want_all_points_diff = np.diff(want_all_points)
-        # 去掉挤在一起的线
-        result = [want_all_points[0]]
-        for i, v in enumerate(want_all_points_diff):
-            if v > 8:
-                result.append(want_all_points[i + 1])
-            else:
-                pass
-        onsets_frames = result
+        if len(want_all_points)>0:
+            # 去掉挤在一起的线
+            result = [want_all_points[0]]
+            for i, v in enumerate(want_all_points_diff):
+                if v > 8:
+                    result.append(want_all_points[i + 1])
+                else:
+                    pass
+            onsets_frames = result
         #onsets_frames = get_onsets_by_all_v2(y, sr,len(codes[type_index])+2)
         if len(onsets_frames) < 3:
             continue
