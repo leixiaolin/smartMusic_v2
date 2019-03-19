@@ -808,7 +808,7 @@ def get_peak_trough_by_denoise(rms,threshold):
             end = ends[i]
         if np.abs(end - start)<1 or start > end:
             continue
-        print("start,end is {},{}".format(start,end))
+        #print("start,end is {},{}".format(start,end))
         max_sub_rms = np.max(rms[start:end])
         result.append([start,end,max_sub_rms])
         all_max_sub_rms.append(max_sub_rms)
@@ -817,12 +817,28 @@ def get_peak_trough_by_denoise(rms,threshold):
 def get_topN_peak_by_denoise(rms,threshold,topN):
     result = []
     total = 0
+    threshold = threshold.astype(np.float32)
+    best_all_peak_trough = []
+    beast_all_max_sub_rms = []
+    max_peak_number = 0
     while True:
-        all_peak_trough,all_max_sub_rms = get_peak_trough_by_denoise(rms,threshold)
+        rms_copy = rms_smooth(rms, threshold, 6)
+        rms_copy = [x if x >= threshold else 0 for x in rms_copy]
+        all_peak_trough,all_max_sub_rms = get_peak_trough_by_denoise(rms_copy,threshold)
         threshold *= 0.95
         total += 1
-        if len(all_peak_trough) >= topN or total > 10:
+        if max_peak_number < len(all_peak_trough):
+            max_peak_number = len(all_peak_trough)
+            best_all_peak_trough = all_peak_trough
+            beast_all_max_sub_rms = all_max_sub_rms
+        if len(all_peak_trough) >= topN or total > 30:
             break
+    if len(all_peak_trough) >= topN:
+        topN = len(all_peak_trough)
+    if total > 30:
+        all_peak_trough = best_all_peak_trough
+        all_max_sub_rms = beast_all_max_sub_rms
+        print("eporch is {}".format(total))
     topN_indexs = find_n_largest(all_max_sub_rms,topN)
     for i in range(0,len(topN_indexs)):
         index = topN_indexs[i]
@@ -830,7 +846,20 @@ def get_topN_peak_by_denoise(rms,threshold,topN):
         if start == 0:
             start = 1
         result.append(start)
-    return result
+    return result,rms_copy
+
+def rms_smooth(rms,threshold,step):
+
+    for i in range(step,len(rms)-1):
+        if rms[i] < threshold and rms[i+1]>=threshold:
+            start = i - step
+            end = i + 1
+            if np.min(rms[start:end]) > threshold*0.65:
+                for j in range(start, end):
+                    if rms[j] < threshold:
+                        threshold = threshold.astype(np.float32)
+                        rms[j] = threshold
+    return rms
 
 def find_n_largest(a,topN):
     import heapq

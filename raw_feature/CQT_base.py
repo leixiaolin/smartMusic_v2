@@ -18,7 +18,7 @@ filepath = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4卢(65).wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2-01（80）.wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4-02（68）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1桢(100).wav'
+filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏二（4）（100）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01（95）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2（四）(96).wav'
@@ -87,29 +87,43 @@ y, sr = load_and_trim(filename)
 # if need_vocal_separation:
 #     y, sr = get_foreground(y, sr)  # 分离前景音
 
-CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref = np.max)
-w,h = CQT.shape
-CQT[50:w,:] = -100
-CQT[0:20,:] = -100
+CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+w, h = CQT.shape
+CQT[50:w, :] = -100
+CQT[0:20, :] = -100
 
-rms = librosa.feature.rmse(y=y)[0]
-rms = [x/np.std(rms) for x in rms]
-rms = [x / np.std(rms) if x / np.std(rms) > np.max(rms)*0.4 else 0 for x in rms]
-#rms = rms/ np.std(rms)
-rms_diff = np.diff(rms)
-print("rms_diff is {}".format(rms_diff))
 # 标准节拍时间点
 type_index = get_onsets_index_by_filename(filename)
 total_frames_number = get_total_frames_number(filename)
-#base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
-base_frames = onsets_base_frames(codes[type_index],total_frames_number)
+# base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
+base_frames = onsets_base_frames(codes[type_index], total_frames_number)
 base_onsets = librosa.frames_to_time(base_frames, sr=sr)
+
+first_frame = base_frames[1] - base_frames[0]
+rms = librosa.feature.rmse(y=y)[0]
+rms = [x / np.std(rms) for x in rms]
+first_frame_rms = rms[0:first_frame]
+first_frame_rms_max = np.max(first_frame_rms)
+
+if first_frame_rms_max == np.max(rms):
+    print("=====================================")
+    threshold = first_frame_rms_max * 0.35
+    #rms = rms_smooth(rms,threshold,6)
+    #rms = [x if x >= first_frame_rms_max * 0.35 else 0 for x in rms]
+else:
+    threshold = first_frame_rms_max * 0.6
+    #rms = rms_smooth(rms, threshold, 6)
+    #rms = [x if x >= first_frame_rms_max * 0.6 else 0 for x in rms]
+# rms = [x / np.std(rms) if x / np.std(rms) > first_frame_rms_max*0.8 else 0 for x in rms]
+# rms = rms/ np.std(rms)
+rms_diff = np.diff(rms)
+# print("rms_diff is {}".format(rms_diff))
 print("rms max is {}".format(np.max(rms)))
-#all_peak_points = get_all_onsets_starts(rms,0.7)
-#all_peak_points = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
+# all_peak_points = get_all_onsets_starts(rms,0.7)
+# all_peak_points = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
 topN = len(base_frames)
-all_peak_points = get_topN_peak_by_denoise(rms,0.45,topN)
-onsets_frames = get_real_onsets_frames_rhythm(y)
+all_peak_points,rms = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN)
+#onsets_frames = get_real_onsets_frames_rhythm(y)
 onsets_frames = []
 
 #all_peak_points = get_all_onsets_starts_for_beat(rms,0.6)
@@ -145,7 +159,7 @@ print(np.max(y))
 plt.vlines(want_all_points_time, 0,sr, color='y', linestyle='solid')
 print(CQT.shape)
 q1,q2 = CQT.shape
-print(plt.figure)
+#print(plt.figure)
 
 plt.subplot(5,1,2) #要生成两行两列，这是第一个图plt.subplot('行','列','编号')
 librosa.display.waveplot(y, sr=sr)
@@ -217,11 +231,12 @@ c_max = np.argmax(CQT, axis=0)
 # note_start_time = librosa.frames_to_time([note_start])
 #print("note_number is {}".format(note_number))
 c_max_diff = np.diff(c_max)
+times = range(len(c_max))
 plt.plot(times,c_max)
 plt.xlim(0,np.max(times))
 onsets_frames = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
 want_all_points_time = librosa.frames_to_time(onsets_frames)
-plt.vlines(want_all_points_time, np.min(c_max),np.max(c_max), color='y', linestyle='solid')
+#plt.vlines(want_all_points_time, np.min(c_max),np.max(c_max), color='y', linestyle='solid')
 #plt.text(note_start_time, note_number, note_number)
 for i in range(len(onsets_frames)-1):
     note_start,note_end,note_number = find_note_number_by_range(c_max,onsets_frames[i],onsets_frames[i+1])
