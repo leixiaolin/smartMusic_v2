@@ -21,7 +21,7 @@ def get_score1(standard_y,recognize_y,onsets_total,onsets_strength,min_d):
         lost_score = 100 / onsets_total * lost_num
     elif len(ex_frames) >= 1:
         for x in ex_frames:
-            strength = onsets_strength.get(x)
+            strength = onsets_strength[int(x)]
             ex_score += int(100 / onsets_total * strength)
     else:
         print('节拍数一致')

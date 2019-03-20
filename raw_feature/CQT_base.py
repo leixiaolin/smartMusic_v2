@@ -1,3 +1,4 @@
+#coding=utf-8
 import librosa
 import matplotlib.pyplot as plt
 import librosa.display
@@ -17,8 +18,12 @@ filepath = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节
 #filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（2）（90分）.wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4卢(65).wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2-01（80）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4-02（68）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏二（4）（100）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏3周(90).wav'
+filename = 'F:/项目/花城音乐项目/样式数据/3.19MP3/节奏/节奏1条1号（100）.wav'
+
+#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节7.4(20).wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏7录音1(65).wav.wav'
+
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01（95）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2（四）(96).wav'
@@ -32,6 +37,7 @@ filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏二�
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（9）（100）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
+
 
 # 2. Load the audio as a waveform `y`
 #    Store the sampling rate as `sr`
@@ -102,6 +108,8 @@ base_onsets = librosa.frames_to_time(base_frames, sr=sr)
 first_frame = base_frames[1] - base_frames[0]
 rms = librosa.feature.rmse(y=y)[0]
 rms = [x / np.std(rms) for x in rms]
+min_waterline = find_min_waterline(rms,8)
+print("min_waterline is {}".format(min_waterline))
 first_frame_rms = rms[0:first_frame]
 first_frame_rms_max = np.max(first_frame_rms)
 
@@ -122,7 +130,24 @@ print("rms max is {}".format(np.max(rms)))
 # all_peak_points = get_all_onsets_starts(rms,0.7)
 # all_peak_points = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
 topN = len(base_frames)
-all_peak_points,rms = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN)
+waterline =0.00001
+threshold = first_frame_rms_max * 0.8
+if len(min_waterline)>0:
+    waterline = min_waterline[0][1]
+    waterline *=1.5
+    waterline = find_best_waterline(rms, 4, topN)+0.3
+    if waterline < 0.6:
+        waterline = 0.6
+
+    #waterline = 0.8
+    if threshold < waterline:
+        #waterline +=0.0000000001
+        threshold = waterline + 0.5
+        threshold = np.float64(threshold)
+        #pass
+    print("waterline is {}".format(waterline))
+    print("threshold is {}".format(threshold))
+all_peak_points,rms,threshold = get_topN_peak_by_denoise(rms, threshold, topN,waterline)
 #onsets_frames = get_real_onsets_frames_rhythm(y)
 onsets_frames = []
 
@@ -133,14 +158,16 @@ want_all_points = list(set(want_all_points))
 want_all_points.sort()
 want_all_points_diff = np.diff(want_all_points)
 #去掉挤在一起的线
-result = [want_all_points[0]]
-for i,v in enumerate(want_all_points_diff):
-    if v > 4:
-        result.append(want_all_points[i+1])
-    else:
-       pass
-want_all_points = result
+if len(want_all_points)>0:
+    result = [want_all_points[0]]
+    for i,v in enumerate(want_all_points_diff):
+        if v > 4:
+            result.append(want_all_points[i+1])
+        else:
+           pass
+    want_all_points = result
 #want_all_points = [x for i,x in enumerate(all_points) if i < len(all_points)-1 and (peak_trough_rms_diff[i]>1)]
+want_all_points.append(397-1)
 print("want_all_points is {}".format(want_all_points))
 want_all_points_time = librosa.frames_to_time(want_all_points)
 
@@ -164,7 +191,7 @@ q1,q2 = CQT.shape
 plt.subplot(5,1,2) #要生成两行两列，这是第一个图plt.subplot('行','列','编号')
 librosa.display.waveplot(y, sr=sr)
 plt.vlines(want_all_points_time, -1*np.max(y),np.max(y), color='y', linestyle='solid')
-
+    #plt.axhline(y=0.2, color='b')
 
 # duration = librosa.get_duration(filename=filename)
 # # 标准节拍时间点
@@ -172,6 +199,8 @@ plt.vlines(want_all_points_time, -1*np.max(y),np.max(y), color='y', linestyle='s
 # plt.vlines(base_onsets[:-1], -1*np.max(y),np.max(y), color='r', linestyle='dashed')
 # plt.vlines(base_onsets[-1], -1*np.max(y),np.max(y), color='white', linestyle='dashed')
 plt.subplot(5,1,3)
+rms = librosa.feature.rmse(y=y)[0]
+rms = [x / np.std(rms) for x in rms]
 times = librosa.frames_to_time(np.arange(len(rms)))
 plt.plot(times, rms)
 #plt.axhline(0.02, color='r', alpha=0.5)
@@ -180,23 +209,32 @@ plt.ylabel('RMS')
 plt.axis('tight')
 plt.xlim(0,np.max(times))
 plt.vlines(want_all_points_time, 0,np.max(rms), color='y', linestyle='solid')
+if len(min_waterline)>0:
+    xmin = librosa.frames_to_time([min_waterline[0][0]])
+    xmin = float('%.2f' % xmin)
+    xmax = librosa.frames_to_time([min_waterline[0][0]+8])
+    xmax = float('%.2f' % xmax)
+    print("min_waterline is {} at {}-{}".format(min_waterline[0][1],xmin,xmax))
+    plt.axhline(y=min_waterline[0][1],color='r')
+    plt.axhline(y=threshold,color='b')
 # 标准节拍时间点
 base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
 print("base_frames is {}".format(base_frames))
 
 #min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65,move=False)
-if base_frames[0] < want_all_points[0]:
-    best_y = [x + (want_all_points[0] - base_frames[0]) for x in base_frames]
-else:
-    best_y = base_frames
-base_onsets = librosa.frames_to_time(best_y, sr=sr)
-plt.vlines(base_onsets,  0,np.max(rms), color='r', linestyle='dashed')
-# 找出漏唱的线的帧
-standard_y = want_all_points.copy()
-recognize_y = best_y.copy()
-miss_onsets = get_mismatch_line(standard_y,recognize_y)
-miss_onsets_time = librosa.frames_to_time(miss_onsets[1], sr=sr)
-plt.vlines(miss_onsets_time,  0,np.max(rms), color='black', linestyle='dashed')
+if len(want_all_points)>0:
+    if base_frames[0] < want_all_points[0]:
+        best_y = [x + (want_all_points[0] - base_frames[0]) for x in base_frames]
+    else:
+        best_y = base_frames
+    base_onsets = librosa.frames_to_time(best_y, sr=sr)
+    plt.vlines(base_onsets,  0,np.max(rms), color='r', linestyle='dashed')
+    # 找出漏唱的线的帧
+    standard_y = want_all_points.copy()
+    recognize_y = best_y.copy()
+    miss_onsets = get_mismatch_line(standard_y,recognize_y)
+    miss_onsets_time = librosa.frames_to_time(miss_onsets[1], sr=sr)
+    plt.vlines(miss_onsets_time,  0,np.max(rms), color='black', linestyle='dashed')
 
 
 plt.subplot(5,1,4)
@@ -241,15 +279,15 @@ want_all_points_time = librosa.frames_to_time(onsets_frames)
 for i in range(len(onsets_frames)-1):
     note_start,note_end,note_number = find_note_number_by_range(c_max,onsets_frames[i],onsets_frames[i+1])
     note_start_time = librosa.frames_to_time([note_start])
-    plt.text(note_start_time, note_number-4, note_number)
+    #plt.text(note_start_time, note_number-4, note_number)
     if i ==0:
         first_note_number = note_number
-print(all_peak_points[-1])
+#print(all_peak_points[-1])
 note_start,note_end,note_number = find_note_number_by_range(c_max,onsets_frames[-1],len(c_max)-1)
 note_start_time = librosa.frames_to_time([note_start])
 find_note = find_note_number(note_number,3)
 note_number_gap = first_note_number - find_note[0]
-plt.text(note_start_time, note_number-4, note_number)
+#plt.text(note_start_time, note_number-4, note_number)
 # find_note = find_note_number(note_number,2)
 # find_note = [x + note_number_gap for x in find_note]
 # print("find_note is {}".format(find_note))

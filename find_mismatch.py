@@ -52,8 +52,8 @@ def get_scores(standard_y,recognize_y,onsets_total,onsets_strength):
         print('漏唱了' + str(lost_num) + '句')
         lost_score = 100 /onsets_total * lost_num
     elif len(ex_frames) > 1:
-        for x in ex_frames[1:]:
-            strength = onsets_strength.get(x)
+        for x in ex_frames:
+            strength = onsets_strength[int(x)]
             ex_score += int(100 /onsets_total * strength)
     else:
         print('节拍数一致')
@@ -180,7 +180,7 @@ def debug_get_score(filename):
         print('漏唱了' + str(lost_num) + '句')
     elif len(ex_frames) > 1:
         print('多唱的帧 is {}'.format(ex_frames))
-        ex_frames_time = librosa.frames_to_time(ex_frames[1:], sr=sr)
+        ex_frames_time = librosa.frames_to_time(ex_frames, sr=sr)
         plt.vlines(ex_frames_time, -1 * np.max(y), np.max(y), color='black', linestyle='solid')
     else:
         print('节拍数一致')
@@ -197,6 +197,8 @@ if __name__ == '__main__':
 
     # filename = './mp3/节奏/节奏1_40227（100）.wav'
     filename = './mp3/节奏/节奏4-01（88）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40441（96）.wav'
+
     # filename = './mp3/节奏/节奏四（4）（60）.wav'
     # filename = './mp3/节奏/节奏2-02（20）.wav'
 

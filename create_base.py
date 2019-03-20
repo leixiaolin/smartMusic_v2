@@ -801,7 +801,7 @@ def get_peak_trough_by_denoise(raw_rms,rms,threshold,min_waterline):
             starts.insert(0,1)
     else:
         ends.append(len(rms) - 1)
-    print("====================================")
+    #print("====================================")
     for i in range(0,len(starts)):
         start = starts[i]
         if i>=len(ends):
@@ -810,7 +810,7 @@ def get_peak_trough_by_denoise(raw_rms,rms,threshold,min_waterline):
             end = ends[i]
         if np.abs(end - start)<1 or start > end:
             continue
-        print("start,end is {},{}".format(start,end))
+        #print("start,end is {},{}".format(start,end))
         max_sub_rms = np.max(rms[start:end])
         if i==0:
             result.append([start, end, max_sub_rms])
@@ -818,7 +818,7 @@ def get_peak_trough_by_denoise(raw_rms,rms,threshold,min_waterline):
         else:
             last_start = starts[i-1]
             min_sub_rms = np.min(raw_rms[last_start:start])
-            print("start,end,min_sub_rms,min_waterline is {},{},{},{}".format(start, end,min_sub_rms,min_waterline))
+            #print("start,end,min_sub_rms,min_waterline is {},{},{},{}".format(start, end,min_sub_rms,min_waterline))
             if min_sub_rms <= min_waterline:
                 result.append([start,end,max_sub_rms])
                 all_max_sub_rms.append(max_sub_rms)
@@ -833,7 +833,7 @@ def get_topN_peak_by_denoise(rms,threshold,topN,waterline=10):
     best_threshold = 0
     max_peak_number = 0
     while True:
-        print("eporch is {},threshold is {}".format(total,threshold))
+        #print("eporch is {},threshold is {}".format(total,threshold))
         rms_copy = rms_smooth(rms, threshold, 6)
         rms_copy = [x if x >= threshold else 0 for x in rms_copy]
         all_peak_trough,all_max_sub_rms = get_peak_trough_by_denoise(rms,rms_copy,threshold,waterline)
@@ -937,7 +937,7 @@ def get_onsets_frames_for_jz(filename):
     first_frame_rms_max = np.max(first_frame_rms)
 
     if first_frame_rms_max == np.max(rms):
-        print("=====================================")
+        #print("=====================================")
         threshold = first_frame_rms_max * 0.35
         rms = rms_smooth(rms, threshold, 6)
         # rms = [x if x > first_frame_rms_max * 0.35 else 0 for x in rms]
@@ -949,7 +949,7 @@ def get_onsets_frames_for_jz(filename):
     # rms = rms/ np.std(rms)
     rms_diff = np.diff(rms)
     # print("rms_diff is {}".format(rms_diff))
-    print("rms max is {}".format(np.max(rms)))
+    #print("rms max is {}".format(np.max(rms)))
     # all_peak_points = get_all_onsets_starts(rms,0.7)
     # all_peak_points = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
     topN = len(base_frames)
@@ -968,8 +968,8 @@ def get_onsets_frames_for_jz(filename):
             threshold = waterline + 0.5
             threshold = np.float64(threshold)
             # pass
-        print("waterline is {}".format(waterline))
-        print("threshold is {}".format(threshold))
+        #print("waterline is {}".format(waterline))
+        #print("threshold is {}".format(threshold))
     all_peak_points, rms, threshold = get_topN_peak_by_denoise(rms, threshold, topN, waterline)
     # all_peak_points,_ = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN)
     # onsets_frames = get_real_onsets_frames_rhythm(y)
