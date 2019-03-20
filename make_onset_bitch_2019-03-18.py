@@ -164,15 +164,23 @@ for filename in files:
         # all_peak_points = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
         topN = len(base_frames)
         waterline = 0
+        threshold = first_frame_rms_max * 0.8
         if len(min_waterline) > 0:
             waterline = min_waterline[0][1]
             waterline *= 1.5
             waterline = find_best_waterline(rms, 4, topN) + 0.3
             if waterline < 0.6:
                 waterline = 0.6
+
             # waterline = 0.8
+            if threshold < waterline:
+                # waterline +=0.0000000001
+                threshold = waterline + 0.5
+                threshold = np.float64(threshold)
+                # pass
             print("waterline is {}".format(waterline))
-        all_peak_points, rms,threshold = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN, waterline)
+            print("threshold is {}".format(threshold))
+        all_peak_points, rms, threshold = get_topN_peak_by_denoise(rms, threshold, topN, waterline)
         #all_peak_points,_ = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN)
         #onsets_frames = get_real_onsets_frames_rhythm(y)
         #_, onsets_frames = get_onset_rmse_viterbi(y, 0.35)
