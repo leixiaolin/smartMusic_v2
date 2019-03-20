@@ -915,6 +915,85 @@ def rms_smooth(rms,threshold,step):
                         rms[j] = threshold
     return rms
 
+def get_onsets_frames_for_jz(filename):
+    y, sr = load_and_trim(filename)
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    CQT[50:w, :] = -100
+    CQT[0:20, :] = -100
+
+    # 标准节拍时间点
+    type_index = get_onsets_index_by_filename(filename)
+    total_frames_number = get_total_frames_number(filename)
+    # base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
+    base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+    base_onsets = librosa.frames_to_time(base_frames, sr=sr)
+
+    first_frame = base_frames[1] - base_frames[0]
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    min_waterline = find_min_waterline(rms, 8)
+    first_frame_rms = rms[0:first_frame]
+    first_frame_rms_max = np.max(first_frame_rms)
+
+    if first_frame_rms_max == np.max(rms):
+        print("=====================================")
+        threshold = first_frame_rms_max * 0.35
+        rms = rms_smooth(rms, threshold, 6)
+        # rms = [x if x > first_frame_rms_max * 0.35 else 0 for x in rms]
+    else:
+        threshold = first_frame_rms_max * 0.6
+        rms = rms_smooth(rms, threshold, 6)
+        # rms = [x if x > first_frame_rms_max * 0.6 else 0 for x in rms]
+    # rms = [x / np.std(rms) if x / np.std(rms) > first_frame_rms_max*0.8 else 0 for x in rms]
+    # rms = rms/ np.std(rms)
+    rms_diff = np.diff(rms)
+    # print("rms_diff is {}".format(rms_diff))
+    print("rms max is {}".format(np.max(rms)))
+    # all_peak_points = get_all_onsets_starts(rms,0.7)
+    # all_peak_points = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
+    topN = len(base_frames)
+    waterline = 0
+    threshold = first_frame_rms_max * 0.8
+    if len(min_waterline) > 0:
+        waterline = min_waterline[0][1]
+        waterline *= 1.5
+        waterline = find_best_waterline(rms, 4, topN) + 0.3
+        if waterline < 0.6:
+            waterline = 0.6
+
+        # waterline = 0.8
+        if threshold < waterline:
+            # waterline +=0.0000000001
+            threshold = waterline + 0.5
+            threshold = np.float64(threshold)
+            # pass
+        print("waterline is {}".format(waterline))
+        print("threshold is {}".format(threshold))
+    all_peak_points, rms, threshold = get_topN_peak_by_denoise(rms, threshold, topN, waterline)
+    # all_peak_points,_ = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN)
+    # onsets_frames = get_real_onsets_frames_rhythm(y)
+    # _, onsets_frames = get_onset_rmse_viterbi(y, 0.35)
+    # onsets_frames = get_all_onsets_starts_for_beat(rms, 0.6)
+    onsets_frames = []
+
+    # all_peak_points = get_all_onsets_starts_for_beat(rms,0.6)
+    # all_trough_points = get_all_onsets_ends(rms,-0.4)
+    want_all_points = np.hstack((all_peak_points, onsets_frames))
+    want_all_points = list(set(want_all_points))
+    want_all_points.sort()
+    want_all_points_diff = np.diff(want_all_points)
+    if len(want_all_points) > 0:
+        # 去掉挤在一起的线
+        result = [want_all_points[0]]
+        for i, v in enumerate(want_all_points_diff):
+            if v > 4:
+                result.append(want_all_points[i + 1])
+            else:
+                pass
+        onsets_frames = result
+    return onsets_frames
+
 def find_n_largest(a,topN):
     import heapq
 
@@ -1080,12 +1159,15 @@ def get_onsets_index_by_filename_rhythm(filename):
         return -1
 
 def get_total_frames_number(path):
-    audio, sr = librosa.load(path)
-    energy = librosa.feature.rmse(audio)
-    frames = np.nonzero(energy >= np.max(energy) / 5)
-
-    total = frames[1][-1]
-
+    # audio, sr = librosa.load(path)
+    # energy = librosa.feature.rmse(audio)
+    # frames = np.nonzero(energy >= np.max(energy) / 5)
+    #
+    # total = frames[1][-1]
+    y,sr = load_and_trim(path)
+    rms = librosa.feature.rmse(y=y)[0]
+    #onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+    total = len(rms)
     return total
 
 def get_onset_rmse_viterbi(y,silence_threshold):
