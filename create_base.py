@@ -830,18 +830,23 @@ def get_topN_peak_by_denoise(rms,threshold,topN,waterline=10):
     threshold = threshold.astype(np.float32)
     best_all_peak_trough = []
     beast_all_max_sub_rms = []
+    best_threshold = 0
     max_peak_number = 0
     while True:
-        print("eporch is {}".format(total))
+        print("eporch is {},threshold is {}".format(total,threshold))
         rms_copy = rms_smooth(rms, threshold, 6)
         rms_copy = [x if x >= threshold else 0 for x in rms_copy]
         all_peak_trough,all_max_sub_rms = get_peak_trough_by_denoise(rms,rms_copy,threshold,waterline)
         threshold *= 0.95
+        if threshold <= waterline:
+            #threshold = waterline
+            pass
         total += 1
         if max_peak_number < len(all_peak_trough):
             max_peak_number = len(all_peak_trough)
             best_all_peak_trough = all_peak_trough
             beast_all_max_sub_rms = all_max_sub_rms
+            best_threshold = threshold
         if len(all_peak_trough) >= topN or total > 50:
             break
     if len(all_peak_trough) >= topN:
@@ -856,7 +861,7 @@ def get_topN_peak_by_denoise(rms,threshold,topN,waterline=10):
         if start == 0:
             start = 1
         result.append(start)
-    return result,rms_copy
+    return result,rms_copy,best_threshold
 
 def find_min_waterline(rms,step):
     threshold = 0.01

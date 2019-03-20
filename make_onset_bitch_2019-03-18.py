@@ -172,7 +172,7 @@ for filename in files:
                 waterline = 0.6
             # waterline = 0.8
             print("waterline is {}".format(waterline))
-        all_peak_points, rms = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN, waterline)
+        all_peak_points, rms,threshold = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN, waterline)
         #all_peak_points,_ = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN)
         #onsets_frames = get_real_onsets_frames_rhythm(y)
         #_, onsets_frames = get_onset_rmse_viterbi(y, 0.35)
