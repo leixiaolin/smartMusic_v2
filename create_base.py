@@ -787,7 +787,7 @@ def get_onsets_by_all_v2(y,sr,onsets_total):
             first_frame = 1
         result.insert(0, first_frame)
     return  result
-def get_peak_trough_by_denoise(rms,threshold):
+def get_peak_trough_by_denoise(raw_rms,rms,threshold,min_waterline):
     result = []
     all_max_sub_rms = []
     #rms = [x / np.std(rms) if x / np.std(rms) > np.max(rms) * threshold else 0 for x in rms]
@@ -797,9 +797,11 @@ def get_peak_trough_by_denoise(rms,threshold):
         return [],[]
     if ends[0]<starts[0]:
         #ends.pop(0)
-        starts.insert(0,1)
+        if starts[0] != 1:
+            starts.insert(0,1)
     else:
         ends.append(len(rms) - 1)
+    print("====================================")
     for i in range(0,len(starts)):
         start = starts[i]
         if i>=len(ends):
@@ -808,13 +810,21 @@ def get_peak_trough_by_denoise(rms,threshold):
             end = ends[i]
         if np.abs(end - start)<1 or start > end:
             continue
-        #print("start,end is {},{}".format(start,end))
+        print("start,end is {},{}".format(start,end))
         max_sub_rms = np.max(rms[start:end])
-        result.append([start,end,max_sub_rms])
-        all_max_sub_rms.append(max_sub_rms)
+        if i==0:
+            result.append([start, end, max_sub_rms])
+            all_max_sub_rms.append(max_sub_rms)
+        else:
+            last_start = starts[i-1]
+            min_sub_rms = np.min(raw_rms[last_start:start])
+            print("start,end,min_sub_rms,min_waterline is {},{},{},{}".format(start, end,min_sub_rms,min_waterline))
+            if min_sub_rms <= min_waterline:
+                result.append([start,end,max_sub_rms])
+                all_max_sub_rms.append(max_sub_rms)
     return result,all_max_sub_rms
 
-def get_topN_peak_by_denoise(rms,threshold,topN):
+def get_topN_peak_by_denoise(rms,threshold,topN,waterline=10):
     result = []
     total = 0
     threshold = threshold.astype(np.float32)
@@ -822,23 +832,23 @@ def get_topN_peak_by_denoise(rms,threshold,topN):
     beast_all_max_sub_rms = []
     max_peak_number = 0
     while True:
+        print("eporch is {}".format(total))
         rms_copy = rms_smooth(rms, threshold, 6)
         rms_copy = [x if x >= threshold else 0 for x in rms_copy]
-        all_peak_trough,all_max_sub_rms = get_peak_trough_by_denoise(rms_copy,threshold)
+        all_peak_trough,all_max_sub_rms = get_peak_trough_by_denoise(rms,rms_copy,threshold,waterline)
         threshold *= 0.95
         total += 1
         if max_peak_number < len(all_peak_trough):
             max_peak_number = len(all_peak_trough)
             best_all_peak_trough = all_peak_trough
             beast_all_max_sub_rms = all_max_sub_rms
-        if len(all_peak_trough) >= topN or total > 30:
+        if len(all_peak_trough) >= topN or total > 50:
             break
     if len(all_peak_trough) >= topN:
         topN = len(all_peak_trough)
-    if total > 30:
+    if total > 50:
         all_peak_trough = best_all_peak_trough
         all_max_sub_rms = beast_all_max_sub_rms
-        print("eporch is {}".format(total))
     topN_indexs = find_n_largest(all_max_sub_rms,topN)
     for i in range(0,len(topN_indexs)):
         index = topN_indexs[i]
@@ -847,6 +857,45 @@ def get_topN_peak_by_denoise(rms,threshold,topN):
             start = 1
         result.append(start)
     return result,rms_copy
+
+def find_min_waterline(rms,step):
+    threshold = 0.01
+    result = []
+    total = 0
+    while True:
+        for i in range(len(rms)-step):
+            if np.max(rms[i:i+step]) <threshold:
+                result.append([i,threshold])
+                return result
+        threshold *= 1.2
+        #threshold = threshold.astype(np.float32)
+        total += 1
+        if total > 30:
+            break
+    return result
+def find_best_waterline(raw_rms,step,topN):
+    threshold = 0.01
+    min_waterline = find_min_waterline(raw_rms,step)
+    if len(min_waterline) > 0:
+        threshold = min_waterline[0][1]
+    result = threshold
+    total = 0
+    max_starts_total = 0
+    while True:
+        rms = [x if x >= threshold else 0 for x in raw_rms]
+        starts = [i for i in range(0, len(rms) - 1) if rms[i] == 0 and rms[i + 1] > threshold]
+        if max_starts_total < len(starts):
+            #pass
+            result = threshold
+        if topN - len(starts) <1:
+            result = threshold
+            return result
+        threshold *= 1.2
+        #threshold = threshold.astype(np.float32)
+        total += 1
+        if total > 30:
+            break
+    return result
 
 def rms_smooth(rms,threshold,step):
 

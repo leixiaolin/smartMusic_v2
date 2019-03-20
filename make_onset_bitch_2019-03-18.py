@@ -19,7 +19,7 @@ from create_base import *
 
 score = 0
 save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
-src_path = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/'
+src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
 #save_path = './onsets/test'
 #src_path = './onsets/mp3/2.27节奏'
 
@@ -142,6 +142,7 @@ for filename in files:
         first_frame = base_frames[1] - base_frames[0]
         rms = librosa.feature.rmse(y=y)[0]
         rms = [x / np.std(rms) for x in rms]
+        min_waterline = find_min_waterline(rms, 8)
         first_frame_rms = rms[0:first_frame]
         first_frame_rms_max = np.max(first_frame_rms)
 
@@ -162,7 +163,17 @@ for filename in files:
         # all_peak_points = get_all_onsets_starts(rms,0.7)
         # all_peak_points = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
         topN = len(base_frames)
-        all_peak_points,_ = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN)
+        waterline = 0
+        if len(min_waterline) > 0:
+            waterline = min_waterline[0][1]
+            waterline *= 1.5
+            waterline = find_best_waterline(rms, 4, topN) + 0.3
+            if waterline < 0.6:
+                waterline = 0.6
+            # waterline = 0.8
+            print("waterline is {}".format(waterline))
+        all_peak_points, rms = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN, waterline)
+        #all_peak_points,_ = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN)
         #onsets_frames = get_real_onsets_frames_rhythm(y)
         #_, onsets_frames = get_onset_rmse_viterbi(y, 0.35)
         #onsets_frames = get_all_onsets_starts_for_beat(rms, 0.6)
