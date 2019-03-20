@@ -32,8 +32,8 @@ def get_dtw_min(x,y,move_range,move=True):
             min_index = i
             min_d = d
             best_y = y2
-        print("i,d is {},{}".format(i,d))
-    print("best index is {}".format(min_index))
+        #print("i,d is {},{}".format(i,d))
+    #print("best index is {}".format(min_index))
     return round(min_d, 2),best_y,x
 
 # You can also visualise the accumulated cost and the shortest path
