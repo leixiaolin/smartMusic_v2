@@ -71,6 +71,8 @@ def get_deviation(standard_y,recognize_y,codes):
         standard_offset = get_code_offset(codes[i])
         if offset <= standard_offset:
             score = 0
+        elif offset >= 1:
+            score = each_onset_score
         else:
             score = each_onset_score * offset
         total +=score
