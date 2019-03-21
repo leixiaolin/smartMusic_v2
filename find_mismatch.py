@@ -33,7 +33,10 @@ def get_mismatch_line(standard_y,recognize_y):
 
 
 def get_wrong(standard_y,recognize_y):
-    lost_num = len(standard_y)
+    if len(standard_y) > 0:
+        lost_num = standard_y[0]
+    else:
+        lost_num = 0
     ex_frames = []
     for i in recognize_y:
         ex_frames.append(i)
@@ -58,6 +61,35 @@ def get_scores(standard_y,recognize_y,onsets_total,onsets_strength):
     else:
         print('节拍数一致')
     return lost_score,ex_score
+
+def get_deviation(standard_y,recognize_y,codes):
+    each_onset_score = 100/len(standard_y)
+    score = 0
+    total = 0
+    for i in range(len(standard_y)-1):
+        offset =np.abs((recognize_y[i+1]-recognize_y[i]) /(standard_y[i+1] - standard_y[i]) -1)
+        standard_offset = get_code_offset(codes[i])
+        if offset <= standard_offset:
+            score = 0
+        else:
+            score = each_onset_score * offset
+        total +=score
+    return total
+def get_code_offset(code):
+    offset = 0
+    code = re.sub("\D", "", code)  # 筛选数字
+    code = int(code)
+    if code >= 4000:
+        offset = 1/32
+    elif code >= 2000:
+        offset = 1/16
+    elif code >= 1000:
+        offset = 1/8
+    elif code >= 500:
+        offset = 1/4
+    elif code >= 250:
+        offset = 1/2
+    return offset
 
 def get_score(filename):
 
@@ -85,7 +117,7 @@ def get_score(filename):
     base_frames = onsets_base_frames(codes[type_index], total_frames_number)
     print("base_frames is {}".format(base_frames))
 
-    min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
+    min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65,move=False)
     base_onsets = librosa.frames_to_time(best_y, sr=sr)
     print("base_onsets is {}".format(base_onsets))
 
@@ -98,7 +130,9 @@ def get_score(filename):
 
     standard_y = best_y
 
-    score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength,min_d)
+    codes = get_code(type_index, 1)
+    min_d = get_deviation(standard_y, recognize_y, codes)
+    score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
 
     # # 计算成绩测试
     # print('偏移分值为：{}'.format(min_d))
@@ -146,13 +180,17 @@ def debug_get_score(filename):
     total_frames_number = get_total_frames_number(filename)
 
     onsets_frames, onsets_frames_strength = get_onsets_by_all(y, sr)
-
+    onsets_frames = get_onsets_frames_for_jz(filename)
+    print("onsets_frames len is {}".format(len(onsets_frames)))
+    onsets_frames_strength = librosa.onset.onset_strength(y=y, sr=sr)
+    onsets_frames_strength = [x/np.max(onsets_frames_strength) for x in onsets_frames_strength]
     # 在此处赋值防止后面实线被移动找不到强度
     recognize_y = onsets_frames
 
     # 标准节拍时间点
     base_frames = onsets_base_frames(codes[type_index], total_frames_number)
     print("base_frames is {}".format(base_frames))
+    print("base_frames len is {}".format(len(base_frames)))
 
     min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
     base_onsets = librosa.frames_to_time(best_y, sr=sr)
@@ -167,26 +205,20 @@ def debug_get_score(filename):
 
     standard_y = best_y
 
-    score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+    codes = get_code(type_index,1)
+
+    if len(standard_y) < len(recognize_y):
+        _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
+        modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
+    min_d = get_deviation(standard_y,modify_recognize_y,codes)
+    #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
 
     # # 计算成绩测试
     print('偏移分值为：{}'.format(min_d))
-    score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+    score,lost_score,ex_score,min_d = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
     print('最终得分为：{}'.format(score))
-    standard_y, recognize_y = get_mismatch_line(standard_y, recognize_y)
-    lost_num, ex_frames = get_wrong(standard_y, recognize_y)
 
-    if lost_num:
-        print('漏唱了' + str(lost_num) + '句')
-    elif len(ex_frames) > 1:
-        print('多唱的帧 is {}'.format(ex_frames))
-        ex_frames_time = librosa.frames_to_time(ex_frames, sr=sr)
-        plt.vlines(ex_frames_time, -1 * np.max(y), np.max(y), color='black', linestyle='solid')
-    else:
-        print('节拍数一致')
-
-    lost_score, ex_score = get_scores(standard_y, recognize_y, len(base_frames), onsets_frames_strength)
-    print("lost_score, ex_score is : {},{}".format(lost_score, ex_score))
+    print("lost_score, ex_score,min_d is : {},{},{}".format(lost_score, ex_score,min_d))
     plt.show()
 
     return score
@@ -198,7 +230,8 @@ if __name__ == '__main__':
     # filename = './mp3/节奏/节奏1_40227（100）.wav'
     filename = './mp3/节奏/节奏4-01（88）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40441（96）.wav'
-
+    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40213（30）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1-01（70）.wav'
     # filename = './mp3/节奏/节奏四（4）（60）.wav'
     # filename = './mp3/节奏/节奏2-02（20）.wav'
 

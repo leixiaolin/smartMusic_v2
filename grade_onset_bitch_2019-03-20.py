@@ -171,7 +171,7 @@ for filename in files:
 
     # # 计算成绩测试
     print('偏移分值为：{}'.format(min_d))
-    score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+    score, lost_score, ex_score, min_d = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
     print('最终得分为：{}'.format(score))
     standard_y, recognize_y = get_mismatch_line(standard_y, recognize_y)
     lost_num, ex_frames = get_wrong(standard_y, recognize_y)
@@ -185,8 +185,7 @@ for filename in files:
     else:
         print('节拍数一致')
 
-    lost_score, ex_score = get_scores(standard_y, recognize_y, len(base_frames), onsets_frames_strength)
-    print("lost_score, ex_score is : {},{}".format(lost_score, ex_score))
+    print("lost_score, ex_score,min_d is : {},{},{}".format(lost_score, ex_score, min_d))
 
     #plt.show()
     fig = matplotlib.pyplot.gcf()

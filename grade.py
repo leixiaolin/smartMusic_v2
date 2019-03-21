@@ -29,7 +29,7 @@ def get_score1(standard_y,recognize_y,onsets_total,onsets_strength,min_d):
     score = score-lost_score-ex_score-min_d
     if score <0:
         score = 0
-    return score
+    return score,lost_score,ex_score,min_d
 
 
     # # onsets_num:总节拍数量 lost_num:漏唱数量 ex_frames:多唱的帧 dict:识别节拍与所对应的强度 shift:偏移分值

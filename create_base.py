@@ -50,6 +50,19 @@ def load_and_trim(path):
 
     return audio, sr
 
+def get_code(index,type):
+
+    if type == 1:
+        code = codes[index]
+    if type == 2:
+        code = rhythm_codes[index]
+    if type == 3:
+        code = note_codes[index]
+    code = code.replace(";", ',')
+    code = code.replace("[", '')
+    code = code.replace("]", '')
+    code = [x for x in code.split(',')]
+    return code
 
 def get_basetime(s):
     if s is None or len(s) < 1:

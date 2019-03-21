@@ -43,5 +43,6 @@ import matplotlib.pyplot as plt
 # plt.plot(path[0], path[1], 'w')
 # plt.show()
 
-#min_d,best_y = get_dtw_min(x,y,5)
-#print("min_d,best_y is {},{}".format(min_d,best_y))
+if __name__ == '__main__':
+    min_d,best_y,_ = get_dtw_min(x,y,5)
+    print("min_d,best_y is {},{}".format(min_d,best_y))
