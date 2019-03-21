@@ -218,7 +218,7 @@ for filename in files:
     else:
         print('节拍数一致')
     lost_score, ex_score = get_scores(standard_y, recognize_y, len(base_frames), onsets_frames_strength)
-    print("lost_score, ex_score is : {},{}".format(lost_score, ex_score))
+    # print("lost_score, ex_score is : {},{}".format(lost_score, ex_score))
 
     print("lost_score, ex_score,min_d is : {},{},{}".format(lost_score, ex_score, min_d))
 
