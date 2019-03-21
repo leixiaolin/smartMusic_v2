@@ -105,7 +105,7 @@ print(files)
 index = 0
 # 测试单个文件
 #files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏六（5）（80）.wav']
-#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40210（30）.wav']
+#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40213（30）.wav']
 for filename in files:
     print(filename)
     if filename.find('wav') <= 0:
@@ -163,14 +163,32 @@ for filename in files:
 
         plt.vlines(onstm, -1 * np.max(y), np.max(y), color='b', linestyle='solid')
     plt.vlines(base_onsets,  -1*np.max(y),np.max(y), color='r', linestyle='dashed')
-    plt.vlines(base_onsets[-1],  -1*np.max(y),np.max(y), color='white', linestyle='dashed')
+    #plt.vlines(base_onsets[-1],  -1*np.max(y),np.max(y), color='white', linestyle='dashed')
 
     standard_y = best_y.copy()
 
-    score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+    code = get_code(type_index, 1)
+    modify_recognize_y = recognize_y
+    ex_recognize_y = []
+    # 多唱的情况
+    if len(standard_y) < len(recognize_y):
+        _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
+        modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
+        min_d = get_deviation(standard_y, modify_recognize_y, code)
+    # 漏唱的情况
+    if len(standard_y) > len(recognize_y):
+        _, lost_standard_y = get_mismatch_line(recognize_y.copy(), standard_y.copy())
+        modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
+        min_d = get_deviation(modify_standard_y, recognize_y, code)
 
+    # 打印多唱的节拍
+    if len(ex_recognize_y)>0:
+        ex_recognize_y_time = librosa.frames_to_time(ex_recognize_y)
+        plt.vlines(ex_recognize_y_time, -1 * np.max(y), np.max(y), color='black', linestyle='solid')
     # # 计算成绩测试
     print('偏移分值为：{}'.format(min_d))
+    #plt.text(0.2, 20, 'test：{}'.format(min_d))
+    #plt.text(0.2, 0.2, '偏移分值为:' + str(round(min_d, 2)))
     score, lost_score, ex_score, min_d = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
     print('最终得分为：{}'.format(score))
     standard_y, recognize_y = get_mismatch_line(standard_y, recognize_y)

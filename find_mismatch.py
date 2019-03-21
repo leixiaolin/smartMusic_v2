@@ -205,12 +205,18 @@ def debug_get_score(filename):
 
     standard_y = best_y
 
-    codes = get_code(type_index,1)
-
+    code = get_code(type_index,1)
+    modify_recognize_y = recognize_y
+    #多唱的情况
     if len(standard_y) < len(recognize_y):
         _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
         modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
-    min_d = get_deviation(standard_y,modify_recognize_y,codes)
+        min_d = get_deviation(standard_y,modify_recognize_y,code)
+    #漏唱的情况
+    if len(standard_y) > len(recognize_y):
+        _, lost_standard_y = get_mismatch_line(recognize_y.copy(),standard_y.copy())
+        modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
+        min_d = get_deviation(modify_standard_y, recognize_y, code)
     #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
 
     # # 计算成绩测试
@@ -219,6 +225,7 @@ def debug_get_score(filename):
     print('最终得分为：{}'.format(score))
 
     print("lost_score, ex_score,min_d is : {},{},{}".format(lost_score, ex_score,min_d))
+    #plt.text(0.2, 0.2, '偏移分值为:'+ str(round(min_d,2)))
     plt.show()
 
     return score
@@ -230,8 +237,8 @@ if __name__ == '__main__':
     # filename = './mp3/节奏/节奏1_40227（100）.wav'
     filename = './mp3/节奏/节奏4-01（88）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40441（96）.wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40213（30）.wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1-01（70）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40213（30）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏四（11）（55）.wav'
     # filename = './mp3/节奏/节奏四（4）（60）.wav'
     # filename = './mp3/节奏/节奏2-02（20）.wav'
 
