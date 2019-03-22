@@ -46,8 +46,11 @@ def get_files_list(dir):
             # print("filename is: " + filename)
             # print(os.path.join(parent, filename))  # 输出rootdir路径下所有文件（包含子文件）信息
             curr_file = parent.split(os.sep)[-1]
-            # if curr_file == 'flower':
-            #     labels = 0
+            print(curr_file)
+            if curr_file == 'yes':
+                labels = 1
+            else:
+                labels=0
             # elif curr_file == 'guitar':
             #     labels = 1
             # elif curr_file == 'animal':
@@ -77,13 +80,19 @@ def get_files_list(dir):
 #     write_txt(val_data, val_txt, mode='w')
 
 if __name__ == '__main__':
-    train_dir = './data/train'
-    train_txt = './data/train.txt'
-    train_data = get_files_list(train_dir)
-    write_txt(train_data, train_txt, mode='w')
+    # train_dir = './data/train'
+    # train_txt = './data/train.txt'
+    # train_data = get_files_list(train_dir)
+    # write_txt(train_data, train_txt, mode='w')
+    #
+    # val_dir = './data/val'
+    # val_txt = './data/val.txt'
+    # val_data = get_files_list(val_dir)
+    # write_txt(val_data, val_txt, mode='w')
 
-    val_dir = './data/val'
-    val_txt = './data/val.txt'
-    val_data = get_files_list(val_dir)
-    write_txt(val_data, val_txt, mode='w')
+    test_dir = './test/jpg/'
+    test_txt = './test/jpg/test.txt'
+    test_data = get_files_list(test_dir)
+    write_txt(test_data, test_txt, mode='w')
+
 
