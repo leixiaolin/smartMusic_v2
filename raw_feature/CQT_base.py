@@ -1,4 +1,3 @@
-#coding=utf-8
 import librosa
 import matplotlib.pyplot as plt
 import librosa.display
@@ -18,12 +17,8 @@ filepath = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节
 #filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（2）（90分）.wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4卢(65).wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2-01（80）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏3周(90).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.19MP3/节奏/节奏1条1号（100）.wav'
-
-#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节7.4(20).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏7录音1(65).wav.wav'
-
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4-02（68）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏二（4）（100）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01（95）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2（四）(96).wav'
@@ -37,7 +32,6 @@ filename = 'F:/项目/花城音乐项目/样式数据/3.19MP3/节奏/节奏1条1
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（9）（100）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
-
 
 # 2. Load the audio as a waveform `y`
 #    Store the sampling rate as `sr`
@@ -299,5 +293,6 @@ note_number_gap = first_note_number - find_note[0]
 #     index = np.where(c_max == find_note[1])
 #     note_start_time = librosa.frames_to_time([index])
 #     plt.vlines(note_start_time, np.min(c_max), np.max(c_max), color='black', linestyle='solid')
-plt.savefig('f:/a.jpg', bbox_inches='tight', pad_inches=0)
+
+# plt.savefig('f:/a.jpg', bbox_inches='tight', pad_inches=0)
 plt.show()

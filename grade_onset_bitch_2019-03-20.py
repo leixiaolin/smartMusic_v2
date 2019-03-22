@@ -16,12 +16,13 @@ from grade import *
 from vocal_separation import *
 from viterbi import *
 from create_base import *
-
+import re
 score = 0
-save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
-src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
-#save_path = './onsets/test'
-#src_path = './onsets/mp3/2.27节奏'
+# save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
+# src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
+save_path = './onsets/test/'
+src_path = './mp3/1.31WAV/'
+error_info_txt = './onsets/1.31error_info.txt'
 
 # save_path = ''
 tmp = ['A','B','C','D','E']
@@ -103,9 +104,16 @@ files = list_all_files(src_path)
 
 print(files)
 index = 0
+# 用于分析人工打分与算法打分误差
+total_error = 0   # 误差分数
+higher_num = 0 # 打分偏高数量
+lower_num = 0 # 打分偏低数量
+higher_error = 0 # 打分高的误差
+lower_error = 0 # 打分低的误差
+
 # 测试单个文件
 #files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏六（5）（80）.wav']
-#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40213（30）.wav']
+#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40210（30）.wav']
 for filename in files:
     print(filename)
     if filename.find('wav') <= 0:
@@ -114,6 +122,13 @@ for filename in files:
         continue
     else:
         index = index + 1
+
+    # 获取人工打分
+    manu_score = re.sub("\D", "", filename)
+    if str(manu_score).find("100") > 0:
+        manu_score = 100
+    else:
+        manu_score = int(manu_score) % 100
 
     type_index = get_onsets_index_by_filename(filename)
     y, sr = load_and_trim(filename)
@@ -202,6 +217,8 @@ for filename in files:
         plt.vlines(ex_frames_time, -1 * np.max(y), np.max(y), color='black', linestyle='solid')
     else:
         print('节拍数一致')
+    lost_score, ex_score = get_scores(standard_y, recognize_y, len(base_frames), onsets_frames_strength)
+    # print("lost_score, ex_score is : {},{}".format(lost_score, ex_score))
 
     print("lost_score, ex_score,min_d is : {},{},{}".format(lost_score, ex_score, min_d))
 
@@ -250,14 +267,42 @@ for filename in files:
     #saveFileName = str(len(file_sum)+1) + '-' + filename.split(".wav")[0] + '-' + saveFileName
     #saveFileName = str(len(file_sum) + 1) + '-' + saveFileName
     saveFileName = saveFileName
-    plt.savefig(savepath + saveFileName+ '_'+ str(score) + '.jpg',  bbox_inches='tight', pad_inches=0)
+    plt.savefig(savepath + saveFileName+ '_'+ str(score) + '.png',  bbox_inches='tight', pad_inches=0)
     plt.clf()
     saveFileName = ''
 
-t1 = np.vstack((files_list_a,files_list_b))
-t2 = np.vstack((files_list_c,files_list_d))
+    '''
+    分析人工与算法打分的误差
+    '''
+    # 计算总误差
+    total_error += abs(manu_score-score)
 
-files_list = np.vstack((t1,t2))
+    # 计算分数偏高或偏低的情况
+    if score-manu_score > 7:
+        higher_num += 1
+        higher_error += score-manu_score
+    elif manu_score-score > 7:
+        lower_num += 1
+        lower_error += manu_score-score
+
+# 写入误差信息
+error_info = '人工与算法打分总误差为：'+str(total_error)+'分  打分偏高的有：'+str(higher_num)+'个 打分偏低的有：'+str(lower_num)+'个'
+error_info += '\n分数偏高误差为：'+str(higher_error)+'分数偏低误差为'+str(lower_error)
+error_info += '\n平均误差为：'+str(total_error/len(files))
+
+
+f = open(error_info_txt,'w')
+f.write(error_info)
+
+if len(files_list_a) == 0 and len(files_list_b) == 0:
+    files_list = np.vstack((files_list_c,files_list_d))
+elif len(files_list_c) == 0 and len(files_list_d) == 0:
+    files_list = np.vstack((files_list_a,files_list_b))
+else:
+    t1 = np.vstack((files_list_a,files_list_b))
+    t2 = np.vstack((files_list_c,files_list_d))
+    files_list = np.vstack((t1,t2))
+
 write_txt(files_list, new_old_txt, mode='w')
 
 # 先获取多唱漏唱的情况

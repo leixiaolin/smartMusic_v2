@@ -656,8 +656,8 @@ def get_real_onsets_frames_by_strength(y,sr):
 def get_onsets_by_all(y,sr):
     all_onset = []
 
-    gap1 = 0.5
-    gap2 = 0.5
+    gap1 = 0.5 #0.5->1
+    gap2 = 0.5 #0.5->1
     gap3 = 0.75
     gap4 = 5
     onset_env_v1 = librosa.onset.onset_strength(y=y, sr=sr)

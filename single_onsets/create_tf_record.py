@@ -318,6 +318,7 @@ def batch_test(record_file,resize_height, resize_width):
 if __name__ == '__main__':
     # 参数设置
 
+
     resize_height = 224  # 指定存储图片高度
     resize_width = 224  # 指定存储图片宽度
     shuffle=True
@@ -326,6 +327,8 @@ if __name__ == '__main__':
     image_dir='./data/train'
     train_labels = './data/train.txt'  # 图片路径
     train_record_output = './data/record/train.tfrecords'
+    if not os.path.exists('./data/record/'):
+        os.mkdir('./data/record/')
     create_records(image_dir,train_labels, train_record_output, resize_height, resize_width,shuffle,log)
     train_nums=get_example_nums(train_record_output)
     print("save train example nums={}".format(train_nums))

@@ -56,7 +56,7 @@ def get_files_list(dir):
             #     labels = 3
             # elif curr_file == 'plane':
             #     labels = 4
-            if curr_file == 'no':
+            if curr_file == 'augumention_no':
                 labels = 0
             elif curr_file == 'yes':
                 labels = 1
@@ -77,6 +77,8 @@ def get_files_list(dir):
 #     write_txt(val_data, val_txt, mode='w')
 
 if __name__ == '__main__':
+
+
     train_dir = './data/train'
     train_txt = './data/train.txt'
     train_data = get_files_list(train_dir)
