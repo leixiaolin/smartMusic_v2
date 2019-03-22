@@ -205,11 +205,12 @@ def debug_get_score(filename):
     plt.vlines(onstm, -1 * np.max(y), np.max(y), color='b', linestyle='solid')
     plt.vlines(base_onsets, -1 * np.max(y), np.max(y), color='r', linestyle='dashed')
 
-    standard_y = best_y
+    standard_y = best_y.copy()
 
     code = get_code(type_index,1)
     modify_recognize_y = recognize_y
     each_onset_score = 100 / len(standard_y)
+    ex_recognize_y = []
     #多唱的情况
     if len(standard_y) < len(recognize_y):
         _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
@@ -220,6 +221,8 @@ def debug_get_score(filename):
         _, lost_standard_y = get_mismatch_line(recognize_y.copy(),standard_y.copy())
         modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
         min_d = get_deviation(modify_standard_y, recognize_y, code,each_onset_score)
+    if len(standard_y) == len(recognize_y):
+        min_d = get_deviation(standard_y, recognize_y, code, each_onset_score)
     #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
 
     # # 计算成绩测试
@@ -228,6 +231,11 @@ def debug_get_score(filename):
     print('最终得分为：{}'.format(score))
 
     print("lost_score, ex_score,min_d is : {},{},{}".format(lost_score, ex_score,min_d))
+
+    # 打印多唱的节拍
+    if len(ex_recognize_y) > 0:
+        ex_recognize_y_time = librosa.frames_to_time(ex_recognize_y)
+        plt.vlines(ex_recognize_y_time, -1 * np.max(y), np.max(y), color='black', linestyle='solid')
     #plt.text(0.2, 0.2, '偏移分值为:'+ str(round(min_d,2)))
     plt.show()
 
@@ -242,6 +250,9 @@ if __name__ == '__main__':
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40441（96）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40213（30）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏四（9）（70）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏十（5）（100）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节8王（60）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节5熙(35).wav'
     # filename = './mp3/节奏/节奏四（4）（60）.wav'
     # filename = './mp3/节奏/节奏2-02（20）.wav'
 

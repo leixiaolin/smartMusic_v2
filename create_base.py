@@ -846,7 +846,7 @@ def get_topN_peak_by_denoise(rms,threshold,topN,waterline=10):
     best_threshold = 0
     max_peak_number = 0
     while True:
-        #print("eporch is {},threshold is {}".format(total,threshold))
+        print("eporch is {},threshold is {},max_peak_number is {},waterline is {}".format(total,threshold,max_peak_number,waterline))
         rms_copy = rms_smooth(rms, threshold, 6)
         rms_copy = [x if x >= threshold else 0 for x in rms_copy]
         all_peak_trough,all_max_sub_rms = get_peak_trough_by_denoise(rms,rms_copy,threshold,waterline)
@@ -899,21 +899,24 @@ def find_best_waterline(raw_rms,step,topN):
     result = threshold
     total = 0
     max_starts_total = 0
+    best_starts = []
     while True:
         rms = [x if x >= threshold else 0 for x in raw_rms]
         starts = [i for i in range(0, len(rms) - 1) if rms[i] == 0 and rms[i + 1] > threshold]
         if max_starts_total < len(starts):
             #pass
             result = threshold
+            max_starts_total = len(starts)
+            best_starts = starts
         if topN - len(starts) <1:
             result = threshold
-            return result
-        threshold *= 1.2
+            return result,best_starts
+        threshold *= 1.05
         #threshold = threshold.astype(np.float32)
         total += 1
         if total > 30:
             break
-    return result
+    return result,best_starts
 
 def rms_smooth(rms,threshold,step):
 
@@ -966,12 +969,13 @@ def get_onsets_frames_for_jz(filename):
     # all_peak_points = get_all_onsets_starts(rms,0.7)
     # all_peak_points = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
     topN = len(base_frames)
-    waterline = 0
+    best_starts_waterline = []
     threshold = first_frame_rms_max * 0.8
     if len(min_waterline) > 0:
-        waterline = min_waterline[0][1]
-        waterline *= 1.5
-        waterline = find_best_waterline(rms, 4, topN) + 0.3
+        # waterline = min_waterline[0][1]
+        # waterline *= 1.5
+        waterline, best_starts_waterline = find_best_waterline(rms, 4, topN)
+        waterline += 0.3
         if waterline < 0.6:
             waterline = 0.6
 
@@ -995,6 +999,8 @@ def get_onsets_frames_for_jz(filename):
     want_all_points = np.hstack((all_peak_points, onsets_frames))
     want_all_points = list(set(want_all_points))
     want_all_points.sort()
+    if topN - len(want_all_points) >= 3 and topN - len(best_starts_waterline) < 3:
+        want_all_points = best_starts_waterline
     want_all_points_diff = np.diff(want_all_points)
     if len(want_all_points) > 0:
         # 去掉挤在一起的线

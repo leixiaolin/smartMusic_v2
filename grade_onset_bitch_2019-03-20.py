@@ -18,10 +18,10 @@ from viterbi import *
 from create_base import *
 import re
 score = 0
-# save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
-# src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
-save_path = './onsets/test/'
-src_path = './mp3/1.31WAV/'
+save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
+src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
+#save_path = './onsets/test'
+#src_path = './onsets/mp3/2.27节奏'
 error_info_txt = './onsets/1.31error_info.txt'
 
 # save_path = ''
@@ -41,26 +41,6 @@ codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
                   '[500,1000,500,500,250,250;1000,500,750,250,500;3000]',
                   '[500,500,500;1000,500;500,500,500;1500;500,500,500;1000,500;500;1000;1500]',
                   '[500,500,1000;500,500;1000;375,125,250,250,375,125,250,250;500,500,1000]'])
-
-
-def load_and_trim(path):
-    audio, sr = librosa.load(path)
-    energy = librosa.feature.rmse(audio)
-    frames = np.nonzero(energy >= np.max(energy) / 5)
-    indices = librosa.core.frames_to_samples(frames)[1]
-    audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
-
-    return audio, sr
-
-def get_total_frames_number(path):
-    audio, sr = librosa.load(path)
-    energy = librosa.feature.rmse(audio)
-    frames = np.nonzero(energy >= np.max(energy) / 5)
-
-    total = frames[1][-1]
-
-    return total
-
 
 
 def list_all_files(rootdir):
@@ -135,7 +115,7 @@ for filename in files:
     #y, sr = librosa.load(filename)
     #y, sr = get_foreground(y, sr) # 分离前景音
     silence_threshold = 0.2
-    need_vocal_separation = check_need_vocal_separation(y, silence_threshold)
+    #need_vocal_separation = check_need_vocal_separation(y, silence_threshold)
     # if need_vocal_separation:
     #     y, sr = get_foreground(y, sr)  # 分离前景音
     total_frames_number = get_total_frames_number(filename)
@@ -185,16 +165,20 @@ for filename in files:
     code = get_code(type_index, 1)
     modify_recognize_y = recognize_y
     ex_recognize_y = []
+    each_onset_score = 100 / len(standard_y)
     # 多唱的情况
     if len(standard_y) < len(recognize_y):
         _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
         modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
-        min_d = get_deviation(standard_y, modify_recognize_y, code)
+        min_d = get_deviation(standard_y, modify_recognize_y, code, each_onset_score)
     # 漏唱的情况
     if len(standard_y) > len(recognize_y):
         _, lost_standard_y = get_mismatch_line(recognize_y.copy(), standard_y.copy())
         modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
-        min_d = get_deviation(modify_standard_y, recognize_y, code)
+        min_d = get_deviation(modify_standard_y, recognize_y, code, each_onset_score)
+
+    if len(standard_y) == len(recognize_y):
+        min_d = get_deviation(standard_y, recognize_y, code, each_onset_score)
 
     # 打印多唱的节拍
     if len(ex_recognize_y)>0:
@@ -209,15 +193,7 @@ for filename in files:
     standard_y, recognize_y = get_mismatch_line(standard_y, recognize_y)
     lost_num, ex_frames = get_wrong(standard_y, recognize_y)
 
-    if lost_num:
-        print('漏唱了' + str(lost_num) + '句')
-    elif len(ex_frames) > 1:
-        print('多唱的帧 is {}'.format(ex_frames))
-        ex_frames_time = librosa.frames_to_time(ex_frames, sr=sr)
-        plt.vlines(ex_frames_time, -1 * np.max(y), np.max(y), color='black', linestyle='solid')
-    else:
-        print('节拍数一致')
-    lost_score, ex_score = get_scores(standard_y, recognize_y, len(base_frames), onsets_frames_strength)
+
     # print("lost_score, ex_score is : {},{}".format(lost_score, ex_score))
 
     print("lost_score, ex_score,min_d is : {},{},{}".format(lost_score, ex_score, min_d))
