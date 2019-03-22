@@ -55,7 +55,7 @@ if __name__ == '__main__':
     depths=3
     data_format=[batch_size,resize_height,resize_width,depths]
     '''
-    分别批量测试
+    yes和no分开批量测试
     '''
     image_dir = './data/test/test/yes/' # 选择要测试的目录
     label = 1  # yes是1 no是0
