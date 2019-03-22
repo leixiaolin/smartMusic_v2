@@ -62,8 +62,8 @@ def get_scores(standard_y,recognize_y,onsets_total,onsets_strength):
         print('节拍数一致')
     return lost_score,ex_score
 
-def get_deviation(standard_y,recognize_y,codes):
-    each_onset_score = 100/len(standard_y)
+def get_deviation(standard_y,recognize_y,codes,each_onset_score):
+    #each_onset_score = 100/len(standard_y)
     score = 0
     total = 0
     for i in range(len(standard_y)-1):
@@ -209,16 +209,17 @@ def debug_get_score(filename):
 
     code = get_code(type_index,1)
     modify_recognize_y = recognize_y
+    each_onset_score = 100 / len(standard_y)
     #多唱的情况
     if len(standard_y) < len(recognize_y):
         _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
         modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
-        min_d = get_deviation(standard_y,modify_recognize_y,code)
+        min_d = get_deviation(standard_y,modify_recognize_y,code,each_onset_score)
     #漏唱的情况
     if len(standard_y) > len(recognize_y):
         _, lost_standard_y = get_mismatch_line(recognize_y.copy(),standard_y.copy())
         modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
-        min_d = get_deviation(modify_standard_y, recognize_y, code)
+        min_d = get_deviation(modify_standard_y, recognize_y, code,each_onset_score)
     #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
 
     # # 计算成绩测试
@@ -240,7 +241,7 @@ if __name__ == '__main__':
     filename = './mp3/节奏/节奏4-01（88）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40441（96）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40213（30）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏四（11）（55）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏四（9）（70）.wav'
     # filename = './mp3/节奏/节奏四（4）（60）.wav'
     # filename = './mp3/节奏/节奏2-02（20）.wav'
 
