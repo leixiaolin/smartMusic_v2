@@ -21,8 +21,10 @@ score = 0
 # save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
 # src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
 save_path = './onsets/test/'
-src_path = './mp3/1.31WAV/'
-error_info_txt = './onsets/1.31error_info.txt'
+date = '3.19'
+src_path = './mp3/'+date+'WAV/'
+error_info_txt = './onsets/'+date+'error_info.txt'
+new_old_txt = './onsets/'+date+'best_dtw.txt'
 
 # save_path = ''
 tmp = ['A','B','C','D','E']
@@ -30,7 +32,7 @@ tmp = ['A','B','C','D','E']
 # scr_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test'
 dis_dir = ''
 
-new_old_txt = './rhythm/new_and_old.txt'
+#new_old_txt = './rhythm/new_and_old.txt'
 codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
                   '[2000;1000,1000;500,500,1000;2000]',
                   '[1000,1000;500,500,1000;1000,1000;2000]',
@@ -99,7 +101,7 @@ files_list_a = []
 files_list_b = []
 files_list_c = []
 files_list_d = []
-new_old_txt = './onsets/best_dtw.txt'
+# new_old_txt = './onsets/best_dtw.txt'
 files = list_all_files(src_path)
 
 print(files)
@@ -287,21 +289,24 @@ for filename in files:
 
 # 写入误差信息
 error_info = '人工与算法打分总误差为：'+str(total_error)+'分  打分偏高的有：'+str(higher_num)+'个 打分偏低的有：'+str(lower_num)+'个'
-error_info += '\n分数偏高误差为：'+str(higher_error)+'分数偏低误差为'+str(lower_error)
+error_info += '\n分数偏高误差为：'+str(higher_error)+'\n平均偏高'+str(higher_error/higher_num)+'\n分数偏低误差为'+str(lower_error)+'\n平均偏低'+str(lower_error/lower_num)
 error_info += '\n平均误差为：'+str(total_error/len(files))
 
 
 f = open(error_info_txt,'w')
 f.write(error_info)
 
-if len(files_list_a) == 0 and len(files_list_b) == 0:
-    files_list = np.vstack((files_list_c,files_list_d))
-elif len(files_list_c) == 0 and len(files_list_d) == 0:
-    files_list = np.vstack((files_list_a,files_list_b))
-else:
-    t1 = np.vstack((files_list_a,files_list_b))
-    t2 = np.vstack((files_list_c,files_list_d))
-    files_list = np.vstack((t1,t2))
+# if len(files_list_a) == 0 and len(files_list_b) == 0:
+#     files_list = np.vstack((files_list_c,files_list_d))
+# elif len(files_list_c) == 0 and len(files_list_d) == 0:
+#     files_list = np.vstack((files_list_a,files_list_b))
+# else:
+#     t1 = np.vstack((files_list_a,files_list_b))
+#     t2 = np.vstack((files_list_c,files_list_d))
+#     files_list = np.vstack((t1,t2))
+t1 = np.append(files_list_a,files_list_b).reshape(len(files_list_a)+len(files_list_b),2)
+t2 = np.append(files_list_c,files_list_d).reshape(len(files_list_c)+len(files_list_d),2)
+files_list = np.append(t1,t2).reshape(len(t1)+len(t2),2)
 
 write_txt(files_list, new_old_txt, mode='w')
 
