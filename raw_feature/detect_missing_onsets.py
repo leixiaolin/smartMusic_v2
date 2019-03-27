@@ -325,6 +325,13 @@ def remove_crowded_frames_by_rms(onset_frames,onset_frames_strength,rms,crowded_
 
 
 if __name__ ==  '__main__':
+    '''
+    create_base参数修改为
+    gap1 = 0.2
+    gap2 = 0.3
+    gap3 = 0.3
+    gap4 = 2.8
+    '''
     savepath = '../single_onsets/data/test/test/'
     labels_filename = '../single_onsest/data/label.txt'
     #models_path = '../single_onsets/models/wzd/model.ckpt-10000'
