@@ -199,6 +199,18 @@ def get_min_width_rhythm(filename):
     base_frames_diff = np.diff(base_frames)
     result = np.min(base_frames_diff)
     return result
+
+'''
+获取最小帧距
+'''
+def get_min_width_onsets(filename):
+    total_frames_number = get_total_frames_number(filename)
+    type_index = get_onsets_index_by_filename(filename)
+    base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+    base_frames_diff = np.diff(base_frames)
+    result = np.min(base_frames_diff)
+    return result
+
 '''
 找波峰
 '''
@@ -1148,6 +1160,32 @@ def del_note_middle_by_cqt(y,onset_frames):
         elif np.max(CQT[:,onset_frames[i]-1]) != cqt_max or np.max(CQT[:, onset_frames[i] - 2]) != cqt_max or np.max(CQT[:, onset_frames[i] - 3]) != cqt_max:
             result.append(onset_frames[i])
     return result
+
+'''
+获取节拍起始点
+'''
+def get_note_start_by_cqt(y,onset_frames):
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    CQT[50:w, :] = np.min(CQT)
+    CQT[0:20, :] = np.min(CQT)
+    cqt_max = np.max(CQT)
+    for i in range(w):
+        for j in range(h):
+            if CQT[i][j] > -20:
+                CQT[i][j] = np.max(CQT)
+    result = []
+    for x in onset_frames:
+        if h - x <= 4 or x <3:
+            continue
+        # 节拍点后面2个位置都有节拍亮点,但前面2个位置都没有节拍亮点
+        elif np.max(CQT[:, x]) == cqt_max\
+                and np.max(CQT[:, x - 1]) != cqt_max:
+            result.append(x)
+        else:
+            continue
+    return result
+
 def get_note_height(cqt,cqt_max):
     result = []
     note_height = 0
@@ -1167,6 +1205,66 @@ def del_overcrowding(onset_frames,step):
         if onset_frames[i] - onset_frames[i-1] > step:
             result.append(onset_frames[i])
     return result
+
+def get_single_notes(filename,curr_num,savepath,modify_by_energy=False):
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    total_frames_number = len(rms)
+    #print("time is {}".format(time))
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
+    w, h = CQT.shape
+    # onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
+    onset_frames = get_real_onsets_frames_rhythm(y, modify_by_energy=modify_by_energy)
+
+    onset_times = librosa.frames_to_time(onset_frames, sr=sr)
+    plt.vlines(onset_times, 0, sr, color='y', linestyle='--')
+    #print(onset_samples)
+    #plt.subplot(len(onset_times),1,1)
+    #plt.show()
+    plt.clf()
+
+    for i in range(0, len(onset_frames)):
+        half = 15
+        start = onset_frames[i] - half
+        if start < 0:
+            start = 0
+        end = onset_frames[i] + half
+        if end >= total_frames_number:
+            end = total_frames_number - 1
+        # y2 = [x if i> start and i<end else 0 for i,x in enumerate(y)]
+        CQT_sub = np.zeros(CQT.shape)
+        middle = int(h / 2)
+        offset = middle - onset_frames[i]
+        for j in range(int(start), int(end)):
+            CQT_sub[:, j + offset] = CQT[:, j]
+        # CQT = CQT_T
+        librosa.display.specshow(CQT_sub, y_axis='cqt_note', x_axis='time')
+        # y2 = [x for i,x in enumerate(y) if i> start and i<end]
+        # y2 = [0.03 if i> start and i<end else 0.02 for i,x in enumerate(y)]
+        # y2[int(len(y2) / 2)] = np.max(y)  # 让图片展示归一化
+        t = librosa.frames_to_time([middle], sr=sr)
+        plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
+        # y2 = np.array(y2)
+        # print("len(y2) is {}".format(len(y2)))
+
+        #print("(end - start)*sr is {}".format((end - start) * sr))
+        # plt.show()
+        # plt.subplot(len(onset_times),1,i+1)
+        # y, sr = librosa.load(filename, offset=2.0, duration=3.0)
+        # librosa.display.waveplot(y2, sr=sr)
+        fig = matplotlib.pyplot.gcf()
+        # fig.set_size_inches(4, 4)
+        if "." in filename:
+            Filename = filename.split(".")[0]
+        plt.axis('off')
+        plt.axes().get_xaxis().set_visible(False)
+        plt.axes().get_yaxis().set_visible(False)
+        plt.savefig(savepath + str(i + 1) + '.jpg', bbox_inches='tight', pad_inches=0)
+        plt.clf()
+        curr_num += 1
+    #plt.show()
+    return onset_frames,curr_num
 
 def get_onsets_frames_by_cqt_for_rhythm(y,sr):
     gap4 = 15
