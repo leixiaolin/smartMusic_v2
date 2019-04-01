@@ -6,6 +6,7 @@ import math
 from viterbi import *
 from note_frequency import *
 from filters import *
+import os
 
 codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
                   '[2000;1000,1000;500,500,1000;2000]',
@@ -1033,7 +1034,7 @@ def get_onsets_frames_for_jz(filename):
             else:
                 pass
         onsets_frames = result
-    return onsets_frames
+    return onsets_frames,rms
 
 def find_n_largest(a,topN):
     import heapq
@@ -1061,7 +1062,7 @@ def max_min(x, y, z):
         min = z
     return (max, min)
 
-def get_real_onsets_frames_rhythm(y,modify_by_energy=False):
+def get_real_onsets_frames_rhythm(y,modify_by_energy=False,gap = 0.1):
     y_max = max(y)
     # y = np.array([x if x > y_max*0.01 else y_max*0.01 for x in y])
     # 获取每个帧的能量
@@ -1078,7 +1079,7 @@ def get_real_onsets_frames_rhythm(y,modify_by_energy=False):
     print("some_y is {}".format(some_y)) # 节拍点对应帧的能量
     energy_mean = (np.sum(some_y) - np.max(some_y))/(len(some_y)-1)  # 获取能量均值
     print("energy_mean for some_y is {}".format(energy_mean))
-    energy_gap = energy_mean * 0.1
+    energy_gap = energy_mean * gap
     # #energy_gap = np.max(energy[0][0:20])*0.8
     # some_energy_diff = [energy_diff[0][x] if x < len(energy_diff) else energy_diff[0][x-1]  for x in onsets_frames]
     # energy_diff_mean = np.mean(some_energy_diff)
@@ -1205,6 +1206,60 @@ def del_overcrowding(onset_frames,step):
         if onset_frames[i] - onset_frames[i-1] > step:
             result.append(onset_frames[i])
     return result
+
+def cqt_split(filename,savepath,step_width,onsets_frames=[]):
+    y, sr = librosa.load(filename)
+
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    CQT[50:w, :] = np.min(CQT)
+    CQT[0:20, :] = np.min(CQT)
+    for i in range(w):
+        for j in range(h):
+            if CQT[i][j] > -20:
+                CQT[i][j] = np.max(CQT)
+            # else:
+            #     CQT[i][j] = np.min(CQT)
+
+    # 拆分CQT
+    step = int(h / 15)
+    half = int(step / 2)
+    middle = int(h / 2)
+    if len(onsets_frames)>0:
+        for i in onsets_frames:
+            y2 = np.zeros(CQT.shape)
+            if i >= h - step:
+                break
+            offset = middle - (i + half)
+            for j in range(step):
+                y2[:, i + j + offset] = CQT[:, i + j]
+            librosa.display.specshow(y2, y_axis='cqt_note', x_axis='time')
+            t = librosa.frames_to_time([middle], sr=sr)
+            plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
+            tmp = os.listdir(savepath)
+
+            plt.savefig(savepath + str(len(tmp) + 1) + '.jpg', bbox_inches='tight', pad_inches=0)
+            plt.clf()
+            return onsets_frames
+    else:
+        result = []
+        for i in range(0, h, step_width):
+            y2 = np.zeros(CQT.shape)
+            if i >= h - step:
+                break
+            offset = middle - (i + half)
+            for j in range(step):
+                y2[:, i + j + offset] = CQT[:, i + j]
+            if np.max(y2) == np.max(CQT):
+                librosa.display.specshow(y2, y_axis='cqt_note', x_axis='time')
+                t = librosa.frames_to_time([middle], sr=sr)
+                plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
+                tmp = os.listdir(savepath)
+
+                plt.savefig(savepath + str(i) + '.jpg', bbox_inches='tight', pad_inches=0)
+                plt.clf()
+                result.append(i+half)
+        return result
 
 def get_single_notes(filename,curr_num,savepath,modify_by_energy=False):
     y, sr = librosa.load(filename)
