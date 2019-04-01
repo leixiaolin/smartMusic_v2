@@ -974,10 +974,16 @@ def get_onsets_frames_for_jz(filename):
     min_waterline = find_min_waterline(rms, 8)
     first_frame_rms = rms[0:first_frame]
     first_frame_rms_max = np.max(first_frame_rms)
+    waterline = 0
+    if len(min_waterline) > 0:
+        waterline = min_waterline[0][1]
 
     if first_frame_rms_max == np.max(rms):
         #print("=====================================")
         threshold = first_frame_rms_max * 0.35
+        if threshold > waterline:
+            threshold = waterline + 0.2
+            threshold = np.float64(threshold)
         rms = rms_smooth(rms, threshold, 6)
         # rms = [x if x > first_frame_rms_max * 0.35 else 0 for x in rms]
     else:
@@ -1176,15 +1182,19 @@ def get_note_start_by_cqt(y,onset_frames):
             if CQT[i][j] > -20:
                 CQT[i][j] = np.max(CQT)
     result = []
+    last = 0
     for x in onset_frames:
         if h - x <= 4 or x <3:
             continue
         # 节拍点后面2个位置都有节拍亮点,但前面2个位置都没有节拍亮点
-        elif np.max(CQT[:, x]) == cqt_max\
-                and np.max(CQT[:, x - 1]) != cqt_max:
-            result.append(x)
-        else:
-            continue
+        for j in range(w):
+            # 水平方向前面不亮，垂直方面至少5个连续亮
+            if CQT[j, x] == cqt_max and CQT[j, x - 1] != cqt_max \
+                    and CQT[j+1,x] == cqt_max and CQT[j+2,x] == cqt_max and CQT[j+3,x] == cqt_max:
+                result.append(x)
+                last = x
+            else:
+                continue
     return result
 
 def get_note_height(cqt,cqt_max):
