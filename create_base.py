@@ -1073,18 +1073,18 @@ def get_real_onsets_frames_rhythm(y,modify_by_energy=False,gap = 0.1):
     # y = np.array([x if x > y_max*0.01 else y_max*0.01 for x in y])
     # 获取每个帧的能量
     energy = librosa.feature.rmse(y)
-    print(np.mean(energy))
+    #print(np.mean(energy))
     energy_diff = np.diff(energy)
     #print(energy_diff)
     onsets_frames = librosa.onset.onset_detect(y)
 
-    print(onsets_frames)
-    print(np.diff(onsets_frames))
+    #print(onsets_frames)
+    #print(np.diff(onsets_frames))
 
     some_y = [energy[0][x] for x in onsets_frames]
-    print("some_y is {}".format(some_y)) # 节拍点对应帧的能量
+    #print("some_y is {}".format(some_y)) # 节拍点对应帧的能量
     energy_mean = (np.sum(some_y) - np.max(some_y))/(len(some_y)-1)  # 获取能量均值
-    print("energy_mean for some_y is {}".format(energy_mean))
+    #print("energy_mean for some_y is {}".format(energy_mean))
     energy_gap = energy_mean * gap
     # #energy_gap = np.max(energy[0][0:20])*0.8
     # some_energy_diff = [energy_diff[0][x] if x < len(energy_diff) else energy_diff[0][x-1]  for x in onsets_frames]

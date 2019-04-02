@@ -66,7 +66,7 @@ if __name__ ==  '__main__':
     '''
     测试多个文件
     '''
-    dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = []
     total_accuracy = 0
@@ -74,13 +74,13 @@ if __name__ ==  '__main__':
     result_path = 'e:/test_image/t/'
     for dir in dir_list:
         file_list = os.listdir(dir)
-        #file_list = ['旋1.1(96).wav']
+        #file_list = ['节奏1（二）(100).wav','节奏1（四）(100).wav','节奏1（三）(95).wav']
         for filename in file_list:
             # wavname = re.findall(pattern,filename)[0]
             print(dir + filename)
             y, sr = librosa.load(dir + filename)
             CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
-            onset_frames_cqt = get_onsets_by_cqt_rms(dir + filename, savepath)
+            onset_frames_cqt,best_threshold = get_onsets_by_cqt_rms_optimised(dir + filename)
             onset_frames_cqt_time = librosa.frames_to_time(onset_frames_cqt, sr=sr)
 
             type_index = get_onsets_index_by_filename(dir + filename)
@@ -110,13 +110,15 @@ if __name__ ==  '__main__':
 
             rms = librosa.feature.rmse(y=y)[0]
             rms = [x / np.std(rms) for x in rms]
-            rms = np.diff(rms)
+            max_rms = np.max(rms)
+            # rms = np.diff(rms)
             times = librosa.frames_to_time(np.arange(len(rms)))
             rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
             min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
-            rms = [1 if x >= min_rms_on_onset_frames_cqt else 0 for x in rms]
+            # rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
             plt.plot(times, rms)
-            plt.axhline(min_rms_on_onset_frames_cqt)
+            # plt.axhline(min_rms_on_onset_frames_cqt)
+            plt.axhline(max_rms * best_threshold)
             # plt.vlines(onsets_frames_rms_best_time, 0,np.max(rms), color='y', linestyle='solid')
             plt.vlines(onset_frames_cqt_time, 0, np.max(rms), color='r', linestyle='solid')
             plt.xlim(0, np.max(times))
