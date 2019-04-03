@@ -135,7 +135,7 @@ def  predict(image_dir,onset_frames,onsets_frames_strength,models_path):
 
 if __name__ ==  '__main__':
     # savepath = 'e:/test_image/'
-    savepath = './single_onsets/test/jpg/'
+    savepath = './single_onsets/data/test/'
     # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1.3(95).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1（二）(100).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40227（100）.wav'
@@ -160,7 +160,7 @@ if __name__ ==  '__main__':
     一次性自动生成所有图片
     '''
     # 要切割的文件路径列表
-    dir_list = ['./single_onsets/test/wav/']
+    dir_list = ['./mp3/2.18WAV/','./mp3/2.27WAV/']
     # 每个文件夹下要处理的图片数量（超过最大会按最大值处理）
     num = 200
     # 文件名计数

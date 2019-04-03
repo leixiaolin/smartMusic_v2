@@ -1,5 +1,7 @@
 
-# 计算分数方法1
+'''
+计算分数方法1
+'''
 def get_score1(standard_y,recognize_y,onsets_total,onsets_strength,min_d):
     '''
     计算多唱扣分，漏唱扣分
@@ -53,6 +55,9 @@ def get_score1(standard_y,recognize_y,onsets_total,onsets_strength,min_d):
     # return score
 
 
+'''
+计算分数方法2
+'''
+# def get_score2():
 
-#def get_score2()
 

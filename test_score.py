@@ -7,7 +7,7 @@ test_dir = './mp3/节奏/'
 file_list = os.listdir(test_dir)
 score_list = []
 # 要测试的数量
-test_num = 3
+test_num = 100
 if test_num>len(file_list):
     test_dir = len(file_list)
 

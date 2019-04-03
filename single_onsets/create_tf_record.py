@@ -318,6 +318,7 @@ def batch_test(record_file,resize_height, resize_width):
 if __name__ == '__main__':
     # 参数设置
 
+
     resize_height = 224  # 指定存储图片高度
     resize_width = 224  # 指定存储图片宽度
     shuffle=True

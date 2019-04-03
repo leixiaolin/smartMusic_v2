@@ -1,4 +1,3 @@
-#coding=utf-8
 import librosa
 import matplotlib.pyplot as plt
 import librosa.display
@@ -18,26 +17,23 @@ filepath = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节
 #filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（2）（90分）.wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4卢(65).wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2-01（80）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏3周(90).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.19MP3/节奏/节奏1条1号（100）.wav'
-
-#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节7.4(20).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏7录音1(65).wav.wav'
-
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01（95）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4-02（68）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏二（4）（100）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏7-02（30）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1（三）(95).wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2（四）(96).wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1.1(95).wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.3(55).wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/3.19MP3/节奏/节奏六1(10).wav'
 
 #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（10）（75）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（8）（100）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律7_40218（20）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（9）（100）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
-# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
-
+#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1罗（90）.wav'
 
 # 2. Load the audio as a waveform `y`
 #    Store the sampling rate as `sr`
@@ -108,66 +104,79 @@ base_onsets = librosa.frames_to_time(base_frames, sr=sr)
 first_frame = base_frames[1] - base_frames[0]
 rms = librosa.feature.rmse(y=y)[0]
 rms = [x / np.std(rms) for x in rms]
-min_waterline = find_min_waterline(rms,8)
-print("min_waterline is {}".format(min_waterline))
+min_waterline = find_min_waterline(rms, 8)
 first_frame_rms = rms[0:first_frame]
 first_frame_rms_max = np.max(first_frame_rms)
+waterline = 0
+if len(min_waterline) > 0:
+    waterline = min_waterline[0][1]
 
 if first_frame_rms_max == np.max(rms):
-    print("=====================================")
+    #print("=====================================")
     threshold = first_frame_rms_max * 0.35
-    #rms = rms_smooth(rms,threshold,6)
-    #rms = [x if x >= first_frame_rms_max * 0.35 else 0 for x in rms]
+    if threshold > waterline:
+        threshold = waterline + 0.2
+        threshold = np.float64(threshold)
+    rms = rms_smooth(rms, threshold, 6)
+    # rms = [x if x > first_frame_rms_max * 0.35 else 0 for x in rms]
 else:
     threshold = first_frame_rms_max * 0.6
-    #rms = rms_smooth(rms, threshold, 6)
-    #rms = [x if x >= first_frame_rms_max * 0.6 else 0 for x in rms]
+    if threshold > waterline:
+        threshold = waterline + 0.2
+        threshold = np.float64(threshold)
+    rms = rms_smooth(rms, threshold, 6)
+    # rms = [x if x > first_frame_rms_max * 0.6 else 0 for x in rms]
 # rms = [x / np.std(rms) if x / np.std(rms) > first_frame_rms_max*0.8 else 0 for x in rms]
 # rms = rms/ np.std(rms)
 rms_diff = np.diff(rms)
 # print("rms_diff is {}".format(rms_diff))
-print("rms max is {}".format(np.max(rms)))
+#print("rms max is {}".format(np.max(rms)))
 # all_peak_points = get_all_onsets_starts(rms,0.7)
 # all_peak_points = get_onsets_by_cqt_rms(y,16000,base_frames,0.7)
 topN = len(base_frames)
-waterline =0.00001
+best_starts_waterline = []
 threshold = first_frame_rms_max * 0.8
-if len(min_waterline)>0:
-    waterline = min_waterline[0][1]
-    waterline *=1.5
-    waterline = find_best_waterline(rms, 4, topN)+0.3
+if len(min_waterline) > 0:
+    # waterline = min_waterline[0][1]
+    # waterline *= 1.5
+    waterline,best_starts_waterline = find_best_waterline(rms, 4, topN)
+    waterline += 0.3
     if waterline < 0.6:
         waterline = 0.6
 
-    #waterline = 0.8
+    # waterline = 0.8
     if threshold < waterline:
-        #waterline +=0.0000000001
+        # waterline +=0.0000000001
         threshold = waterline + 0.5
         threshold = np.float64(threshold)
-        #pass
-    print("waterline is {}".format(waterline))
-    print("threshold is {}".format(threshold))
-all_peak_points,rms,threshold = get_topN_peak_by_denoise(rms, threshold, topN,waterline)
-#onsets_frames = get_real_onsets_frames_rhythm(y)
+        # pass
+    #print("waterline is {}".format(waterline))
+    #print("threshold is {}".format(threshold))
+all_peak_points, rms, threshold = get_topN_peak_by_denoise(rms, threshold, topN, waterline)
+# all_peak_points,_ = get_topN_peak_by_denoise(rms, first_frame_rms_max * 0.8, topN)
+# onsets_frames = get_real_onsets_frames_rhythm(y)
+# _, onsets_frames = get_onset_rmse_viterbi(y, 0.35)
+# onsets_frames = get_all_onsets_starts_for_beat(rms, 0.6)
 onsets_frames = []
 
-#all_peak_points = get_all_onsets_starts_for_beat(rms,0.6)
+# all_peak_points = get_all_onsets_starts_for_beat(rms,0.6)
 # all_trough_points = get_all_onsets_ends(rms,-0.4)
 want_all_points = np.hstack((all_peak_points, onsets_frames))
 want_all_points = list(set(want_all_points))
 want_all_points.sort()
 want_all_points_diff = np.diff(want_all_points)
-#去掉挤在一起的线
-if len(want_all_points)>0:
+if len(want_all_points) > 0:
+    # 去掉挤在一起的线
     result = [want_all_points[0]]
-    for i,v in enumerate(want_all_points_diff):
+    for i, v in enumerate(want_all_points_diff):
         if v > 4:
-            result.append(want_all_points[i+1])
+            result.append(want_all_points[i + 1])
         else:
-           pass
-    want_all_points = result
+            pass
+want_all_points = result
 #want_all_points = [x for i,x in enumerate(all_points) if i < len(all_points)-1 and (peak_trough_rms_diff[i]>1)]
-want_all_points.append(397-1)
+if topN - len(want_all_points) >= 3 and topN - len(best_starts_waterline) <3:
+    want_all_points = best_starts_waterline
 print("want_all_points is {}".format(want_all_points))
 want_all_points_time = librosa.frames_to_time(want_all_points)
 
@@ -218,7 +227,7 @@ if len(min_waterline)>0:
     plt.axhline(y=min_waterline[0][1],color='r')
     plt.axhline(y=threshold,color='b')
 # 标准节拍时间点
-base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
+#base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
 print("base_frames is {}".format(base_frames))
 
 #min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65,move=False)
@@ -299,5 +308,6 @@ note_number_gap = first_note_number - find_note[0]
 #     index = np.where(c_max == find_note[1])
 #     note_start_time = librosa.frames_to_time([index])
 #     plt.vlines(note_start_time, np.min(c_max), np.max(c_max), color='black', linestyle='solid')
-plt.savefig('f:/a.jpg', bbox_inches='tight', pad_inches=0)
+
+# plt.savefig('f:/a.jpg', bbox_inches='tight', pad_inches=0)
 plt.show()

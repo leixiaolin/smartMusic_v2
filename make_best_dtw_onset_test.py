@@ -16,13 +16,14 @@ from grade import *
 
 
 score = 0
-save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
-src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
-#save_path = './onsets/test'
-#src_path = './onsets/mp3/2.27节奏'
+# save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
+# src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
+save_path = './onsets/test'
+src_path = './onsets/mp3/2.27节奏'
 
 # save_path = ''
-tmp = ['A','B','C','D','E']
+#tmp = ['A','B','C','D','E']
+tmp = ['A','B','D']
 # dis_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test'
 # scr_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test'
 dis_dir = ''
@@ -113,7 +114,7 @@ files = list_all_files(src_path)
 print(files)
 index = 0
 # 测试单个文件
-#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏六（5）（80）.wav']
+#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1（三）(95).wav']
 for filename in files:
     print(filename)
     if filename.find('wav') <= 0:
@@ -218,7 +219,8 @@ for filename in files:
     #saveFileName = str(len(file_sum)+1) + '-' + filename.split(".wav")[0] + '-' + saveFileName
     #saveFileName = str(len(file_sum) + 1) + '-' + saveFileName
     saveFileName = saveFileName
-    plt.savefig(savepath + saveFileName+ '_'+ str(min_d) + '.jpg',  bbox_inches='tight', pad_inches=0)
+    # plt.savefig(savepath + saveFileName+ '_'+ str(min_d) + '.jpg',  bbox_inches='tight', pad_inches=0)
+    plt.savefig(savepath + saveFileName + '_' + str(min_d) + '.png', bbox_inches='tight', pad_inches=0)
     plt.clf()
     saveFileName = ''
 
@@ -228,7 +230,6 @@ t2 = np.vstack((files_list_c,files_list_d))
 files_list = np.vstack((t1,t2))
 write_txt(files_list, new_old_txt, mode='w')
 
-# 先获取多唱漏唱的情况
 
 
 

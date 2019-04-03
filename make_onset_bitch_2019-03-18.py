@@ -18,10 +18,10 @@ from viterbi import *
 from create_base import *
 
 score = 0
-save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
-src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
-#save_path = './onsets/test'
-#src_path = './onsets/mp3/2.27节奏'
+# save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
+# src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/'
+save_path = './onsets/test/'
+src_path = './mp3/3.19WAV/'
 
 # save_path = ''
 tmp = ['A','B','C','D','E']
@@ -231,7 +231,7 @@ for filename in files:
 
         librosa.display.waveplot(y, sr=sr)
         # plt.show()
-        plt.vlines(onstm, -1 * np.max(y), np.max(y), color='b', linestyle='solid')
+        plt.vlines(onstm, -1 * np.max(y), np.max(y), color='r', linestyle='solid')
     #plt.vlines(base_onsets,  -1*np.max(y),np.max(y), color='r', linestyle='dashed')
     #plt.vlines(base_onsets[-1],  -1*np.max(y),np.max(y), color='white', linestyle='dashed')
     #plt.show()
@@ -289,7 +289,7 @@ for filename in files:
     #saveFileName = str(len(file_sum)+1) + '-' + filename.split(".wav")[0] + '-' + saveFileName
     #saveFileName = str(len(file_sum) + 1) + '-' + saveFileName
     saveFileName = saveFileName
-    plt.savefig(savepath + saveFileName+ '_'+ str(min_d) + '.jpg',  bbox_inches='tight', pad_inches=0)
+    plt.savefig(savepath + saveFileName+ '_'+ str(min_d) + '.png',  bbox_inches='tight', pad_inches=0)
     plt.clf()
     saveFileName = ''
 
