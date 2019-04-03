@@ -1,23 +1,16 @@
-
 # coding: utf-8
 
 # In[1]:
 
 
 import sys
+
 sys.path.append("..")
 sys.path.append(".")
-import os
-import librosa
-import matplotlib.pyplot as plt
 import librosa.display
-import numpy as np
-from create_base import *
-from myDtw import *
 from find_mismatch import *
 from filters import *
 from vocal_separation import *
-
 
 codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
                   '[2000;1000,1000;500,500,1000;2000]',
@@ -37,34 +30,34 @@ codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
 # Sonify detected beat events
 
 
-
-
-filepath = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节奏九\\'
+# filepath = 'F:\项目\花城音乐项目\样式数据\音乐样本2019-01-29\节奏九\\'
 # filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（标准音频）.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏8.100分.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律2.100分.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（1）(90).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（2）（90分）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4卢(65).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2-01（80）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4-02（68）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏二（4）（100）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏7-02（30）.wav'
-filename = './single_onsets/样式数据/WAV/1.31/节奏9.65分.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2（四）(96).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1.1(95).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.3(55).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/3.19MP3/节奏/节奏六1(10).wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏8.100分.wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律2.100分.wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（1）(90).wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/ALL/节奏/节奏八/节奏八（2）（90分）.wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4卢(65).wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2-01（80）.wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏4-02（68）.wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏二（4）（100）.wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏7-02（30）.wav'
+filename = '../single_onsets/样式数据/WAV/1.31/节奏9.65分.wav'
 
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（10）（75）.wav'
+
+# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2（四）(96).wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1.1(95).wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.3(55).wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/3.19MP3/节奏/节奏六1(10).wav'
+
+# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（10）（75）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（8）（100）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律7_40218（20）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（9）（100）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1罗（90）.wav'
+# filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1罗（90）.wav'
 
 # 2. Load the audio as a waveform `y`
 #    Store the sampling rate as `sr`
@@ -72,9 +65,8 @@ filename = './single_onsets/样式数据/WAV/1.31/节奏9.65分.wav'
 
 # In[3]:
 
-def detect_repeat_onset(filename,old_way,new_way):
-
-    y,sr = librosa.load(old_way+filename)
+def detect_repeat_onset(filename, dir, save_dir):
+    y, sr = librosa.load(dir + filename)
     melspec = librosa.feature.melspectrogram(y, sr, n_fft=1024, hop_length=512)
     logmelspec = librosa.power_to_db(melspec)
 
@@ -91,7 +83,6 @@ def detect_repeat_onset(filename,old_way,new_way):
     melspec = librosa.feature.melspectrogram(y, sr, n_fft=1024, hop_length=512, n_mels=128)
     # convert to log scale
     logmelspec = librosa.power_to_db(melspec)
-    logmelspec.shape
     CQT = librosa.power_to_db(melspec, ref=np.max)
     print(CQT.shape)
     print(CQT[:, 1].shape)
@@ -116,7 +107,6 @@ def detect_repeat_onset(filename,old_way,new_way):
     ##
     Normalized_CQT = CQT
     Normalized_CQT = Normalized_CQT / np.max(abs(CQT))
-    Normalized_CQT
 
     # #### 设置阀值
     # In[8]:
@@ -242,7 +232,6 @@ def detect_repeat_onset(filename,old_way,new_way):
     #                 detect_onset[-1]=detect_onset[-2]
     detect_onset = np.unique(detect_onset)  ##去重
 
-
     # In[20]:
 
     # ### 调整最佳帧的位置，不断往峰值走,类似贪心
@@ -332,18 +321,17 @@ def detect_repeat_onset(filename,old_way,new_way):
 
     new_onset = np.unique(new_onset)  ##去重
 
-
     librosa.display.waveplot(y, sr=sr)
     plt.vlines(librosa.frames_to_time(new_onset), -np.max(y), np.max(y), color='r', linestyle='dashed')
 
     savename = filename.split('.wav')[0]
-    plt.savefig(new_way + savename + ".png")
+    plt.savefig(save_dir + savename + ".png")
     plt.show()
 
 
-if __name__=='__main__':
-    fold = './single_onsets/样式数据/WAV/3.06/'
-    save = './single_onsets/样式数据/WAV/test/'
+if __name__ == '__main__':
+    fold = '../single_onsets/样式数据/WAV/3.06/'
+    save = '../single_onsets/样式数据/WAV/test/'
     for file in os.listdir(fold):
         print(file)
-        detect_repeat_onset(file,fold,save)
+        detect_repeat_onset(file, fold, save)
