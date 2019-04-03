@@ -6,6 +6,7 @@ import math
 from viterbi import *
 from note_frequency import *
 from filters import *
+import os
 
 codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
                   '[2000;1000,1000;500,500,1000;2000]',
@@ -188,6 +189,28 @@ def get_min_range_frames_rhythm(frame_numbers,current_frames_number):
     sub_frame_numbers_diff = frame_numbers_diff[start:end]
     min_frame_width = int(np.min(sub_frame_numbers_diff) * 0.4)
     return min_frame_width
+
+'''
+获取最小帧距
+'''
+def get_min_width_rhythm(filename):
+    total_frames_number = get_total_frames_number(filename)
+    type_index = get_onsets_index_by_filename_rhythm(filename)
+    base_frames = onsets_base_frames_rhythm(type_index, total_frames_number)
+    base_frames_diff = np.diff(base_frames)
+    result = np.min(base_frames_diff)
+    return result
+
+'''
+获取最小帧距
+'''
+def get_min_width_onsets(filename):
+    total_frames_number = get_total_frames_number(filename)
+    type_index = get_onsets_index_by_filename(filename)
+    base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+    base_frames_diff = np.diff(base_frames)
+    result = np.min(base_frames_diff)
+    return result
 
 '''
 找波峰
@@ -656,9 +679,9 @@ def get_real_onsets_frames_by_strength(y,sr):
 def get_onsets_by_all(y,sr):
     all_onset = []
 
-    gap1 = 0.5 #0.5->1
-    gap2 = 0.5 #0.5->1
-    gap3 = 0.75
+    gap1 = 0.01 #0.5->1
+    gap2 = 0.01 #0.5->1
+    gap3 = 0.01
     gap4 = 5
     onset_env_v1 = librosa.onset.onset_strength(y=y, sr=sr)
     max_onset_env_v1 = [x if onset_env_v1[i] > onset_env_v1[i - 1] and onset_env_v1[i] > onset_env_v1[i + 1] and onset_env_v1[i] > np.max(
@@ -951,10 +974,16 @@ def get_onsets_frames_for_jz(filename):
     min_waterline = find_min_waterline(rms, 8)
     first_frame_rms = rms[0:first_frame]
     first_frame_rms_max = np.max(first_frame_rms)
+    waterline = 0
+    if len(min_waterline) > 0:
+        waterline = min_waterline[0][1]
 
     if first_frame_rms_max == np.max(rms):
         #print("=====================================")
         threshold = first_frame_rms_max * 0.35
+        if threshold > waterline:
+            threshold = waterline + 0.2
+            threshold = np.float64(threshold)
         rms = rms_smooth(rms, threshold, 6)
         # rms = [x if x > first_frame_rms_max * 0.35 else 0 for x in rms]
     else:
@@ -1011,7 +1040,7 @@ def get_onsets_frames_for_jz(filename):
             else:
                 pass
         onsets_frames = result
-    return onsets_frames
+    return onsets_frames,rms
 
 def find_n_largest(a,topN):
     import heapq
@@ -1039,46 +1068,268 @@ def max_min(x, y, z):
         min = z
     return (max, min)
 
-def get_real_onsets_frames_rhythm(y):
+def get_real_onsets_frames_rhythm(y,modify_by_energy=False,gap = 0.1):
     y_max = max(y)
     # y = np.array([x if x > y_max*0.01 else y_max*0.01 for x in y])
     # 获取每个帧的能量
     energy = librosa.feature.rmse(y)
-    print(np.mean(energy))
+    #print(np.mean(energy))
     energy_diff = np.diff(energy)
     #print(energy_diff)
     onsets_frames = librosa.onset.onset_detect(y)
 
-    print(onsets_frames)
-    print(np.diff(onsets_frames))
+    #print(onsets_frames)
+    #print(np.diff(onsets_frames))
 
     some_y = [energy[0][x] for x in onsets_frames]
-    print("some_y is {}".format(some_y)) # 节拍点对应帧的能量
+    #print("some_y is {}".format(some_y)) # 节拍点对应帧的能量
     energy_mean = (np.sum(some_y) - np.max(some_y))/(len(some_y)-1)  # 获取能量均值
-    print("energy_mean for some_y is {}".format(energy_mean))
-    energy_gap = energy_mean * 0.8
-    #energy_gap = np.max(energy[0][0:20])*0.8
-    some_energy_diff = [energy_diff[0][x] if x < len(energy_diff) else energy_diff[0][x-1]  for x in onsets_frames]
-    energy_diff_mean = np.mean(some_energy_diff)
-    print("some_energy_diff is {}".format(some_energy_diff))
-    print("energy_diff_meanis {}".format(energy_diff_mean))
-    onsets_frames = [x for x in onsets_frames if energy[0][x] > energy_gap]  # 筛选能量过低的伪节拍点
+    #print("energy_mean for some_y is {}".format(energy_mean))
+    energy_gap = energy_mean * gap
+    # #energy_gap = np.max(energy[0][0:20])*0.8
+    # some_energy_diff = [energy_diff[0][x] if x < len(energy_diff) else energy_diff[0][x-1]  for x in onsets_frames]
+    # energy_diff_mean = np.mean(some_energy_diff)
+    # print("some_energy_diff is {}".format(some_energy_diff))
+    # print("energy_diff_meanis {}".format(energy_diff_mean))
+    if modify_by_energy:
+        onsets_frames = [x for x in range(len(energy[0])) if energy[0][x] > energy_gap*8]  # 直接对能量进行筛选，筛选掉能量过低的伪节拍点
+    else:
+        onsets_frames = [x for x in onsets_frames if energy[0][x] > energy_gap]  # 筛选掉能量过低的伪节拍点
 
     # 筛选过密的节拍点
     onsets_frames_new = []
     for i in range(0, len(onsets_frames)):
         if i == 0:
             onsets_frames_new.append(onsets_frames[i])
+            last_frame = onsets_frames[i]
             continue
-        if onsets_frames[i] - onsets_frames[i - 1] <= 7:
-            middle = int((onsets_frames[i] + onsets_frames[i - 1]) / 2)
-            # middle = onsets_frames[i]
-            onsets_frames_new.pop()
-            onsets_frames_new.append(middle)
+        if onsets_frames[i] - last_frame <= 2:
+            # middle = int((onsets_frames[i] + last_frame) / 2)
+            # # middle = onsets_frames[i]
+            # onsets_frames_new.pop()
+            # onsets_frames_new.append(middle)
+            # last_frame = middle
+            continue
         else:
             onsets_frames_new.append(onsets_frames[i])
+            last_frame = onsets_frames[i]
     onsets_frames = onsets_frames_new
     return onsets_frames
+'''
+删除伪节拍点（去掉识别结果中是节拍结果的点）
+'''
+def del_note_end_by_cqt(y,onset_frames):
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    CQT[50:w, :] = np.min(CQT)
+    CQT[0:20, :] = np.min(CQT)
+    cqt_max = np.max(CQT)
+    for i in range(w):
+        for j in range(h):
+            if CQT[i][j] > -20:
+                CQT[i][j] = np.max(CQT)
+    result = []
+    for x in onset_frames:
+        if h - x <= 4:
+            continue
+        # 节拍点后面2个位置都没有节拍亮点,即后面是断开的
+        elif np.max(CQT[:,x+1]) != cqt_max or np.max(CQT[:, x + 2]) != cqt_max or np.max(CQT[:, x + 3]) != cqt_max or np.max(CQT[:, x + 4]) != cqt_max:
+            continue
+        else:
+            result.append(x)
+    return result
+
+'''
+删除伪节拍点（去掉识别结果中是节拍中部的点）
+'''
+def del_note_middle_by_cqt(y,onset_frames):
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    CQT[50:w, :] = np.min(CQT)
+    CQT[0:20, :] = np.min(CQT)
+    cqt_max = np.max(CQT)
+    for i in range(w):
+        for j in range(h):
+            if CQT[i][j] > -20:
+                CQT[i][j] = np.max(CQT)
+    result = []
+    if len(onset_frames) > 0:
+        result.append(onset_frames[0])
+    for i in range(1,len(onset_frames)-1):
+        cqt_before = CQT[:,onset_frames[i-1]:onset_frames[i]]
+        cqt_after = CQT[:,onset_frames[i]:onset_frames[i+1]]
+        note_height_before = get_note_height(cqt_before,cqt_max)
+        note_height_after = get_note_height(cqt_after, cqt_max)
+        if note_height_after == 0 or note_height_before == 0:
+            continue
+        elif np.abs(note_height_before - note_height_after) >= 1:
+            result.append(onset_frames[i])
+        elif np.max(CQT[:,onset_frames[i]-1]) != cqt_max or np.max(CQT[:, onset_frames[i] - 2]) != cqt_max or np.max(CQT[:, onset_frames[i] - 3]) != cqt_max:
+            result.append(onset_frames[i])
+    return result
+
+'''
+获取节拍起始点
+'''
+def get_note_start_by_cqt(y,onset_frames):
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    CQT[50:w, :] = np.min(CQT)
+    CQT[0:20, :] = np.min(CQT)
+    cqt_max = np.max(CQT)
+    for i in range(w):
+        for j in range(h):
+            if CQT[i][j] > -20:
+                CQT[i][j] = np.max(CQT)
+    result = []
+    last = 0
+    for x in onset_frames:
+        if h - x <= 4 or x <3:
+            continue
+        # 节拍点后面2个位置都有节拍亮点,但前面2个位置都没有节拍亮点
+        for j in range(w):
+            # 水平方向前面不亮，垂直方面至少5个连续亮
+            if CQT[j, x] == cqt_max and CQT[j, x - 1] != cqt_max \
+                    and CQT[j+1,x] == cqt_max and CQT[j+2,x] == cqt_max and CQT[j+3,x] == cqt_max:
+                result.append(x)
+                last = x
+            else:
+                continue
+    return result
+
+def get_note_height(cqt,cqt_max):
+    result = []
+    note_height = 0
+    w,h = cqt.shape
+    for i in range(h):
+        sub = cqt[:,i]
+        for j in range(w):
+            if sub[j] == cqt_max and sub[j+1] !=cqt_max and sub[j-1] == cqt_max:
+                result.append(j)
+    if len(result) > 0:
+        note_height = max(set(result), key=result.count)
+    return note_height
+
+def del_overcrowding(onset_frames,step):
+    result = [onset_frames[0]]
+    for i in range(1,len(onset_frames)):
+        if onset_frames[i] - onset_frames[i-1] > step:
+            result.append(onset_frames[i])
+    return result
+
+def cqt_split(filename,savepath,step_width,onsets_frames=[]):
+    y, sr = librosa.load(filename)
+
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    CQT[50:w, :] = np.min(CQT)
+    CQT[0:20, :] = np.min(CQT)
+    for i in range(w):
+        for j in range(h):
+            if CQT[i][j] > -20:
+                CQT[i][j] = np.max(CQT)
+            # else:
+            #     CQT[i][j] = np.min(CQT)
+
+    # 拆分CQT
+    step = int(h / 15)
+    half = int(step / 2)
+    middle = int(h / 2)
+    if len(onsets_frames)>0:
+        for i in onsets_frames:
+            y2 = np.zeros(CQT.shape)
+            if i >= h - step:
+                break
+            offset = middle - (i + half)
+            for j in range(step):
+                y2[:, i + j + offset] = CQT[:, i + j]
+            librosa.display.specshow(y2, y_axis='cqt_note', x_axis='time')
+            t = librosa.frames_to_time([middle], sr=sr)
+            plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
+            tmp = os.listdir(savepath)
+
+            plt.savefig(savepath + str(len(tmp) + 1) + '.jpg', bbox_inches='tight', pad_inches=0)
+            plt.clf()
+            return onsets_frames
+    else:
+        result = []
+        for i in range(0, h, step_width):
+            y2 = np.zeros(CQT.shape)
+            if i >= h - step:
+                break
+            offset = middle - (i + half)
+            for j in range(step):
+                y2[:, i + j + offset] = CQT[:, i + j]
+            if np.max(y2) == np.max(CQT):
+                librosa.display.specshow(y2, y_axis='cqt_note', x_axis='time')
+                t = librosa.frames_to_time([middle], sr=sr)
+                plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
+                tmp = os.listdir(savepath)
+
+                plt.savefig(savepath + str(i) + '.jpg', bbox_inches='tight', pad_inches=0)
+                plt.clf()
+                result.append(i+half)
+        return result
+
+def get_single_notes(filename,curr_num,savepath,modify_by_energy=False):
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    total_frames_number = len(rms)
+    #print("time is {}".format(time))
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
+    w, h = CQT.shape
+    # onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
+    onset_frames = get_real_onsets_frames_rhythm(y, modify_by_energy=modify_by_energy)
+
+    onset_times = librosa.frames_to_time(onset_frames, sr=sr)
+    plt.vlines(onset_times, 0, sr, color='y', linestyle='--')
+    #print(onset_samples)
+    #plt.subplot(len(onset_times),1,1)
+    #plt.show()
+    plt.clf()
+
+    for i in range(0, len(onset_frames)):
+        half = 15
+        start = onset_frames[i] - half
+        if start < 0:
+            start = 0
+        end = onset_frames[i] + half
+        if end >= total_frames_number:
+            end = total_frames_number - 1
+        # y2 = [x if i> start and i<end else 0 for i,x in enumerate(y)]
+        CQT_sub = np.zeros(CQT.shape)
+        middle = int(h / 2)
+        offset = middle - onset_frames[i]
+        for j in range(int(start), int(end)):
+            CQT_sub[:, j + offset] = CQT[:, j]
+        # CQT = CQT_T
+        librosa.display.specshow(CQT_sub, y_axis='cqt_note', x_axis='time')
+        # y2 = [x for i,x in enumerate(y) if i> start and i<end]
+        # y2 = [0.03 if i> start and i<end else 0.02 for i,x in enumerate(y)]
+        # y2[int(len(y2) / 2)] = np.max(y)  # 让图片展示归一化
+        t = librosa.frames_to_time([middle], sr=sr)
+        plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
+        # y2 = np.array(y2)
+        # print("len(y2) is {}".format(len(y2)))
+
+        #print("(end - start)*sr is {}".format((end - start) * sr))
+        # plt.show()
+        # plt.subplot(len(onset_times),1,i+1)
+        # y, sr = librosa.load(filename, offset=2.0, duration=3.0)
+        # librosa.display.waveplot(y2, sr=sr)
+        fig = matplotlib.pyplot.gcf()
+        # fig.set_size_inches(4, 4)
+        if "." in filename:
+            Filename = filename.split(".")[0]
+        plt.axis('off')
+        plt.axes().get_xaxis().set_visible(False)
+        plt.axes().get_yaxis().set_visible(False)
+        plt.savefig(savepath + str(i + 1) + '.jpg', bbox_inches='tight', pad_inches=0)
+        plt.clf()
+        curr_num += 1
+    #plt.show()
+    return onset_frames,curr_num
 
 def get_onsets_frames_by_cqt_for_rhythm(y,sr):
     gap4 = 15
@@ -1154,26 +1405,26 @@ def get_onsets_index_by_filename(filename):
         return -1
 
 def get_onsets_index_by_filename_rhythm(filename):
-    if filename.find("旋律1") >= 0 or filename.find("旋律一") >= 0 or filename.find("视唱一") >= 0 or filename.find("视唱1") >= 0:
-        return 0
-    elif filename.find("旋律2") >= 0 or filename.find("旋律二") >= 0 or filename.find("视唱二") >= 0 or filename.find("旋律题2") >= 0:
-        return 1
-    elif filename.find("旋律3") >= 0 or filename.find("旋律三") >= 0 or filename.find("视唱三") >= 0 or filename.find("旋律题3") >= 0:
-        return 2
-    elif filename.find("旋律4") >= 0 or filename.find("旋律四") >= 0 or filename.find("视唱四") >= 0 or filename.find("视唱4") >= 0:
-        return 3
-    elif filename.find("旋律5") >= 0 or filename.find("旋律五") >= 0 or filename.find("视唱五") >= 0 or filename.find("视唱5") >= 0:
-        return 4
-    elif filename.find("旋律6") >= 0 or filename.find("旋律六") >= 0 or filename.find("视唱六") >= 0 or filename.find("视唱6") >= 0:
-        return 5
-    elif filename.find("旋律7") >= 0 or filename.find("旋律七") >= 0 or filename.find("视唱七") >= 0 or filename.find("视唱7") >= 0:
-        return 6
-    elif filename.find("旋律8") >= 0 or filename.find("旋律八") >= 0 or filename.find("视唱八") >= 0 or filename.find("视唱8") >= 0:
-        return 7
-    elif filename.find("旋律9") >= 0 or filename.find("旋律九") >= 0 or filename.find("视唱九") >= 0 or filename.find("视唱9") >= 0:
-        return 8
-    elif filename.find("旋律10") >= 0 or filename.find("旋律十") >= 0 or filename.find("视唱十") >= 0 or filename.find("视唱10") >= 0:
+    if filename.find("旋律10") >= 0 or filename.find("旋律十") >= 0 or filename.find("视唱十") >= 0 or filename.find("视唱10") >= 0 or filename.find("旋10") >= 0:
         return 9
+    elif filename.find("旋律1") >= 0 or filename.find("旋律一") >= 0 or filename.find("视唱一") >= 0 or filename.find("视唱1") >= 0 or filename.find("旋1") >= 0:
+        return 0
+    elif filename.find("旋律2") >= 0 or filename.find("旋律二") >= 0 or filename.find("视唱二") >= 0 or filename.find("旋律题2") >= 0 or filename.find("旋2") >= 0:
+        return 1
+    elif filename.find("旋律3") >= 0 or filename.find("旋律三") >= 0 or filename.find("视唱三") >= 0 or filename.find("旋律题3") >= 0 or filename.find("旋3") >= 0:
+        return 2
+    elif filename.find("旋律4") >= 0 or filename.find("旋律四") >= 0 or filename.find("视唱四") >= 0 or filename.find("视唱4") >= 0 or filename.find("旋4") >= 0:
+        return 3
+    elif filename.find("旋律5") >= 0 or filename.find("旋律五") >= 0 or filename.find("视唱五") >= 0 or filename.find("视唱5") >= 0 or filename.find("旋5") >= 0:
+        return 4
+    elif filename.find("旋律6") >= 0 or filename.find("旋律六") >= 0 or filename.find("视唱六") >= 0 or filename.find("视唱6") >= 0 or filename.find("旋6") >= 0:
+        return 5
+    elif filename.find("旋律7") >= 0 or filename.find("旋律七") >= 0 or filename.find("视唱七") >= 0 or filename.find("视唱7") >= 0 or filename.find("旋7") >= 0:
+        return 6
+    elif filename.find("旋律8") >= 0 or filename.find("旋律八") >= 0 or filename.find("视唱八") >= 0 or filename.find("视唱8") >= 0 or filename.find("旋8") >= 0:
+        return 7
+    elif filename.find("旋律9") >= 0 or filename.find("旋律九") >= 0 or filename.find("视唱九") >= 0 or filename.find("视唱9") >= 0 or filename.find("旋9") >= 0:
+        return 8
     else:
         return -1
 
@@ -1183,7 +1434,7 @@ def get_total_frames_number(path):
     # frames = np.nonzero(energy >= np.max(energy) / 5)
     #
     # total = frames[1][-1]
-    y,sr = load_and_trim(path)
+    y, sr = librosa.load(path)
     rms = librosa.feature.rmse(y=y)[0]
     #onset_env = librosa.onset.onset_strength(y=y, sr=sr)
     total = len(rms)
