@@ -2,6 +2,7 @@ import numpy as np
 from create_base import *
 from myDtw import *
 from grade import *
+from cqt_rms import *
 
 # 找出多唱或漏唱的线的帧
 def get_mismatch_line(standard_y,recognize_y):
@@ -166,23 +167,17 @@ def get_score(filename):
 调试则调用此函数
 '''
 def debug_get_score(filename):
-    codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
-                      '[2000;1000,1000;500,500,1000;2000]',
-                      '[1000,1000;500,500,1000;1000,1000;2000]',
-                      '[1000,--(1000);1000,--(1000);500,250,250,1000;--(1000),1000]',
-                      '[500;1000,500,1000,500;500,500,500,250,250,500,500;250,250,500,500,1000]',
-                      '[1000,--(1000);1000,--(1000);1000,-(500),500;1000,1000]',
-                      '[750,250,500,500,500,-(500);500,1000,500,500,-(500);750,250,500,500,500,-(500)]',
-                      '[500,1000,500,500,250,250;1000,500,750,250,500;3000]',
-                      '[500,500,500;1000,500;500,500,500;1500;500,500,500;1000,500;500;1000;1500]',
-                      '[500,500,1000;500,500;1000;375,125,250,250,375,125,250,250;500,500,1000]'])
 
     type_index = get_onsets_index_by_filename(filename)
-    y, sr = load_and_trim(filename)
+    #y, sr = load_and_trim(filename)
+    y, sr = librosa.load(filename)
     total_frames_number = get_total_frames_number(filename)
 
-    onsets_frames, onsets_frames_strength = get_onsets_by_all(y, sr)
-    onsets_frames = get_onsets_frames_for_jz(filename)
+    #onsets_frames, onsets_frames_strength = get_onsets_by_all(y, sr)
+    #onsets_frames = get_onsets_frames_for_jz(filename)
+    onsets_frames, best_threshold = get_onsets_by_cqt_rms_optimised(filename)
+    # if len(onset_frames_cqt)<topN:
+    onsets_frames = get_miss_onsets_by_cqt(y, onsets_frames)
     print("onsets_frames len is {}".format(len(onsets_frames)))
     onsets_frames_strength = librosa.onset.onset_strength(y=y, sr=sr)
     onsets_frames_strength = [x/np.max(onsets_frames_strength) for x in onsets_frames_strength]
@@ -190,7 +185,8 @@ def debug_get_score(filename):
     recognize_y = onsets_frames
 
     # 标准节拍时间点
-    base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+    base_frames = onsets_base_frames(codes[type_index], total_frames_number - onsets_frames[0])
+    base_frames = [x + (onsets_frames[0] - base_frames[0] - 1) for x in base_frames]
     print("base_frames is {}".format(base_frames))
     print("base_frames len is {}".format(len(base_frames)))
 
@@ -241,6 +237,150 @@ def debug_get_score(filename):
 
     return score
 
+'''
+计算节奏型音频的分数
+'''
+def get_score_jz(filename):
+
+    score,lost_score,ex_score,min_d = get_score_jz_by_cqt_rms_optimised(filename)
+    #print('最终得分为：{}'.format(score))
+
+    if int(score) < 90:
+        score2, lost_score2, ex_score2, min_d2 = get_score_jz_by_onsets_frames_rhythm(filename)
+        if score2 > score:
+            return int(score2), int(lost_score2), int(ex_score2), int(min_d2)
+
+    return int(score),int(lost_score),int(ex_score),int(min_d)
+
+'''
+计算节奏型音频的分数
+'''
+def get_score_jz_by_cqt_rms_optimised(filename):
+
+    type_index = get_onsets_index_by_filename(filename)
+    #y, sr = load_and_trim(filename)
+    y, sr = librosa.load(filename)
+    total_frames_number = get_total_frames_number(filename)
+
+    #onsets_frames, onsets_frames_strength = get_onsets_by_all(y, sr)
+    #onsets_frames = get_onsets_frames_for_jz(filename)
+    onsets_frames, best_threshold = get_onsets_by_cqt_rms_optimised(filename)
+    # if len(onset_frames_cqt)<topN:
+    onsets_frames = get_miss_onsets_by_cqt(y, onsets_frames)
+    #print("onsets_frames len is {}".format(len(onsets_frames)))
+    onsets_frames_strength = librosa.onset.onset_strength(y=y, sr=sr)
+    onsets_frames_strength = [x/np.max(onsets_frames_strength) for x in onsets_frames_strength]
+    # 在此处赋值防止后面实线被移动找不到强度
+    recognize_y = onsets_frames
+
+    # 标准节拍时间点
+    if len(onsets_frames) > 0:
+        base_frames = onsets_base_frames(codes[type_index], total_frames_number - onsets_frames[0])
+        base_frames = [x + (onsets_frames[0] - base_frames[0]) for x in base_frames]
+        min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
+    else:
+        base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+
+    #print("base_frames is {}".format(base_frames))
+    #print("base_frames len is {}".format(len(base_frames)))
+
+    min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
+
+
+    standard_y = best_y.copy()
+
+    code = get_code(type_index,1)
+    each_onset_score = 100 / len(standard_y)
+    ex_recognize_y = []
+    #多唱的情况
+    if len(standard_y) < len(recognize_y):
+        _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
+        # 剥离多唱节拍，便于计算整体偏差分
+        modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
+        min_d = get_deviation(standard_y,modify_recognize_y,code,each_onset_score)
+    #漏唱的情况
+    if len(standard_y) > len(recognize_y):
+        _, lost_standard_y = get_mismatch_line(recognize_y.copy(),standard_y.copy())
+        # 剥离漏唱节拍，便于计算整体偏差分
+        modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
+        min_d = get_deviation(modify_standard_y, recognize_y, code,each_onset_score)
+    if len(standard_y) == len(recognize_y):
+        min_d = get_deviation(standard_y, recognize_y, code, each_onset_score)
+    #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+
+    # # 计算成绩测试
+    #print('偏移分值为：{}'.format(min_d))
+    score,lost_score,ex_score,min_d = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+    #print('最终得分为：{}'.format(score))
+
+    return int(score),int(lost_score),int(ex_score),int(min_d)
+
+'''
+计算节奏型音频的分数
+'''
+def get_score_jz_by_onsets_frames_rhythm(filename):
+
+    type_index = get_onsets_index_by_filename(filename)
+    #y, sr = load_and_trim(filename)
+    y, sr = librosa.load(filename)
+    total_frames_number = get_total_frames_number(filename)
+
+    #onsets_frames, onsets_frames_strength = get_onsets_by_all(y, sr)
+    #onsets_frames = get_onsets_frames_for_jz(filename)
+    onsets_frames = get_real_onsets_frames_rhythm(y,modify_by_energy=True,gap=0.1)
+    if onsets_frames:
+        min_width = 5
+        # print("min_width is {}".format(min_width))
+        onsets_frames = del_overcrowding(onsets_frames, min_width)
+        print("0. onset_frames_cqt is {}".format(onsets_frames))
+    #print("onsets_frames len is {}".format(len(onsets_frames)))
+    onsets_frames_strength = librosa.onset.onset_strength(y=y, sr=sr)
+    onsets_frames_strength = [x/np.max(onsets_frames_strength) for x in onsets_frames_strength]
+    # 在此处赋值防止后面实线被移动找不到强度
+    recognize_y = onsets_frames
+
+    # 标准节拍时间点
+    if len(onsets_frames) > 0:
+        base_frames = onsets_base_frames(codes[type_index], total_frames_number - onsets_frames[0])
+        base_frames = [x + (onsets_frames[0] - base_frames[0]) for x in base_frames]
+        min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
+    else:
+        base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+
+    #print("base_frames is {}".format(base_frames))
+    #print("base_frames len is {}".format(len(base_frames)))
+
+    min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
+
+
+    standard_y = best_y.copy()
+
+    code = get_code(type_index,1)
+    each_onset_score = 100 / len(standard_y)
+    ex_recognize_y = []
+    #多唱的情况
+    if len(standard_y) < len(recognize_y):
+        _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
+        # 剥离多唱节拍，便于计算整体偏差分
+        modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
+        min_d = get_deviation(standard_y,modify_recognize_y,code,each_onset_score)
+    #漏唱的情况
+    if len(standard_y) > len(recognize_y):
+        _, lost_standard_y = get_mismatch_line(recognize_y.copy(),standard_y.copy())
+        # 剥离漏唱节拍，便于计算整体偏差分
+        modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
+        min_d = get_deviation(modify_standard_y, recognize_y, code,each_onset_score)
+    if len(standard_y) == len(recognize_y):
+        min_d = get_deviation(standard_y, recognize_y, code, each_onset_score)
+    #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+
+    # # 计算成绩测试
+    #print('偏移分值为：{}'.format(min_d))
+    score,lost_score,ex_score,min_d = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+    #print('最终得分为：{}'.format(score))
+
+    return int(score),int(lost_score),int(ex_score),int(min_d)
+
 if __name__ == '__main__':
 
     # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1周(95).wav'
@@ -252,9 +392,12 @@ if __name__ == '__main__':
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏四（9）（70）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏十（5）（100）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节8王（60）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节5熙(35).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏十（7）（100）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏五（4）（100）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节5熙(35).wav'
     # filename = './mp3/节奏/节奏四（4）（60）.wav'
     # filename = './mp3/节奏/节奏2-02（20）.wav'
 
-    debug_get_score(filename)
+    score, lost_score, ex_score, min_d = get_score_jz(filename)
+    print("score, lost_score, ex_score, min_d is {},{},{},{}".format(score, lost_score, ex_score, min_d))
 
