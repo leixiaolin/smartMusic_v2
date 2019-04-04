@@ -5,8 +5,12 @@ import tensorflow as tf
 import numpy as np 
 import pdb
 import os
+import sys
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
+sys.path.append("..")
 from datetime import datetime
-import slim.nets.alexnet as alaxnet
+from slim.nets import alexnet as alaxnet
 from create_tf_record import *
 import tensorflow.contrib.slim as slim
 

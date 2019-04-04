@@ -82,12 +82,11 @@ def get_single_onsets(filename,curr_num):
     #plt.show()
     return onset_frames,onsets_frames_strength,curr_num
 
-def  predict(wavname,image_dir,onset_frames,onsets_frames_strength,models_path):
-    import re
+def  predict(image_dir,onset_frames,onsets_frames_strength,models_path):
     class_nums = 2
     onsets = []
     onsets_strength = {}
-    tf.reset_default_graph()
+
 
     batch_size = 1  #
     resize_height = 224  # 指定存储图片高度
@@ -111,8 +110,7 @@ def  predict(wavname,image_dir,onset_frames,onsets_frames_strength,models_path):
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver()
     saver.restore(sess, models_path)
-    images_list=sorted(glob.glob(os.path.join(image_dir,'*.png')), key=os.path.getmtime)
-    # images_list = glob.glob(os.path.join(image_dir, '*.png'))
+    images_list=sorted(glob.glob(os.path.join(image_dir,'*.jpg')), key=os.path.getmtime)
     #sorted(glob.glob('*.png'), key=os.path.getmtime)
     score_total = 0
     index = 0
@@ -124,116 +122,20 @@ def  predict(wavname,image_dir,onset_frames,onsets_frames_strength,models_path):
         max_score=pre_score[0,pre_label]
         #print("{} is: pre labels:{},name:{} score: {}".format(image_path, pre_label, labels[pre_label], max_score))
         print("{} is predicted as label::{} ".format(image_path,pre_label[0]))
-
-        # 将判断为yes的节拍加入onsets
         if 1 == pre_label[0]:
             #score_total += 1
             onsets.append(onset_frames[index])
             onsets_strength[onset_frames[index]] = onsets_frames_strength.get(onset_frames[index])
         else:
             pass
-
-        '''
-        计算accuracy
-        '''
-        # 获取文件偏移量
-        shift = get_shift(wavname)
-        # 获取真实文件名
-        image_path = get_real_image_path(image_path,shift)
-        # 获取label
-        pattern = 'test/test(.+)'
-        filename = re.findall(pattern,image_path)[0]
-        label = get_label(filename)
-        # 判断是否与标签相符合
-        if int(label) == pre_label[0]:
-            score_total += 1
         index +=1
-    accuracy = score_total/len(images_list)
-    print("valuation accuracy is {}".format(accuracy))
+    print("valuation accuracy is {}".format(score_total/len(images_list)))
     sess.close()
-    return onsets,onsets_strength,accuracy
-
-'''
-图片处理
-一次性自动生成所有图片并写入偏移量
-'''
-def process_all_pic(dir_list,num):
-    '''
-    要切割的文件路径列表:dir_list
-    每个文件夹下要处理的图片数量（超过最大会按最大值处理）:num
-    '''
-    shift_list = []
-    # 文件名计数
-    curr_num = 1
-    for dir in dir_list:
-        file_list = os.listdir(dir)
-        if num > len(file_list):
-            num = len(file_list)
-        for i in range(0,num):
-            # 保存文件名偏移量
-            shift_list.append(str(file_list[i])+'偏移量为 '+str(curr_num)+'\n')
-            onset_frames, onsets_frames_strength,curr_num = get_single_onsets(dir+file_list[i],curr_num)
-            print("onset_frames,onsets_frames_strength is {},{}".format(onset_frames,onsets_frames_strength))
-
-    # 写入偏移量
-    f = open('./single_onsets/data/shift.txt','a')
-    for message in shift_list:
-        f.write(message)
-    f.close()
-
-'''
-获取文件名偏移值
-'''
-def get_shift(filename):
-    import re
-    f = open('./single_onsets/data/shift.txt')
-    str = f.read()
-    pattern = filename + '偏移量为 (.+)'
-    shift = re.findall(pattern,str)[0]
-    f.close()
-    return shift
-
-'''
-获取标签
-'''
-def get_label(filename):
-    import re
-    f = open('./single_onsets/data/label.txt')
-    str = f.read()
-    pattern = filename + ' (.+)'
-    label = re.findall(pattern,str)[0]
-    print(label)
-    f.close()
-    return label
-
-'''
-获取label.txt中的文件名
-'''
-def get_real_image_path(image_path,shift):
-    import re
-    pattern = 'test/test/(.+).png'
-    num = re.findall(pattern,image_path)[0]
-    image_path = image_path.replace(str(num), str(int(num)+int(shift)-1))
-    return image_path
-
-'''
-封装测试方法
-'''
-def test(filename):
-    import re
-    image_dir = './single_onsets/data/test/test'
-    clear_dir(image_dir)
-    pattern = 'WAV/(.+)'
-    wavname = re.findall(pattern,filename)[0]
-    curr_num = 1
-    onset_frames, onsets_frames_strength, curr_num = get_single_onsets(filename, curr_num)
-    print("onset_frames,onsets_frames_strength is {},{}".format(onset_frames, onsets_frames_strength))
-    if onset_frames:
-        onsets, onsets_strength, accuracy = predict(wavname,image_dir,onset_frames,onsets_frames_strength,models_path)
-        return accuracy
+    return onsets,onsets_strength
 
 if __name__ ==  '__main__':
-
+    # savepath = 'e:/test_image/'
+    savepath = './single_onsets/data/test/'
     # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1.3(95).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1（二）(100).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40227（100）.wav'
@@ -245,40 +147,36 @@ if __name__ ==  '__main__':
     # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏10_40411（85）.wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏10-04（80）.wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏九（2）（95）.wav'
-    # savepath = 'e:/test_image/'
-
-    savepath = './single_onsets/data/test/test/'
     labels_filename = './single_onsest/data/label.txt'
-    models_path = './single_onsets/models/alex/model.ckpt-4000'
+    models_path = './single_onsets/models/alex/model.ckpt-10000'
 
     # 清空文件夹
-
-    # if not os.path.exists(image_dir):
-    #     os.mkdir(image_dir)
+    image_dir = './single_onsets/data/test'
+    if not os.path.exists(image_dir):
+        os.mkdir(image_dir)
     # clear_dir(image_dir)
 
     '''
-    图片处理
     一次性自动生成所有图片
     '''
-    # dir_list = ['./mp3/2.18WAV/','./mp3/2.27WAV/']
-    # num = 200
-    # process_all_pic(dir_list,num)
+    # 要切割的文件路径列表
+    dir_list = ['./mp3/2.18WAV/','./mp3/2.27WAV/']
+    # 每个文件夹下要处理的图片数量（超过最大会按最大值处理）
+    num = 200
+    # 文件名计数
+    curr_num = 1
+    for dir in dir_list:
+        file_list = os.listdir(dir)
+        if num > len(file_list):
+            num = len(file_list)
+        for i in range(0,num):
+            onset_frames, onsets_frames_strength,curr_num = get_single_onsets(dir+file_list[i],curr_num)
+            print("onset_frames,onsets_frames_strength is {},{}".format(onset_frames,onsets_frames_strength))
 
 
-    '''
-    测试单个文件
-    '''
-    # import re
-    # image_dir = './single_onsets/data/test'
-    # filename = './mp3/2.18WAV/节奏九（2）（90分）.wav'
-    # pattern = 'WAV/(.+)'
-    # wavname = re.findall(pattern,filename)[0]
-    # curr_num = 1
-    # onset_frames, onsets_frames_strength, curr_num = get_single_onsets(filename, curr_num)
-    # print("onset_frames,onsets_frames_strength is {},{}".format(onset_frames, onsets_frames_strength))
+
     # if onset_frames:
-    #     onsets, onsets_strength = predict(wavname,image_dir,onset_frames,onsets_frames_strength,models_path)
+    #     onsets, onsets_strength = predict(image_dir,onset_frames,onsets_frames_strength,models_path)
     #     print("onsets, onsets_strength is {},{}".format(onsets, onsets_strength))
     #     y, sr = librosa.load(filename)
     #     librosa.display.waveplot(y, sr=sr)
@@ -287,24 +185,3 @@ if __name__ ==  '__main__':
     #     plt.vlines(onsets_time, -1 * np.max(y), np.max(y), color='r', linestyle='solid')
     #     plt.vlines(onset_frames_time, -1 * np.max(y), np.max(y), color='b', linestyle='dashed')
     #     plt.show()
-
-    '''
-    测试多个文件
-    '''
-    dir_list = ['./mp3/2.18WAV/', './mp3/2.27WAV/']
-    total_accuracy = 0
-    total_num = 0
-    # 要测试的数量
-    test_num = 100
-    for dir in dir_list:
-        file_list = os.listdir(dir)
-        for filename in file_list:
-            accuracy = test(dir+filename) # 参数必须是完整路径
-            total_accuracy += accuracy
-            total_num += 1
-            mean_accuracy = total_accuracy/total_num
-            print("-------current test filename is {},current test num is {},current mean accuracy is {}-------".format(filename,total_num,mean_accuracy))
-            if total_num > test_num:
-                break
-        if total_num > test_num:
-            break

@@ -330,17 +330,17 @@ if __name__ == '__main__':
     if not os.path.exists('./data/record/'):
         os.mkdir('./data/record/')
     create_records(image_dir,train_labels, train_record_output, resize_height, resize_width,shuffle,log)
-    train_nums=get_example_nums(train_record_output)
-    print("save train example nums={}".format(train_nums))
+    # train_nums=get_example_nums(train_record_output)
+    # print("save train example nums={}".format(train_nums))
 
     # 产生val.record文件
     image_dir='./data/val'
     val_labels = './data/val.txt'  # 图片路径
     val_record_output = './data/record/val.tfrecords'
     create_records(image_dir,val_labels, val_record_output, resize_height, resize_width,shuffle,log)
-    val_nums=get_example_nums(val_record_output)
-    print("save val example nums={}".format(val_nums))
+    # val_nums=get_example_nums(val_record_output)
+    # print("save val example nums={}".format(val_nums))
 
     # 测试显示函数
     # disp_records(train_record_output,resize_height, resize_width)
-    batch_test(train_record_output,resize_height, resize_width)
+    # batch_test(train_record_output,resize_height, resize_width)
