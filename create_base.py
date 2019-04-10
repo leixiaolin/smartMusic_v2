@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import threading
 
 import  numpy as np
@@ -9,6 +10,10 @@ from viterbi import *
 from note_frequency import *
 from filters import *
 import os
+from multiprocessing import Pool
+import multiprocessing
+import time
+import threading
 
 codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
                   '[2000;1000,1000;500,500,1000;2000]',
@@ -22,17 +27,17 @@ codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
                   '[500,500,1000;500,500;1000;375,125,250,250,375,125,250,250;500,500,1000]'])
 note_codes = np.array(['[3,3,3,3,3,3,3,5,1,2,3]',
                        '[5,5,3,2,1,2,5,3,2]',
-                       '[5,5,3,2,1,2,2,3,2,6,5]',
-                       '[5,1,7,1,2,1,7,6,5,2,4,3,6,5]',
-                       '[3,6,7,1,2,1,7,6,3]',
-                       '[1,7,1,2,3,2,1,7,6,7,1,2,7,1,7,1,12,1]',
-                       '[5,6,1,6,2,3,1,6,5]',
-                       '[5,5,6,5,6,5,1,3,0,2,2,5,2,1]',
+                       '[5,5,3,2,1,2,2,3,2,6-,5-]',
+                       '[5,1+,7,1+,2+,1+,7+,6,5,2,4,3,6,5]',
+                       '[3,6,7,1+,2+,1+,7,6,3]',
+                       '[1+,7,1+,2+,3+,2+,1+,7,6,7,1+,2+,7,1+,7,1+,2+,1+]',
+                       '[5,6,1+,6,2,3,1,6-,5-]',
+                       '[5,5,6,5,6,5,1,3,0,2,2,5-,2,1]',
                        '[3,2,1,2,1,1,2,3,4,5,3,6,5,5,3]',
-                       '[3,4,5,1,7,6,5]'])
+                       '[3,4,5,1+,7,6,5]'])
 rhythm_codes = np.array(['[500,500,1000;500,500,1000;500,500,750,250;2000]',
                         '[1000,1000;500,500,1000;1000,500,500; 2000]',
-                        '[1000,1000;500,500,1000;500,250,250,250;2000]',
+                        '[1000,1000;500,500,1000;500,250,250,500,500;2000]',
                         '[500,1000,500;250,250,250,250,500,500;500,500,500,500;2000]',
                         '[1000;500,500,1000;500,500,500,500;2000]',
                         '[500;500,500,500,500;500,500,500,500;500,500,500,500;250,250,250,250,500]',
@@ -99,7 +104,12 @@ def get_chroma_pitch(pitch_code):
     s = pitch_code.replace('[','').replace(']','')
     tmp = s.split(',')
     for x in tmp:
-        result.append(pitch_v[int(x)-1])
+        if str(x).find("+") > 0:
+            result.append(pitch_v[int(x[0]) - 1] + 12)
+        elif str(x).find("-") > 0:
+            result.append(pitch_v[int(x[0]) - 1] - 12)
+        else:
+            result.append(pitch_v[int(x[0])-1])
     return result
 
 def onsets_base(code,time,start_point):
@@ -163,10 +173,34 @@ def onsets_base_frames_rhythm(index,frames_number):
             off += int(r)
         else:
             off -= int(r)
-
-    #ds.append(frames_number)
+    #ds = [x - math.ceil(frames_number * int(result[0]) / total) for x in ds]
+    #ds.append(frames_number-5)
     return ds
 
+def onsets_base_frames_for_note(filename):
+    #frames_total = get_total_frames_number_for_note(filename)
+    frames_total = get_total_frames_number(filename)
+    start, end = get_start_and_end_for_note(filename)
+    frames_total = end - start
+    type_index = get_onsets_index_by_filename_rhythm(filename)
+    base_frames = onsets_base_frames_rhythm(type_index, frames_total)
+    return base_frames
+
+def base_note(filename):
+    type_index = get_onsets_index_by_filename_rhythm(filename)
+    pitch_code = note_codes[type_index]
+    chroma_pitch = get_chroma_pitch(pitch_code)
+    #print(chroma_pitch)
+    return chroma_pitch
+
+def add_base_note_to_cqt(cqt,base_notes,base_frames,end):
+    for i in range(len(base_frames)-1):
+        start_frame = base_frames[i]
+        end_frame = base_frames[i+1]
+        note = base_notes[i]
+        cqt[note,start_frame:end_frame] = -20
+    cqt[base_notes[-1],base_frames[-1]:end] = -20
+    return cqt
 '''
 根据当前位置获取最小帧距
 '''
@@ -1117,6 +1151,55 @@ def get_real_onsets_frames_rhythm(y,modify_by_energy=False,gap = 0.1):
             last_frame = onsets_frames[i]
     onsets_frames = onsets_frames_new
     return onsets_frames
+
+def get_real_onsets_for_note(y,modify_by_energy=False,gap = 0.1):
+    y_max = max(y)
+    # y = np.array([x if x > y_max*0.01 else y_max*0.01 for x in y])
+    # 获取每个帧的能量
+    energy = librosa.feature.rmse(y)
+    #print(np.mean(energy))
+    energy_diff = np.diff(energy)
+    #print(energy_diff)
+    onsets_frames = librosa.onset.onset_detect(y)
+
+    #print(onsets_frames)
+    #print(np.diff(onsets_frames))
+
+    some_y = [energy[0][x] for x in onsets_frames]
+    #print("some_y is {}".format(some_y)) # 节拍点对应帧的能量
+    energy_mean = (np.sum(some_y) - np.max(some_y))/(len(some_y)-1)  # 获取能量均值
+    #print("energy_mean for some_y is {}".format(energy_mean))
+    energy_gap = energy_mean * gap
+    # #energy_gap = np.max(energy[0][0:20])*0.8
+    # some_energy_diff = [energy_diff[0][x] if x < len(energy_diff) else energy_diff[0][x-1]  for x in onsets_frames]
+    # energy_diff_mean = np.mean(some_energy_diff)
+    # print("some_energy_diff is {}".format(some_energy_diff))
+    # print("energy_diff_meanis {}".format(energy_diff_mean))
+    if modify_by_energy:
+        onsets_frames = [x for x in range(len(energy[0])) if energy[0][x] > energy_gap*8]  # 直接对能量进行筛选，筛选掉能量过低的伪节拍点
+    else:
+        onsets_frames = [x for x in onsets_frames if energy[0][x] > energy_gap]  # 筛选掉能量过低的伪节拍点
+
+    # 筛选过密的节拍点
+    onsets_frames_new = []
+    for i in range(0, len(onsets_frames)):
+        if i == 0:
+            onsets_frames_new.append(onsets_frames[i])
+            last_frame = onsets_frames[i]
+            continue
+        if onsets_frames[i] - last_frame <= 4:
+            # middle = int((onsets_frames[i] + last_frame) / 2)
+            # # middle = onsets_frames[i]
+            # onsets_frames_new.pop()
+            # onsets_frames_new.append(middle)
+            # last_frame = middle
+            continue
+        else:
+            onsets_frames_new.append(onsets_frames[i])
+            last_frame = onsets_frames[i]
+    onsets_frames = onsets_frames_new
+    return onsets_frames
+
 '''
 删除伪节拍点（去掉识别结果中是节拍结果的点）
 '''
@@ -1219,12 +1302,22 @@ def del_overcrowding(onset_frames,step):
             result.append(onset_frames[i])
     return result
 
+def del_overcrowding_v2(onset_frames,step):
+    result = [onset_frames[0]]
+    last = onset_frames[0]
+    for i in range(1,len(onset_frames)):
+        if onset_frames[i] - last > step:
+            result.append(onset_frames[i])
+            last = onset_frames[i]
+    return result
+
 def cqt_split(filename,savepath,step_width,onsets_frames=[]):
+    start_time = time.time()
     y, sr = librosa.load(filename)
 
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     w, h = CQT.shape
-    CQT[50:w, :] = np.min(CQT)
+    #CQT[50:w, :] = np.min(CQT)
     CQT[0:20, :] = np.min(CQT)
     for i in range(w):
         for j in range(h):
@@ -1232,46 +1325,86 @@ def cqt_split(filename,savepath,step_width,onsets_frames=[]):
                 CQT[i][j] = np.max(CQT)
             # else:
             #     CQT[i][j] = np.min(CQT)
+    cqt_max = np.max(CQT)
 
     # 拆分CQT
-    step = int(h / 15)
+    step = int(h / 10)
     half = int(step / 2)
     middle = int(h / 2)
+    cpu_count = multiprocessing.cpu_count()
+    #print("cpu_count is {}".format(cpu_count))
+    ps = Pool(cpu_count)
+    result = []
+    threads = []
+    #print("len(onsets_frames) is {}".format(len(onsets_frames)))
     if len(onsets_frames)>0:
+        print("tpye1 主进程开始执行>>> pid={}".format(os.getpid()))
         for i in onsets_frames:
+            #print("len(onsets_frames) is {}".format(len(onsets_frames)))
             y2 = np.zeros(CQT.shape)
             if i >= h - step:
                 break
             offset = middle - (i + half)
             for j in range(step):
                 y2[:, i + j + offset] = CQT[:, i + j]
-            librosa.display.specshow(y2, y_axis='cqt_note', x_axis='time')
-            t = librosa.frames_to_time([middle], sr=sr)
-            plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
-            tmp = os.listdir(savepath)
-
-            plt.savefig(savepath + str(len(tmp) + 1) + '.jpg', bbox_inches='tight', pad_inches=0)
-            plt.clf()
-            return onsets_frames
+            ps.apply_async(savePltWorker, args=(y2, middle, sr, savepath, i,))  # 异步执行
+            result.append(i)
+            #if np.max(y2) == np.max(CQT):
     else:
-        result = []
+        #step_width = int(h/150)
+        print("tpye2 主进程开始执行>>> pid={}".format(os.getpid()))
         for i in range(0, h, step_width):
+        #while i < h:
             y2 = np.zeros(CQT.shape)
             if i >= h - step:
                 break
             offset = middle - (i + half)
             for j in range(step):
                 y2[:, i + j + offset] = CQT[:, i + j]
-            if np.max(y2) == np.max(CQT):
-                librosa.display.specshow(y2, y_axis='cqt_note', x_axis='time')
-                t = librosa.frames_to_time([middle], sr=sr)
-                plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
-                tmp = os.listdir(savepath)
+            before_y2 = y2[:,middle-4:middle]
+            after_y2 = y2[:, middle:middle + 4]
+            if np.max(y2) == cqt_max and np.max(after_y2) == cqt_max:
+                # librosa.display.specshow(y2, y_axis='cqt_note', x_axis='time')
+                # t = librosa.frames_to_time([middle], sr=sr)
+                # plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
+                # tmp = os.listdir(savepath)
 
-                plt.savefig(savepath + str(i) + '.jpg', bbox_inches='tight', pad_inches=0)
-                plt.clf()
+                #plt.savefig(savepath + str(i) + '.jpg', bbox_inches='tight', pad_inches=0)
+                #plt.clf()
                 result.append(i+half)
-        return result
+                ps.apply_async(savePltWorker, args=(y2,middle,sr,savepath,i,))  # 异步执行
+                #i += step_width*2
+                #print("i is {}".format(i))
+                #i += step_width
+                # t1 = threading.Thread(target=savePltWorker,args=(y2,middle,sr,savepath,i,))
+                # threads.append(t1)
+                #ps.apply_async(worker, args=(i,savepath,))  # 异步执行
+    # for t in threads:
+    #     t.setDaemon(True)
+    #     t.start()
+    # 关闭进程池，停止接受其它进程
+    ps.close()
+    # 阻塞进程
+    ps.join()
+    print("主进程终止")
+    end_time = time.time()
+    print("runinggggggggggggggggggg is {}".format(end_time - start_time))
+    print("1 time is {}".format(time.time()))
+    return result
+def savePltWorker(y2,middle,sr,savepath,i):
+    #pass
+    #print("middle,sr,savepath,i is : {},{},{},{}".format(middle,sr,savepath,i))
+    librosa.display.specshow(y2, y_axis='cqt_note', x_axis='time')
+    t = librosa.frames_to_time([middle], sr=sr)
+    plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
+    tmp = os.listdir(savepath)
+
+    plt.savefig(savepath + str(i) + '.jpg', bbox_inches='tight', pad_inches=0)
+    plt.clf()
+def worker(arg,savepath):
+    print("子进程开始执行>>> pid={},ppid={},编号{},{}".format(os.getpid(),os.getppid(),arg,savepath))
+    time.sleep(0.5)
+    print("子进程终止>>> pid={},ppid={},编号{},{}".format(os.getpid(),os.getppid(),arg,savepath))
 
 def get_single_notes(filename,curr_num,savepath,modify_by_energy=False):
     y, sr = librosa.load(filename)
@@ -1293,6 +1426,7 @@ def get_single_notes(filename,curr_num,savepath,modify_by_energy=False):
 
     # 多线程部分
     threads = []
+
     for i in range(0, len(onset_frames),2):
         # t1 = threading.Thread(target=save_split_notes_for_rhythm, args=(onset_frames,i,total_frames_number,CQT,y, sr,savepath))
         # threads.append(t1)
@@ -1453,6 +1587,19 @@ def get_total_frames_number(path):
     total = len(rms)
     return total
 
+def get_total_frames_number_for_note(path):
+    # audio, sr = librosa.load(path)
+    # energy = librosa.feature.rmse(audio)
+    # frames = np.nonzero(energy >= np.max(energy) / 5)
+    #
+    # total = frames[1][-1]
+    total = 0
+    y, sr = librosa.load(path)
+    onsets_frames = get_real_onsets_for_note(y, modify_by_energy=True, gap=0.05)
+    if len(onsets_frames) > 0 :
+        total = onsets_frames[-1] - onsets_frames[0]
+    return total
+
 def get_onset_rmse_viterbi(y,silence_threshold):
     times, states = get_viterbi_state(y, silence_threshold)
     states_diff = np.diff(states)
@@ -1517,9 +1664,28 @@ def list_all_files(rootdir):
               _files.append(path)
     return _files
 
+def get_start_and_end_for_note(filename):
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    rms = [1 if x > np.max(rms) * 0.2 else 0 for x in rms]
+    start = 1
+    end = len(rms) - 1
+    if len(rms) > 0:
+        for i in range(1,len(rms)-5):
+            if np.min(rms[i:i+5]) == 1:
+                start = i
+                break
+
+        for i in range(len(rms)-2,1,-1):
+            if np.min(rms[i-5:i]) == 1:
+                end = i
+                break
+    return start,end
+
 if __name__ == '__main__':
     start_point = 0.2
-    time = 6.45
+    times = 6.45
     #code = '[0500,0500;1000;1500;0500;0250,0250,0250,0250;1000]'
     code = '[500,500,1000;500,500,1000;500,500,750,250;2000]'
     #code = '[2000;1000,1000;500,500,1000;2000]'
@@ -1528,7 +1694,7 @@ if __name__ == '__main__':
     #code = '[500;1000,500,1000,500;500,500,500,250,250,500,500;250,250,500,500,1000]'
     #code = '[1000,--(1000);1000,--(1000);1000,-(500),500;1000,1000]'
     #code = '[750,250,500,500,500,-(500);500,1000,500,500,-(500);750,250,500,500,500,-(500)]'
-    ds = onsets_base(code,time,start_point)
+    ds = onsets_base(code,times,start_point)
 
 
     plt.vlines(ds[:-1], 0, 2400, color='black', linestyle='dashed')
@@ -1539,3 +1705,14 @@ if __name__ == '__main__':
     chroma_pitch = get_chroma_pitch(pitch_code)
     print(chroma_pitch)
     plt.show()
+    step_width = 2
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律八（2）（60）.wav'
+    image_dir = './single_notes/data/test/'
+    start_time = time.time()
+    y, sr = librosa.load(filename)
+    onsets_frames = get_real_onsets_frames_rhythm(y, modify_by_energy=True, gap=0.1)
+    onset_frames = cqt_split(filename, image_dir,step_width)
+    #onset_frames = cqt_split(filename, image_dir, step_width, onsets_frames)
+    #onset_frames = cqt_split(filename, image_dir, step_width)
+    end_time = time.time()
+    print("run time is {}".format(end_time - start_time))
