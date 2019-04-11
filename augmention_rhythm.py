@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import random
 import os
 from scipy.io import wavfile
+import cv2
 
 def augmention(filename,number):
     y, sr = librosa.load(filename)
@@ -37,6 +38,23 @@ def add_noice(filename,number):
         #librosa.output.write_wav(save_path_file, y, sr) # 写入音频
         wavfile.write(save_path_file, sr, y)  # 写入音频
 
+def change_tune(filename,number):
+    y, sr = librosa.load(filename)
+    filepath, fullflname = os.path.split(filename)
+    for i in range(number):
+        ly = len(y)
+        tmp = random.uniform(1, 1.5)
+        tmp = round(tmp,2)
+        y_tune = cv2.resize(y, (1, int(len(y) * tmp))).squeeze()
+        lc = len(y_tune) - ly
+        y_tune = y_tune[int(lc / 2):int(lc / 2) + ly]
+
+
+        new_file = fullflname.split(".")[0] + '-tune-' + str(i)
+        save_path_file = filepath + "/" + new_file + '.wav'
+        # librosa.output.write_wav(save_path_file, y, sr) # 写入音频
+        wavfile.write(save_path_file, sr, y_tune)  # 写入音频
+
 if __name__ == '__main__':
 
     path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/'
@@ -46,10 +64,11 @@ if __name__ == '__main__':
     number2 = 2
     #augmention(filename,number)
     #add_noice(filename,number)
+    change_tune(filename,number2)
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/']
     dir_list = ['e:/test_image/m/D/']
-    #dir_list = []
+    dir_list = []
     # clear_dir(result_path)
     # 要测试的数量
     test_num = 100
