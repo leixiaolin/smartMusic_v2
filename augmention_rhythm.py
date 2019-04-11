@@ -3,18 +3,18 @@ import librosa
 import matplotlib.pyplot as plt
 import random
 import os
+from scipy.io import wavfile
 
-def augmention(path,name,save_path):
-    file_path = path + name + '.wav'
-    y, sr = librosa.load(file_path)
-
+def augmention(filename,number):
+    y, sr = librosa.load(filename)
+    filepath, fullflname = os.path.split(filename)
     # 产生4个不相等的随机数
     shifts = []
-    while(len(shifts)<2):
-        x = random.randint(1,5)
+    while(len(shifts)< int(number/2)):
+        x = random.randint(1,3)
         if x not in shifts:
             shifts.append(x)
-    while (len(shifts) < 4):
+    while (len(shifts) < number):
         x = random.randint(-4,-1)
         if x not in shifts:
             shifts.append(x)
@@ -22,38 +22,45 @@ def augmention(path,name,save_path):
     for shift in shifts:
         # 通过移动音调变声，14是上移14个半步，如果是-14，则是下移14个半步
         b = librosa.effects.pitch_shift(y, sr, n_steps=shift)
-        new_file = name + '-shift-' + str(shift)
-        save_path_file = save_path + new_file + '.wav'
+        new_file = fullflname.split(".")[0] + '-shift-' + str(shift)
+        save_path_file = filepath + "/" + new_file + '.wav'
         librosa.output.write_wav(save_path_file, b, sr)
+def add_noice(filename,number):
+    y, sr = librosa.load(filename)
+    filepath, fullflname = os.path.split(filename)
+    for i in range(number):
+        wn = np.random.randn(len(y))
+        y = np.where(y != 0.0, y + 0.005 * wn, 0.0)  # 噪声不要添加到0上！
+        #y = [x + 0.02*random.random() for x in y if x != 0.0]
+        new_file = fullflname.split(".")[0] + '-add-' + str(i)
+        save_path_file = filepath + "/" + new_file + '.wav'
+        #librosa.output.write_wav(save_path_file, y, sr) # 写入音频
+        wavfile.write(save_path_file, sr, y)  # 写入音频
 
 if __name__ == '__main__':
-    path = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/'
-    name = '旋律1.100分'
-    save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/train/E/'
-    #result = augmention(path,name,save_path)
 
-    path_index = np.array(['1.31MP3','2.2MP3','2.18MP3','2019-01-29'])
+    path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（12）（95）.wav'
+    savepath = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/'
+    number1 = 3
+    number2 = 2
+    #augmention(filename,number)
+    #add_noice(filename,number)
 
-    # 清空之前增扩的数据
-    for i in range(1,5):
-        COOKED_DIR = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/' + path_index[i - 1] + '/'
-        # savepath = 'F:\\mfcc_pic\\'+ str(i) +'\\'
-        for root, dirs, files in os.walk(COOKED_DIR):
-            print("Root = ", root, "dirs = ", dirs, "files = ", files)
-
-            index = 0
-            for filename in files:
-                print(filename)
-                if filename.find('shift') > 0:
-                    os.remove(root + filename)
-    # 重新增扩数据
-    for i in range(1,5):
-        COOKED_DIR = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/' + path_index[i - 1] + '/'
-        # savepath = 'F:\\mfcc_pic\\'+ str(i) +'\\'
-        for root, dirs, files in os.walk(COOKED_DIR):
-            print("Root = ", root, "dirs = ", dirs, "files = ", files)
-
-            index = 0
-            for filename in files:
-                print(filename)
-                augmention(root, filename.split('.wav')[0], root)
+    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/']
+    dir_list = ['e:/test_image/m/D/']
+    #dir_list = []
+    # clear_dir(result_path)
+    # 要测试的数量
+    test_num = 100
+    score = 0
+    for dir in dir_list:
+        file_list = os.listdir(dir)
+        # shuffle(file_list)  # 将语音文件随机排列
+        # file_list = ['视唱1-01（95）.wav']
+        for filename in file_list:
+            # clear_dir(image_dir)
+            # wavname = re.findall(pattern,filename)[0]
+            print(dir + filename)
+            augmention(dir + filename,number1)
+            add_noice(dir + filename,number2)

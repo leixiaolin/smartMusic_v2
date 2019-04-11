@@ -5,10 +5,10 @@ from create_base import *
 from create_labels_files import write_txt
 
 score = 0
-path_index = np.array(['1.31MP3','2.2MP3','2.18MP3','2019-01-29'])
+path_index = np.array(['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/'])
 
 tmp = ['A','B','C','D','E']
-dis_dir = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/raw_data/rhythm/'
+dis_dir = 'e:/test_image/m/'
 def clear_dir(dis_dir):
     for i in tmp:
         d_dir = dis_dir + '/' + i
@@ -22,8 +22,8 @@ for x in tmp:
 # 保存新文件名与原始文件的对应关系
 files_list = []
 new_old_txt = './onsets/new_and_old.txt'
-for i in range(1,5):
-    COOKED_DIR = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/'+ path_index[i-1] + '/'
+for i in range(len(path_index)):
+    COOKED_DIR = path_index[i]
     #savepath = 'F:\\mfcc_pic\\'+ str(i) +'\\'
     for root, dirs, files in os.walk(COOKED_DIR):
         print("Root = ", root, "dirs = ", dirs, "files = ", files)

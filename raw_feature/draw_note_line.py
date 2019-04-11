@@ -79,19 +79,28 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2_40330（60）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律6.1(80).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3.3(96).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（12）（95）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（12）（95）-shift--1.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（12）（95）-add.wav'
 
-    plt = draw_start_end_time(filename)
+    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律3_40302（95）.wav'
+
+
+
+    #plt = draw_start_end_time(filename)
+    plt = draw_baseline_and_note_on_cqt(filename)
     plt.show()
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/']
     dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
-    #dir_list = []
+    dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/t/'
     # clear_dir(result_path)
     # 要测试的数量
     test_num = 100
+    score = 0
     for dir in dir_list:
         file_list = os.listdir(dir)
         #shuffle(file_list)  # 将语音文件随机排列
@@ -100,7 +109,27 @@ if __name__ == "__main__":
             # clear_dir(image_dir)
             # wavname = re.findall(pattern,filename)[0]
             print(dir + filename)
-            plt = draw_start_end_time(dir + filename)
+            #plt = draw_start_end_time(dir + filename)
+            plt = draw_baseline_and_note_on_cqt(dir + filename)
             tmp = os.listdir(result_path)
-            plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
+
+            score = re.sub("\D", "", filename)  # 筛选数字
+            if str(score).find("100") > 0:
+                score = 100
+            else:
+                score = int(score) % 100
+
+            if int(score) >= 90:
+                grade = 'A'
+            elif int(score) >= 75:
+                grade = 'B'
+            elif int(score) >= 60:
+                grade = 'C'
+            elif int(score) >= 1:
+                grade = 'D'
+            else:
+                grade = 'E'
+            #result_path = result_path + grade + "/"
+            #plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
+            plt.savefig(result_path + grade + "/" + filename + '.jpg', bbox_inches='tight', pad_inches=0)
             plt.clf()

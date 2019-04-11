@@ -1668,7 +1668,8 @@ def get_start_and_end_for_note(filename):
     y, sr = librosa.load(filename)
     rms = librosa.feature.rmse(y=y)[0]
     rms = [x / np.std(rms) for x in rms]
-    rms = [1 if x > np.max(rms) * 0.2 else 0 for x in rms]
+    mean_rms = np.mean(rms)
+    rms = [1 if x > mean_rms* 0.75 else 0 for x in rms]
     start = 1
     end = len(rms) - 1
     if len(rms) > 0:
@@ -1682,6 +1683,31 @@ def get_start_and_end_for_note(filename):
                 end = i
                 break
     return start,end
+def draw_baseline_and_note_on_cqt(filename):
+    y, sr = librosa.load(filename)
+    start,end = get_start_and_end_for_note(filename)
+    start_time = librosa.frames_to_time([start,end])
+    #plt.axvline(start_time[0],color="r")
+    plt.axvline(start_time[1],color="r")
+    #print("start,end is {},{}".format(start,end))
+    base_frames = onsets_base_frames_for_note(filename)
+    base_frames = [x + start - base_frames[0] for x in base_frames]
+    base_time = librosa.frames_to_time(base_frames, sr=sr)
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    CQT[0:20, :] = np.min(CQT)
+    base_notes = base_note(filename)
+    base_notes = [x + 5 - np.min(base_notes) for x in base_notes]
+    #print("base_notes is {}".format(base_notes))
+    #CQT[base_notes[0], :] = -20
+    CQT = add_base_note_to_cqt(CQT, base_notes, base_frames,end)
+    #plt.axhline(base_frames[0],color="w")
+    librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
+    plt.vlines(base_time, 0, sr, color='r', linestyle='dashed')
+    plt.axis('off')
+    plt.axes().get_xaxis().set_visible(False)
+    plt.axes().get_yaxis().set_visible(False)
+    return plt
 
 if __name__ == '__main__':
     start_point = 0.2
