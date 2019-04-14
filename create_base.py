@@ -49,10 +49,10 @@ pitch_base = ['C','D','E','F','G','A','B']
 pitch_number = ['1','2','3','4','5','6','7']
 pitch_v = [0,2,4,5,7,9,11]
 
-def load_and_trim(path):
+def load_and_trim(path,threshold=5):
     audio, sr = librosa.load(path)
     energy = librosa.feature.rmse(audio)
-    frames = np.nonzero(energy >= np.max(energy) / 5)
+    frames = np.nonzero(energy >= np.max(energy) / threshold)
     indices = librosa.core.frames_to_samples(frames)[1]
     audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
 
@@ -108,6 +108,8 @@ def get_chroma_pitch(pitch_code):
             result.append(pitch_v[int(x[0]) - 1] + 12)
         elif str(x).find("-") > 0:
             result.append(pitch_v[int(x[0]) - 1] - 12)
+        elif str(x).find("0") > 0:
+            result.append(-1)
         else:
             result.append(pitch_v[int(x[0])-1])
     return result
@@ -179,8 +181,9 @@ def onsets_base_frames_rhythm(index,frames_number):
 
 def onsets_base_frames_for_note(filename):
     #frames_total = get_total_frames_number_for_note(filename)
-    frames_total = get_total_frames_number(filename)
-    start, end = get_start_and_end_for_note(filename)
+    #frames_total = get_total_frames_number(filename)
+    y, sr = librosa.load(filename)
+    start, end = get_start_and_end_for_note(y, sr)
     frames_total = end - start
     type_index = get_onsets_index_by_filename_rhythm(filename)
     base_frames = onsets_base_frames_rhythm(type_index, frames_total)
@@ -193,12 +196,22 @@ def base_note(filename):
     #print(chroma_pitch)
     return chroma_pitch
 
-def add_base_note_to_cqt(cqt,base_notes,base_frames,end):
+def add_base_note_to_cqt(cqt,base_notes,base_frames,end,filename):
+    type_index = get_onsets_index_by_filename_rhythm(filename)
+    codes = get_basetime(rhythm_codes[type_index])
     for i in range(len(base_frames)-1):
         start_frame = base_frames[i]
-        end_frame = base_frames[i+1]
+        if codes[i+1].find("-") >= 0:
+            last = int(codes[i-1])
+            current = int(re.sub("\D", "", codes[i+1]))  # 筛选数字
+            end_frame = base_frames[i + 1] - (base_frames[i + 1] - base_frames[i])*(current/(current + last))
+            end_frame = int(end_frame)
+        else:
+            end_frame = base_frames[i+1]
         note = base_notes[i]
-        cqt[note,start_frame:end_frame] = -20
+        #print("note,start_frame,end_frame is {},{},{}".format(note,start_frame,end_frame))
+        if note != -1:
+            cqt[note,start_frame:end_frame] = -20
     cqt[base_notes[-1],base_frames[-1]:end] = -20
     return cqt
 '''
@@ -1352,8 +1365,9 @@ def cqt_split(filename,savepath,step_width,onsets_frames=[]):
             #if np.max(y2) == np.max(CQT):
     else:
         #step_width = int(h/150)
+        start, end = get_start_and_end_for_note(y, sr)
         print("tpye2 主进程开始执行>>> pid={}".format(os.getpid()))
-        for i in range(0, h, step_width):
+        for i in range(start, end, step_width):
         #while i < h:
             y2 = np.zeros(CQT.shape)
             if i >= h - step:
@@ -1664,43 +1678,62 @@ def list_all_files(rootdir):
               _files.append(path)
     return _files
 
-def get_start_and_end_for_note(filename):
-    y, sr = librosa.load(filename)
+def get_start_and_end_for_note(y, sr):
+    silence_threshold = 0.2
+    #y, sr = librosa.load(filename)
+    times, states = get_viterbi_state(y, silence_threshold)
     rms = librosa.feature.rmse(y=y)[0]
+    print("rms len is {}".format(len(rms)))
     rms = [x / np.std(rms) for x in rms]
     mean_rms = np.mean(rms)
-    rms = [1 if x > mean_rms* 0.75 else 0 for x in rms]
+    rms = [1 if x > mean_rms* 0.25 else 0 for x in rms]
     start = 1
     end = len(rms) - 1
     if len(rms) > 0:
-        for i in range(1,len(rms)-5):
-            if np.min(rms[i:i+5]) == 1:
+        for i in range(1,len(rms)-20):
+            # b = [states[j:j + 5] for j in range(i, i+20)]
+            # c = [np.sum(x) for x in b]
+            # min_c = np.min(c)
+            if np.min(rms[i:i+5]) == 1 and (states[i] == 1 and np.max(states[i+10:i+20]) == 1):
                 start = i
                 break
 
-        for i in range(len(rms)-2,1,-1):
-            if np.min(rms[i-5:i]) == 1:
+        for i in range(len(rms)-2,30,-1):
+            if np.min(rms[i-5:i]) == 1 and (states[i] == 1 and np.max(states[i-30:i-20]) == 1):
                 end = i
                 break
     return start,end
-def draw_baseline_and_note_on_cqt(filename):
+def draw_baseline_and_note_on_cqt(filename,display=True):
     y, sr = librosa.load(filename)
-    start,end = get_start_and_end_for_note(filename)
+    start,end = get_start_and_end_for_note(y, sr)
     start_time = librosa.frames_to_time([start,end])
     #plt.axvline(start_time[0],color="r")
-    plt.axvline(start_time[1],color="r")
+    plt.axvline(start_time[1],color="r",linestyle='dashed')
     #print("start,end is {},{}".format(start,end))
     base_frames = onsets_base_frames_for_note(filename)
     base_frames = [x + start - base_frames[0] for x in base_frames]
+    print("base_frames is {}".format(base_frames))
     base_time = librosa.frames_to_time(base_frames, sr=sr)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     w, h = CQT.shape
-    CQT[0:20, :] = np.min(CQT)
+    # for i in range(w):
+    #     for j in range(h):
+    #         if CQT[i][j] > -25:
+    #             CQT[i][j] = np.max(CQT)
+    #         else:
+    #             CQT[i][j] = np.min(CQT)
+    if display is False:
+        CQT = np.where(CQT>-30, np.max(CQT), np.min(CQT))
+        CQT[:,:start] = np.min(CQT)
+        CQT[:, end:] = np.min(CQT)
+        #CQT = find_note_line_for_cqt(CQT, start, end)
+        #CQT = np.ones(CQT.shape) * np.min(CQT)
+    CQT[0:10, :] = np.min(CQT)
     base_notes = base_note(filename)
-    base_notes = [x + 5 - np.min(base_notes) for x in base_notes]
+    base_notes = [x + 2 - np.min(base_notes) if x != -1 else x for x in base_notes ]
     #print("base_notes is {}".format(base_notes))
     #CQT[base_notes[0], :] = -20
-    CQT = add_base_note_to_cqt(CQT, base_notes, base_frames,end)
+    CQT = add_base_note_to_cqt(CQT, base_notes, base_frames,end,filename)
     #plt.axhline(base_frames[0],color="w")
     librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
     plt.vlines(base_time, 0, sr, color='r', linestyle='dashed')
@@ -1708,6 +1741,51 @@ def draw_baseline_and_note_on_cqt(filename):
     plt.axes().get_xaxis().set_visible(False)
     plt.axes().get_yaxis().set_visible(False)
     return plt
+
+def draw_on_cqt(filename,pic_path,display=True):
+    #start_time = time.time()
+    y, sr = librosa.load(filename)
+    start,end = get_start_and_end_for_note(y, sr)
+    #end_time = time.time()
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    print("w,h is {},{}".format(w,h))
+    # for i in range(w):
+    #     for j in range(h):
+    #         if CQT[i][j] > -25:
+    #             CQT[i][j] = np.max(CQT)
+    #         else:
+    #             CQT[i][j] = np.min(CQT)
+    if display is False:
+        CQT = np.where(CQT>-30, np.max(CQT), np.min(CQT))
+        CQT[:,:start] = np.min(CQT)
+        CQT[:, end:] = np.min(CQT)
+        #CQT = find_note_line_for_cqt(CQT, start, end)
+        #CQT = np.ones(CQT.shape) * np.min(CQT)
+    CQT[0:10, :] = np.min(CQT)
+
+    #plt.axhline(base_frames[0],color="w")
+    librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
+    plt.axis('off')
+    plt.axes().get_xaxis().set_visible(False)
+    plt.axes().get_yaxis().set_visible(False)
+    plt.savefig(pic_path, bbox_inches='tight', pad_inches=0)
+    #print("rrrrr is {}".format(end_time - start_time))
+    return plt,y,sr
+
+def find_note_line_for_cqt(CQT,start,end):
+    w,h = CQT.shape
+    cqt_max = np.max(CQT)
+    cqt_min = np.min(CQT)
+    result = np.ones(CQT.shape) * np.min(CQT)
+
+    for i in range(start,end):
+        for j in range(4,w):
+            if np.min(CQT[j-2:j,i:i+2]) == cqt_max:
+                result[j,i] = cqt_max
+                #break
+    return result
+
 
 if __name__ == '__main__':
     start_point = 0.2
