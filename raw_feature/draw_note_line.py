@@ -44,6 +44,7 @@ def draw_start_end_time(filename):
     print("start,end is {},{}".format(start,end))
     base_frames = onsets_base_frames_for_note(filename)
     base_frames = [x + start - base_frames[0] for x in base_frames]
+    print("base_frames is {}".format(base_frames))
     base_time = librosa.frames_to_time(base_frames, sr=sr)
     print("base_frames is {}".format(base_frames[0]))
     plt.vlines(base_time, 0, np.max(rms), color='r', linestyle='dashed')
@@ -78,25 +79,30 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律10_40231（20）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2_40330（60）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律6.1(80).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3.3(96).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（12）（95）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（12）（95）-shift--1.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（12）（95）-add.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（12）（95）-add.wav'
 
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律3_40302（95）.wav'
+    #filename = 'E:/test_image/m/A/视唱1-01（95）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2录音1(90).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律二（1）（90）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8录音4(93).wav'
 
 
 
     #plt = draw_start_end_time(filename)
-    plt = draw_baseline_and_note_on_cqt(filename)
+    pic_path = "./tmp/tmp.jpg"
+    #plt,y,sr = draw_on_cqt(filename,pic_path,False)
+    plt = draw_baseline_and_note_on_cqt(filename, False)
     plt.show()
 
-    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/']
-    dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
+    dir_list = ['e:/test_image/m1/D/']
     dir_list = []
     total_accuracy = 0
     total_num = 0
-    result_path = 'e:/test_image/t/'
+    result_path = 'e:/test_image/n/'
     # clear_dir(result_path)
     # 要测试的数量
     test_num = 100
@@ -110,10 +116,14 @@ if __name__ == "__main__":
             # wavname = re.findall(pattern,filename)[0]
             print(dir + filename)
             #plt = draw_start_end_time(dir + filename)
-            plt = draw_baseline_and_note_on_cqt(dir + filename)
-            tmp = os.listdir(result_path)
+            plt = draw_baseline_and_note_on_cqt(dir + filename,False)
+            #tmp = os.listdir(result_path)
 
-            score = re.sub("\D", "", filename)  # 筛选数字
+            if filename.find("tune") >0 or filename.find("add") >0 or filename.find("shift") >0:
+                score = re.sub("\D", "", filename.split("-")[0])  # 筛选数字
+            else:
+                score = re.sub("\D", "", filename)  # 筛选数字
+
             if str(score).find("100") > 0:
                 score = 100
             else:
@@ -131,5 +141,6 @@ if __name__ == "__main__":
                 grade = 'E'
             #result_path = result_path + grade + "/"
             #plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
+            grade = 'D'
             plt.savefig(result_path + grade + "/" + filename + '.jpg', bbox_inches='tight', pad_inches=0)
             plt.clf()
