@@ -254,13 +254,12 @@ def find_false_onsets_rms(y,onset_frames_cqt,threshold):
         sub_rms = rms[start:end]
         #print("checking {}".format(end))
         # 条件一：节拍点的前后有高差，前小后大
-        #print("len(rms),end is {},{}".format(len(rms),end))
-        tmp1 = len(rms)-1 if end >=len(rms)-1 else end - 1
+        tmp1 = end - 1
         tmp2 = len(rms)-1 if end >=len(rms)-2 else end + 1
         condation1 = rms[tmp2] - rms[tmp1] > 0.12 * np.max(rms)
         #print("condation1 is {}".format(condation1))
         # 条件二：跟前一节拍之间有波谷
-        #condation2 = np.min(sub_rms) < np.max(rms) * 0.4
+        condation2 = np.min(sub_rms) < np.max(rms) * 0.4
         condation2 = True
         #print("condation2 is {}".format(condation2))
         #条件三：后面的cqt上半部存在亮的水平线
@@ -289,17 +288,6 @@ def find_false_onsets_rms(y,onset_frames_cqt,threshold):
             result.append(end)
     return result
 
-def find_false_onsets_rms_secondary_optimised(y,onset_frames_cqt,threshold1,threshold2):
-
-    rms = librosa.feature.rmse(y=y)[0]
-    rms = [x / np.std(rms) for x in rms]
-    result = []
-    for x in onset_frames_cqt:
-        # 较大上升沿 或 波谷点
-        if rms[x+1] - rms[x] > threshold1 or (rms[x-1] - rms[x] > threshold2 and rms[x+1] - rms[x] > threshold2):
-            result.append(x)
-    return result
-
 def get_best_threshod(y):
     onsets_frames = get_real_onsets_frames_rhythm(y, modify_by_energy=True, gap=0.1)
     rms = librosa.feature.rmse(y=y)[0]
@@ -320,7 +308,7 @@ def get_missing_by_best_threshod(y,onsets_frames,best_threshod):
         offset = [np.abs(x - i) for i in onsets_frames]
         min_gap = np.min(offset)
         if min_gap > 5:
-            onsets_frames.append(x + onsets_frames[0])
+            onsets_frames.append(x)
 
     onsets_frames.sort()
     return onsets_frames
@@ -477,14 +465,13 @@ def get_detail_cqt_rms(filename):
     #onset_frames_cqt = check_onset_by_cqt_v2(y, onset_frames_cqt)
     #print("7. onset_frames_cqt,best_threshold is {},{}".format(onset_frames_cqt, best_threshold))
     onset_frames_cqt_time = librosa.frames_to_time(onset_frames_cqt, sr=sr)
-    #print("onset_frames_cqt_time is {}".format(onset_frames_cqt_time))
 
-    type_index = get_onsets_index_by_filename(filename)
+    type_index = get_onsets_index_by_filename_rhythm(filename)
     total_frames_number = get_total_frames_number(filename)
     best_y = []
     # 标准节拍时间点
     if len(onset_frames_cqt)> 0:
-        base_frames = onsets_base_frames(codes[type_index], total_frames_number - onset_frames_cqt[0])
+        base_frames = onsets_base_frames_rhythm(type_index, total_frames_number - onset_frames_cqt[0])
         base_frames = [x + (onset_frames_cqt[0] - base_frames[0]) for x in base_frames]
         min_d, best_y, onsets_frames = get_dtw_min(onset_frames_cqt, base_frames, 65)
     else:
@@ -527,120 +514,7 @@ def get_detail_cqt_rms(filename):
     plt.vlines(base_onsets, 0, np.max(rms), color='r', linestyle='dashed')
     plt.xlim(0, np.max(times))
     plt.axhline(max_rms * best_threshold)
-    return onset_frames_cqt,best_y,best_threshold,plt
-
-def get_detail_cqt_rms_secondary_optimised(filename):
-
-    onset_frames_cqt, best_y, best_threshold, _ = get_detail_cqt_rms(filename)
-
-    y, sr = librosa.load(filename)
-
-    loss_frames = []
-    for i in range(len(onset_frames_cqt)-1):
-        start = onset_frames_cqt[i]
-        end = onset_frames_cqt[i+1]
-
-        if end - start > 30:
-            start_end_time = librosa.frames_to_time([start,end], sr=sr)
-            #print("start_end_time is {}".format(start_end_time))
-            y1,sr1 = librosa.load(filename,offset=start_end_time[0],duration=start_end_time[1] - start_end_time[0])
-            # 根据rms阀值线找漏的
-            if len(onset_frames_cqt) > 0:
-                threshold = 0.6
-                tmp = get_missing_by_best_threshod(y1, [start,end], threshold)
-                if len(tmp)>=3:
-                    for j in range(1,len(tmp)-1):
-                        loss_frames.append(tmp[j])
-                        #print("add is {}".format(tmp[1:-1]))
-            # rms = librosa.feature.rmse(y=y1)[0]
-            # rms_on_onset_frames_cqt = [rms[x] for x in [start,end]]
-            # min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
-            # rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
-            #
-            # loss = [i for i in range(len(rms)-6) if rms[i] == 0 and rms[i+1] == 1 and np.min(rms[i+1:i+6]) == 1 and i < end and i > start ]
-            # for x in loss:
-            #     loss_frames.append(x)
-
-    if len(loss_frames)>0:
-        for x in loss_frames:
-            onset_frames_cqt.append(x)
-        onset_frames_cqt.sort()
-
-    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
-    #onset_frames_cqt, best_threshold = get_onsets_by_cqt_rms_optimised(filename)
-    #print("5. onset_frames_cqt,best_threshold is {},{}".format(onset_frames_cqt, best_threshold))
-    # if len(onset_frames_cqt)<topN:
-    onset_frames_cqt = get_miss_onsets_by_cqt(y, onset_frames_cqt)
-    onset_frames_cqt = find_false_onsets_rms_secondary_optimised(y, onset_frames_cqt, 0.1, 0.1)
-    if onset_frames_cqt:
-        min_width = 5
-        # print("min_width is {}".format(min_width))
-        onset_frames_cqt = del_overcrowding(onset_frames_cqt, min_width)
-    #print("6. onset_frames_cqt,best_threshold is {},{}".format(onset_frames_cqt, best_threshold))
-    #onset_frames_cqt = check_onset_by_cqt_v2(y, onset_frames_cqt)
-    #print("7. onset_frames_cqt,best_threshold is {},{}".format(onset_frames_cqt, best_threshold))
-    onset_frames_cqt_time = librosa.frames_to_time(onset_frames_cqt, sr=sr)
-
-
-
-    type_index = get_onsets_index_by_filename(filename)
-    total_frames_number = get_total_frames_number(filename)
-    best_y = []
-    # 标准节拍时间点
-    if len(onset_frames_cqt)> 0:
-        base_frames = onsets_base_frames(codes[type_index], total_frames_number - onset_frames_cqt[0])
-        base_frames = [x + (onset_frames_cqt[0] - base_frames[0]) for x in base_frames]
-        min_d, best_y, onsets_frames = get_dtw_min(onset_frames_cqt, base_frames, 65)
-    else:
-        base_frames = onsets_base_frames(codes[type_index], total_frames_number)
-    base_onsets = librosa.frames_to_time(base_frames, sr=sr)
-    plt.close() # 关闭第一次的图片句柄
-
-    # librosa.display.specshow(CQT)
-    plt.figure(figsize=(10, 6))
-    plt.subplot(4, 1, 1)  # 要生成两行两列，这是第一个图plt.subplot('行','列','编号')
-    # plt.colorbar(format='%+2.0f dB')
-    # plt.title('Constant-Q power spectrogram (note)')
-    # for x in onset_frames_cqt:
-    #     sub_cqt = CQT.copy()[:,x]
-    #     sub_cqt[0:20] = np.min(CQT)
-    #     max_index = np.where(sub_cqt==np.max(sub_cqt))[0][0]
-    #     print("max_index is {}".format(max_index))
-    #     #plt.axhline(max_index,color="r")
-    #     CQT[max_index,:] = np.min(CQT)
-
-    librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
-    plt.vlines(onset_frames_cqt_time, 0, sr, color='y', linestyle='solid')
-    #plt.vlines(base_onsets, 0, sr, color='r', linestyle='solid')
-
-    # print(plt.figure)
-
-    plt.subplot(4, 1, 2)  # 要生成两行两列，这是第一个图plt.subplot('行','列','编号')
-    librosa.display.waveplot(y, sr=sr)
-    plt.vlines(onset_frames_cqt_time, -1 * np.max(y), np.max(y), color='y', linestyle='solid')
-
-    plt.subplot(4, 1, 3)
-    rms = librosa.feature.rmse(y=y)[0]
-    rms = [x / np.std(rms) for x in rms]
-    max_rms = np.max(rms)
-    # rms = np.diff(rms)
-    times = librosa.frames_to_time(np.arange(len(rms)))
-    rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
-    min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
-    rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
-    plt.plot(times, rms)
-    # plt.axhline(min_rms_on_onset_frames_cqt)
-    plt.axhline(max_rms * best_threshold)
-    # plt.vlines(onsets_frames_rms_best_time, 0,np.max(rms), color='y', linestyle='solid')
-    plt.vlines(onset_frames_cqt_time, 0, np.max(rms), color='y', linestyle='solid')
-    #plt.vlines(base_onsets, 0, np.max(rms), color='r', linestyle='solid')
-    plt.xlim(0, np.max(times))
-
-    plt.subplot(4, 1, 4)
-    plt.vlines(base_onsets, 0, np.max(rms), color='r', linestyle='dashed')
-    plt.xlim(0, np.max(times))
-    plt.axhline(max_rms * best_threshold)
-    return onset_frames_cqt,best_y,best_threshold,plt
+    return onset_frames_cqt,best_y,plt
 
 if __name__ == '__main__':
     #y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
@@ -648,66 +522,7 @@ if __name__ == '__main__':
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节8王（60）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节6录音3(100).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律八（2）（60）.wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1_40211（90）.wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律3_40302（95）.wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律6.4(90).wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8录音4(93).wav'
-
-
 
     savepath = './single_notes/data/test/'
-    #onset_frames_cqt, best_y,best_threshold, plt = get_detail_cqt_rms(filename)
-    onset_frames_cqt, best_y, best_threshold, plt = get_detail_cqt_rms_secondary_optimised(filename)
-
-    print("onset_frames_cqt is {}".format(onset_frames_cqt))
+    onset_frames_cqt, best_y,best_threshold, plt = get_detail_cqt_rms(filename)
     plt.show()
-
-    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
-    dir_list = ['e:/test_image/m1/A/']
-    #dir_list = []
-    total_accuracy = 0
-    total_num = 0
-    result_path = 'e:/test_image/n/'
-    # clear_dir(result_path)
-    # 要测试的数量
-    test_num = 100
-    score = 0
-    for dir in dir_list:
-        file_list = os.listdir(dir)
-        # shuffle(file_list)  # 将语音文件随机排列
-        # file_list = ['视唱1-01（95）.wav']
-        for filename in file_list:
-            # clear_dir(image_dir)
-            # wavname = re.findall(pattern,filename)[0]
-            print(dir + filename)
-            # plt = draw_start_end_time(dir + filename)
-            #plt = draw_baseline_and_note_on_cqt(dir + filename, False)
-            onset_frames_cqt, best_y, best_threshold, plt = get_detail_cqt_rms_secondary_optimised(dir + filename)
-            # tmp = os.listdir(result_path)
-
-            if filename.find("tune") > 0 or filename.find("add") > 0 or filename.find("shift") > 0:
-                score = re.sub("\D", "", filename.split("-")[0])  # 筛选数字
-            else:
-                score = re.sub("\D", "", filename)  # 筛选数字
-
-            if str(score).find("100") > 0:
-                score = 100
-            else:
-                score = int(score) % 100
-
-            if int(score) >= 90:
-                grade = 'A'
-            elif int(score) >= 75:
-                grade = 'B'
-            elif int(score) >= 60:
-                grade = 'C'
-            elif int(score) >= 1:
-                grade = 'D'
-            else:
-                grade = 'E'
-            # result_path = result_path + grade + "/"
-            # plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
-            grade = 'A'
-            plt.savefig(result_path + grade + "/" + filename + '.jpg', bbox_inches='tight', pad_inches=0)
-            plt.clf()
