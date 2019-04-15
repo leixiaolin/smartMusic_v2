@@ -29,19 +29,24 @@ def get_note_with_cqt_rms(filename):
     result = []
     last = 0
     is_ok = 0
-    for i in range(10, h - 10):
+    #print("max is {}".format(np.max(CQT)))
+    for i in range(15, h - 10):
         is_ok = 0
         last_j = 100
         for j in range(w-1, 15,-1):
-            if np.min(CQT[j, i:i + 5]) == np.max(CQT) and np.max(CQT[j, i - 4:i - 1]) == np.min(CQT) and i - last > 5:
-                if last_j - j > 10:
+            if CQT[j,i] == np.max(CQT) and CQT[j,i-1] == np.min(CQT):
+                if np.min(CQT[j, i:i + 5]) == np.max(CQT) and np.max(CQT[j, i - 4:i - 1]) == np.min(CQT) and i - last > 5:
+                    if np.min(CQT[j, i:i + 10]) == np.max(CQT) and np.mean(CQT[j, i - 5:i - 1]) == np.min(CQT):
+                        #print("3... is {},{},{}".format(CQT[j, i - 4:i - 3],CQT[j, i - 3:i-2],i))
+                        is_ok += 2
+                        break
+                    if last_j - j > 10:
+                        is_ok += 1
+                        last_j = j
+                elif np.min(CQT[j, i:i + 5]) == np.max(CQT) and is_ok == 1:
                     is_ok += 1
-                    last_j = j
-            elif np.min(CQT[j, i:i + 5]) == np.max(CQT) and is_ok == 1:
-                is_ok += 1
-            elif np.min(CQT[j, i:i + 15]) == np.max(CQT):
-                is_ok += 2
-                break
+                # elif np.min(CQT[j, i+1:i + 2]) == np.max(CQT):
+                #     result.append(i)
         if rms[i + 1] > rms[i] and is_ok > 1:
             if len(result) == 0:
                 result.append(i)
@@ -65,6 +70,8 @@ def get_note_with_cqt_rms(filename):
     plt.vlines(onstm, 0, sr, color='y', linestyle='solid')
 
     plt.subplot(3, 1, 2)
+
+    plt.text(onstm[0],1,result[0])
     max_rms = np.max(rms)
     # rms = np.diff(rms)
     times = librosa.frames_to_time(np.arange(len(rms)))
@@ -93,7 +100,9 @@ if __name__ == "__main__":
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（9）（100）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律五（3）（63）.wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏一（4）（96）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏一（4）（96）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋7谭（93）.wav'
+
 
     #y, sr = load_and_trim(filename)
 
@@ -104,7 +113,7 @@ if __name__ == "__main__":
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     # dir_list = ['e:/test_image/m1/A/']
-    dir_list = []
+    #dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
@@ -147,6 +156,6 @@ if __name__ == "__main__":
                 grade = 'E'
             # result_path = result_path + grade + "/"
             # plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
-            grade = 'A'
+            #grade = 'A'
             plt.savefig(result_path + grade + "/" + filename + '.jpg', bbox_inches='tight', pad_inches=0)
             plt.clf()
