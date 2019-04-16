@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import librosa.display
 import numpy as np
 from create_base import *
+import itertools
 # 1. Get the file path to the included audio example
 # Sonify detected beat events
 # 定义加载语音文件并去掉两端静音的函数
@@ -51,19 +52,43 @@ def get_note_with_cqt_rms(filename):
             if len(result) == 0:
                 result.append(i)
                 last = i
-            elif i - result[-1] > 5:
+            elif i - result[-1] > 10:
                 result.append(i)
                 last = i
-
+        elif rms[i + 1] - rms[i-1] > 0.75 and i > 50 and i < len(rms)-45:
+            if len(result) == 0:
+                result.append(i)
+                last = i
+            elif i - result[-1] > 8:
+                result.append(i)
+                last = i
 
     rms_on_frames = [rms[x] for x in result]
     mean_rms_on_frames = np.mean(rms_on_frames)
     onstm = librosa.frames_to_time(result, sr=sr)
+
+    #print("result is {}".format(result))
+    longest_note = []
+    for i in range(len(result)):
+        x = result[i]
+        if i <len(result)-1:
+            next_frame = result[i+1]
+        else:
+            next_frame = result[-1] + 20 if result[-1] + 20 < CQT.shape[1] else CQT.shape[1]
+        note_line = get_note_line_by_block_for_frames(x,CQT)
+        #print("x,note_line is {},{}".format(x,note_line))
+        longest_note_line = find_the_longest_note_line(x,next_frame,CQT)
+        longest_note.append(longest_note_line)
+        #print("x,longest_note_line is {},{}".format(x, longest_note_line))
+    #print("longest_note is {}".format(longest_note))
     # CQT[:,onsets_frames[1]:h] = -100
     plt.subplot(3, 1, 1)
     total_frames_number = get_total_frames_number(filename)
-    print("total_frames_number is {}".format(total_frames_number))
+    #print("total_frames_number is {}".format(total_frames_number))
     # librosa.display.specshow(CQT)
+    CQT,base_notes = add_base_note_to_cqt_for_filename_by_base_notes(filename,result,result[0],CQT,longest_note)
+    base_notes = [x + int(np.mean(longest_note) - np.mean(base_notes)) for x in base_notes]
+    #print("base_notes is {}".format(base_notes))
     librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
     print(np.max(y))
     # onstm = librosa.frames_to_time(onsets_frames, sr=sr)
@@ -93,6 +118,51 @@ def get_note_with_cqt_rms(filename):
 
     return plt
 
+def get_note_line_by_block_for_frames(note_frame,cqt):
+    w,h = cqt.shape
+    cqt_max = np.max(cqt)
+    start = note_frame
+    for i in range(3):
+        start +=i
+        if np.max(cqt[15:,start]) == cqt_max:
+            break
+    sub_cqt = cqt[15:,start:start + 3]
+    #sub_cqt = cqt[15:, note_frame+2:note_frame + 5]
+    note_line = 0
+    for i in range(15,w-15):
+        if np.min(sub_cqt[i]) == cqt_max and np.min(sub_cqt[i+1]) == cqt_max or np.min(cqt[i,start:start+10]) == cqt_max :
+            note_line = i
+            return note_line
+    return note_line
+
+def find_the_longest_note_line(note_frame,next_frame,cqt):
+    w,h = cqt.shape
+    cqt_max = np.max(cqt)
+    cqt_min = np.min(cqt)
+    sub_cqt = cqt[:,note_frame:next_frame]
+    longest = 0
+    best_note_line = 0
+    for i in range(20,w -20):
+        a = sub_cqt[i]
+        if list(a).count(cqt_max) > (next_frame - note_frame)*0.2:
+            if list(a).count(cqt_max) > (next_frame - note_frame)*0.40:
+                best_note_line = i
+                break
+            n_max = max([len(list(v)) for k, v in itertools.groupby(a)])
+            b = dict([(k, len(list(v))) for k, v in itertools.groupby(a)])
+            c = [k for k, v in b.items() if v == n_max and k == cqt_max]
+            if len(c)>0 and b.get(c[0]) > longest:
+                best_note_line = i
+                longest = b.get(c[0])
+
+    if best_note_line == 0:
+        for i in range(20, w - 20):
+            a = sub_cqt[i]
+            if list(a).count(cqt_max) > 3:
+                best_note_line = i
+                break
+    return best_note_line
+
 if __name__ == "__main__":
     #y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
@@ -101,7 +171,14 @@ if __name__ == "__main__":
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律五（3）（63）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏一（4）（96）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋7谭（93）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音4(78).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3王（80）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4文(75).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律6.4(90).wav'
+
+
+
 
 
     #y, sr = load_and_trim(filename)
@@ -112,6 +189,7 @@ if __name__ == "__main__":
     plt.show()
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
+    #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     # dir_list = ['e:/test_image/m1/A/']
     #dir_list = []
     total_accuracy = 0

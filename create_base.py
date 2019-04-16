@@ -28,7 +28,7 @@ codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
 note_codes = np.array(['[3,3,3,3,3,3,3,5,1,2,3]',
                        '[5,5,3,2,1,2,5,3,2]',
                        '[5,5,3,2,1,2,2,3,2,6-,5-]',
-                       '[5,1+,7,1+,2+,1+,7+,6,5,2,4,3,6,5]',
+                       '[5,1+,7,1+,2+,1+,7,6,5,2,4,3,6,5]',
                        '[3,6,7,1+,2+,1+,7,6,3]',
                        '[1+,7,1+,2+,3+,2+,1+,7,6,7,1+,2+,7,1+,7,1+,2+,1+]',
                        '[5,6,1+,6,2,3,1,6-,5-]',
@@ -214,6 +214,64 @@ def add_base_note_to_cqt(cqt,base_notes,base_frames,end,filename):
             cqt[note,start_frame:end_frame] = -20
     cqt[base_notes[-1],base_frames[-1]:end] = -20
     return cqt
+
+def add_base_note_to_cqt_for_filename(filename,first_frame=[],CQT=[]):
+    y, sr = librosa.load(filename)
+    start, end = get_start_and_end_for_note(y, sr)
+    base_frames = onsets_base_frames_for_note(filename)
+    if first_frame:
+        base_frames = [x + first_frame - base_frames[0] for x in base_frames]
+    else:
+        base_frames = [x + start - base_frames[0] for x in base_frames]
+
+    if len(CQT) < 1:
+        CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    CQT[0:20, :] = np.min(CQT)
+    base_notes = base_note(filename)
+    base_notes = [x + 5 - np.min(base_notes) for x in base_notes]
+    type_index = get_onsets_index_by_filename_rhythm(filename)
+    codes = get_basetime(rhythm_codes[type_index])
+    for i in range(len(base_frames)-1):
+        start_frame = base_frames[i]
+        if codes[i+1].find("-") >= 0:
+            last = int(codes[i-1])
+            current = int(re.sub("\D", "", codes[i+1]))  # 筛选数字
+            end_frame = base_frames[i + 1] - (base_frames[i + 1] - base_frames[i])*(current/(current + last))
+            end_frame = int(end_frame)
+        else:
+            end_frame = base_frames[i+1]
+        note = base_notes[i]
+        #print("note,start_frame,end_frame is {},{},{}".format(note,start_frame,end_frame))
+        if note != -1:
+            CQT[note,start_frame:end_frame] = -20
+    CQT[base_notes[-1],base_frames[-1]:end] = -20
+    return CQT,base_notes
+
+def add_base_note_to_cqt_for_filename_by_base_notes(filename,base_frames,first_frame=[],CQT=[],base_notes=[]):
+    y, sr = librosa.load(filename)
+    start, end = get_start_and_end_for_note(y, sr)
+
+    if len(CQT) < 1:
+        CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    CQT[0:20, :] = np.min(CQT)
+    if len(base_notes) < 1:
+        base_notes = base_note(filename)
+    base_notes = [x + 5 - np.min(base_notes) for x in base_notes]
+    type_index = get_onsets_index_by_filename_rhythm(filename)
+    codes = get_basetime(rhythm_codes[type_index])
+    length = len(base_notes) if len(base_notes) < len(base_frames) else len(base_frames)
+    for i in range(length -1):
+        start_frame = base_frames[i]
+        end_frame = base_frames[i+1]
+        note = base_notes[i]
+        #print("note,start_frame,end_frame is {},{},{}".format(note,start_frame,end_frame))
+        if note != -1:
+            CQT[note,start_frame:end_frame] = -20
+    CQT[base_notes[-1],base_frames[-1]:end] = -20
+    return CQT,base_notes
+
 '''
 根据当前位置获取最小帧距
 '''
