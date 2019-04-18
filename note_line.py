@@ -4,6 +4,9 @@ import librosa.display
 import numpy as np
 from create_base import *
 import itertools
+from dtw import dtw
+from myDtw import *
+from create_labels_files import *
 # 1. Get the file path to the included audio example
 # Sonify detected beat events
 # 定义加载语音文件并去掉两端静音的函数
@@ -97,9 +100,22 @@ def get_note_with_cqt_rms(filename):
     # librosa.display.specshow(CQT)
     base_frames = onsets_base_frames_for_note(filename)
     print("base_frames is {}".format(base_frames))
+    min_d, best_y, _ = get_dtw_min(result,base_frames,65)
+    onsets_score = 40 - int(min_d)
+    print("onsets_score is {}".format(onsets_score))
     base_notes = base_note(filename)
     base_notes = [x - (base_notes[0] - longest_note[0]) for x in base_notes]
     print("base_notes is {}".format(base_notes))
+    euclidean_norm = lambda x, y: np.abs(x - y)
+    d, cost_matrix, acc_cost_matrix, path = dtw(longest_note, base_notes, dist=euclidean_norm)
+    notes_score = 60 - int( d * np.sum(acc_cost_matrix.shape))
+    if notes_score <= 0:
+        onsets_score = int(onsets_score/2)
+        notes_score = 0
+    print("notes_score is {}".format(notes_score))
+    total_score = onsets_score + notes_score
+    print("total_score is {}".format(total_score))
+
     CQT,base_notes = add_base_note_to_cqt_for_filename_by_base_notes(filename,result,result[0],CQT,longest_note)
     base_notes = [x + int(np.mean(longest_note) - np.mean(base_notes)) for x in base_notes]
     #print("base_notes is {}".format(base_notes))
@@ -130,7 +146,7 @@ def get_note_with_cqt_rms(filename):
     librosa.display.waveplot(y, sr=sr)
 
 
-    return plt
+    return plt,total_score,onsets_score,notes_score
 
 def get_note_line_by_block_for_frames(note_frame,cqt):
     w,h = cqt.shape
@@ -178,6 +194,14 @@ def find_the_longest_note_line(note_frame,next_frame,cqt):
     return best_note_line
 
 if __name__ == "__main__":
+
+    # 保存新文件名与原始文件的对应关系
+    files_list = []
+    files_list_a = []
+    files_list_b = []
+    files_list_c = []
+    files_list_d = []
+
     #y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律3.100分.wav'
@@ -186,11 +210,11 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律五（3）（63）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏一（4）（96）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音4(78).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3王（80）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4文(75).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律6.4(90).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音4(78).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3王（80）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
+
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律七（2）（90）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音4(78).wav'
 
 
 
@@ -199,16 +223,18 @@ if __name__ == "__main__":
 
     # plt.colorbar(format='%+2.0f dB')
     # plt.title('Constant-Q power spectrogram (note)')
-    plt = get_note_with_cqt_rms(filename)
+    plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms(filename)
     plt.show()
 
-    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/3.19MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     # dir_list = ['e:/test_image/m1/A/']
     dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
+    date = '3.06'
+    new_old_txt = './onsets/' + date + 'best_dtw.txt'
     # clear_dir(result_path)
     # 要测试的数量
     test_num = 100
@@ -216,14 +242,14 @@ if __name__ == "__main__":
     for dir in dir_list:
         file_list = os.listdir(dir)
         # shuffle(file_list)  # 将语音文件随机排列
-        # file_list = ['视唱1-01（95）.wav']
+        #file_list = ['旋4谭（95）.wav','旋1录音4(78).wav']
         for filename in file_list:
             # clear_dir(image_dir)
             # wavname = re.findall(pattern,filename)[0]
             print(dir + filename)
             # plt = draw_start_end_time(dir + filename)
             # plt = draw_baseline_and_note_on_cqt(dir + filename, False)
-            plt = get_note_with_cqt_rms(dir + filename)
+            plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms(dir + filename)
             # tmp = os.listdir(result_path)
 
             if filename.find("tune") > 0 or filename.find("add") > 0 or filename.find("shift") > 0:
@@ -238,12 +264,16 @@ if __name__ == "__main__":
 
             if int(score) >= 90:
                 grade = 'A'
+                files_list_a.append([filename + ' - ' + grade, total_score, onsets_score, notes_score])
             elif int(score) >= 75:
                 grade = 'B'
+                files_list_b.append([filename + ' - ' + grade, total_score, onsets_score, notes_score])
             elif int(score) >= 60:
                 grade = 'C'
+                files_list_c.append([filename + ' - ' + grade, total_score, onsets_score, notes_score])
             elif int(score) >= 1:
                 grade = 'D'
+                files_list_d.append([filename + ' - ' + grade, total_score, onsets_score, notes_score])
             else:
                 grade = 'E'
             # result_path = result_path + grade + "/"
@@ -251,3 +281,9 @@ if __name__ == "__main__":
             #grade = 'A'
             plt.savefig(result_path + grade + "/" + filename + '.jpg', bbox_inches='tight', pad_inches=0)
             plt.clf()
+
+    t1 = np.append(files_list_a, files_list_b).reshape(len(files_list_a) + len(files_list_b), 4)
+    t2 = np.append(files_list_c, files_list_d).reshape(len(files_list_c) + len(files_list_d), 4)
+    files_list = np.append(t1, t2).reshape(len(t1) + len(t2), 4)
+
+    write_txt(files_list, new_old_txt, mode='w')
