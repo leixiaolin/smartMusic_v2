@@ -78,6 +78,31 @@ def find_all_note_lines(filename):
         # print("x,note_line is {},{}".format(x,note_line))
         longest_note_line = find_the_longest_note_line(x, next_frame, CQT)
         longest_note.append(longest_note_line)
+
+    # 音高有偏离的情场（下偏离或上偏离）
+    # (np.median(longest_note) > 25 and np.min(longest_note) == 20)  下偏离
+    # (np.median(longest_note) < 23 and np.max(longest_note) > 30) 上偏离
+    if (np.median(longest_note) > 25 and (np.min(longest_note) == 20 or np.max(longest_note) - np.median(longest_note) > 8)) or (np.median(longest_note) < 23 and np.max(longest_note) > 30):
+        low_check = False
+        high_check = False
+        if np.median(longest_note) > 25 and (np.min(longest_note) == 20 or np.max(longest_note) - np.median(longest_note) > 8) :
+            low_check = True
+            high_check = False
+        if np.median(longest_note) < 23 and np.max(longest_note) > 30:
+            low_check = False
+            high_check = True
+
+        longest_note = []
+        for i in range(len(result)):
+            x = result[i]
+            if i < len(result) - 1:
+                next_frame = result[i + 1]
+            else:
+                next_frame = result[-1] + 20 if result[-1] + 20 < CQT.shape[1] else CQT.shape[1]
+            # note_line = get_note_line_by_block_for_frames(x, CQT)
+            # print("x,note_line is {},{}".format(x,note_line))
+            longest_note_line = find_the_longest_note_line(x, next_frame, CQT,low_check,high_check)
+            longest_note.append(longest_note_line)
     return result,longest_note
 
 def get_note_with_cqt_rms(filename):
@@ -112,6 +137,8 @@ def get_note_with_cqt_rms(filename):
     if notes_score <= 0:
         onsets_score = int(onsets_score/2)
         notes_score = 0
+    if notes_score >= 40 and onsets_score <=5:
+        onsets_score = int(40 * notes_score/60 )
     print("notes_score is {}".format(notes_score))
     total_score = onsets_score + notes_score
     print("total_score is {}".format(total_score))
@@ -165,7 +192,7 @@ def get_note_line_by_block_for_frames(note_frame,cqt):
             return note_line
     return note_line
 
-def find_the_longest_note_line(note_frame,next_frame,cqt):
+def find_the_longest_note_line(note_frame,next_frame,cqt,low_check=False,high_check=False):
     w,h = cqt.shape
     cqt_max = np.max(cqt)
     cqt_min = np.min(cqt)
@@ -191,6 +218,73 @@ def find_the_longest_note_line(note_frame,next_frame,cqt):
             if list(a).count(cqt_max) > 3:
                 best_note_line = i
                 break
+    if best_note_line == 20 and low_check:
+        best_note_line = 0
+        for i in range(25, w - 20):
+            a = sub_cqt[i]
+            if list(a).count(cqt_max) > (next_frame - note_frame) * 0.2:
+                if list(a).count(cqt_max) > (next_frame - note_frame) * 0.40:
+                    best_note_line = i
+                    break
+                n_max = max([len(list(v)) for k, v in itertools.groupby(a)])
+                b = dict([(k, len(list(v))) for k, v in itertools.groupby(a)])
+                c = [k for k, v in b.items() if v == n_max and k == cqt_max]
+                if len(c) > 0 and b.get(c[0]) > longest:
+                    best_note_line = i
+                    longest = b.get(c[0])
+
+        if best_note_line == 0:
+            for i in range(25, w - 20):
+                a = sub_cqt[i]
+                if list(a).count(cqt_max) > 3:
+                    best_note_line = i
+                    break
+
+    if best_note_line >= 30 and high_check:
+        best_note_line = 0
+        for i in range(20, 30):
+            a = sub_cqt[i]
+            if list(a).count(cqt_max) > (next_frame - note_frame) * 0.2:
+                if list(a).count(cqt_max) > (next_frame - note_frame) * 0.40:
+                    best_note_line = i
+                    break
+                n_max = max([len(list(v)) for k, v in itertools.groupby(a)])
+                b = dict([(k, len(list(v))) for k, v in itertools.groupby(a)])
+                c = [k for k, v in b.items() if v == n_max and k == cqt_max]
+                if len(c) > 0 and b.get(c[0]) > longest:
+                    best_note_line = i
+                    longest = b.get(c[0])
+
+        if best_note_line == 0:
+            for i in range(20, 30):
+                a = sub_cqt[i]
+                if list(a).count(cqt_max) > 3:
+                    best_note_line = i
+                    break
+    old_best_note_line = best_note_line
+    if best_note_line >= 35 and low_check:
+        best_note_line = 0
+        for i in range(20, 30):
+            a = sub_cqt[i]
+            if list(a).count(cqt_max) > (next_frame - note_frame) * 0.2:
+                if list(a).count(cqt_max) > (next_frame - note_frame) * 0.40:
+                    best_note_line = i
+                    break
+                n_max = max([len(list(v)) for k, v in itertools.groupby(a)])
+                b = dict([(k, len(list(v))) for k, v in itertools.groupby(a)])
+                c = [k for k, v in b.items() if v == n_max and k == cqt_max]
+                if len(c) > 0 and b.get(c[0]) > longest:
+                    best_note_line = i
+                    longest = b.get(c[0])
+
+        if best_note_line == 0:
+            for i in range(20, 30):
+                a = sub_cqt[i]
+                if list(a).count(cqt_max) > 3:
+                    best_note_line = i
+                    break
+        if best_note_line == 0:
+            best_note_line = old_best_note_line
     return best_note_line
 
 if __name__ == "__main__":
@@ -214,7 +308,8 @@ if __name__ == "__main__":
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
 
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律七（2）（90）.wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音4(78).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/4.18MP3/旋律/旋律3.1.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2录音1(90).wav'
 
 
 
@@ -226,10 +321,10 @@ if __name__ == "__main__":
     plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms(filename)
     plt.show()
 
-    dir_list = ['F:/项目/花城音乐项目/样式数据/3.19MP3/旋律/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     # dir_list = ['e:/test_image/m1/A/']
-    dir_list = []
+    #dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
@@ -278,7 +373,7 @@ if __name__ == "__main__":
                 grade = 'E'
             # result_path = result_path + grade + "/"
             # plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
-            #grade = 'A'
+            grade = 'A'
             plt.savefig(result_path + grade + "/" + filename + '.jpg', bbox_inches='tight', pad_inches=0)
             plt.clf()
 
