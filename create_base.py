@@ -258,7 +258,7 @@ def add_base_note_to_cqt_for_filename_by_base_notes(filename,base_frames,first_f
     CQT[0:20, :] = np.min(CQT)
     if len(base_notes) < 1:
         base_notes = base_note(filename)
-    base_notes = [x + 5 - np.min(base_notes) for x in base_notes]
+    base_notes = [x + 2 - np.min(base_notes) for x in base_notes]
     type_index = get_onsets_index_by_filename_rhythm(filename)
     codes = get_basetime(rhythm_codes[type_index])
     length = len(base_notes) if len(base_notes) < len(base_frames) else len(base_frames)
