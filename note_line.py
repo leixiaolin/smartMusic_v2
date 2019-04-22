@@ -38,8 +38,7 @@ def find_all_note_lines(filename):
         last_j = 100
         for j in range(w - 1, 15, -1):
             if CQT[j, i] == np.max(CQT) and CQT[j, i - 1] == np.min(CQT):
-                if np.min(CQT[j, i:i + 5]) == np.max(CQT) and np.max(CQT[j, i - 4:i - 1]) == np.min(
-                        CQT) and i - last > 5:
+                if np.min(CQT[j, i:i + 5]) == np.max(CQT) and np.max(CQT[j, i - 4:i - 1]) == np.min(CQT) and i - last > 5:
                     if np.min(CQT[j, i:i + 10]) == np.max(CQT) and np.mean(CQT[j, i - 5:i - 1]) == np.min(CQT):
                         # print("3... is {},{},{}".format(CQT[j, i - 4:i - 3],CQT[j, i - 3:i-2],i))
                         is_ok += 2
@@ -66,7 +65,7 @@ def find_all_note_lines(filename):
                 result.append(i)
                 last = i
 
-    # print("result is {}".format(result))
+    print("1. result is {}".format(result))
     longest_note = []
     for i in range(len(result)):
         x = result[i]
@@ -103,7 +102,32 @@ def find_all_note_lines(filename):
             # print("x,note_line is {},{}".format(x,note_line))
             longest_note_line = find_the_longest_note_line(x, next_frame, CQT,low_check,high_check)
             longest_note.append(longest_note_line)
+    longest_note = check_by_median(longest_note)
+    print("2. result is {}".format(result))
     return result,longest_note
+
+def check_by_median(longest_note):
+    result = []
+    note_median = np.median(longest_note)
+    for x in longest_note:
+        if x - note_median >= 12:
+            result.append(x -12)
+        elif note_median - x >= 12:
+            result.append(x + 12)
+        else:
+            result.append(x)
+    return result
+
+def augmention_by_shift(filename,shift):
+    y, sr = librosa.load(filename)
+    filepath, fullflname = os.path.split(filename)
+
+    # 通过移动音调变声，14是上移14个半步，如果是-14，则是下移14个半步
+    b = librosa.effects.pitch_shift(y, sr, n_steps=shift)
+    new_file = fullflname.split(".")[0] + '-shift-' + str(shift)
+    save_path_file = filepath + "/" + new_file + '.wav'
+    librosa.output.write_wav(save_path_file, b, sr)
+    return save_path_file
 
 def get_note_with_cqt_rms(filename):
     y, sr = librosa.load(filename)
@@ -115,34 +139,36 @@ def get_note_with_cqt_rms(filename):
     result, longest_note = find_all_note_lines(filename)
     print("result is {}".format(result))
     print("longest_note is {}".format(longest_note))
-    onstm = librosa.frames_to_time(result, sr=sr)
         #print("x,longest_note_line is {},{}".format(x, longest_note_line))
     #print("longest_note is {}".format(longest_note))
     # CQT[:,onsets_frames[1]:h] = -100
-    plt.subplot(3, 1, 1)
     total_frames_number = get_total_frames_number(filename)
     #print("total_frames_number is {}".format(total_frames_number))
     # librosa.display.specshow(CQT)
     base_frames = onsets_base_frames_for_note(filename)
     print("base_frames is {}".format(base_frames))
-    min_d, best_y, _ = get_dtw_min(result,base_frames,65)
-    onsets_score = 40 - int(min_d)
-    print("onsets_score is {}".format(onsets_score))
-    base_notes = base_note(filename)
-    base_notes = [x - (base_notes[0] - longest_note[0]) for x in base_notes]
-    print("base_notes is {}".format(base_notes))
-    euclidean_norm = lambda x, y: np.abs(x - y)
-    d, cost_matrix, acc_cost_matrix, path = dtw(longest_note, base_notes, dist=euclidean_norm)
-    notes_score = 60 - int( d * np.sum(acc_cost_matrix.shape))
-    if notes_score <= 0:
-        onsets_score = int(onsets_score/2)
-        notes_score = 0
-    if notes_score >= 40 and onsets_score <=5:
-        onsets_score = int(40 * notes_score/60 )
-    print("notes_score is {}".format(notes_score))
-    total_score = onsets_score + notes_score
-    print("total_score is {}".format(total_score))
+    total_score, onsets_score, notes_score = get_score(filename,result,longest_note,base_frames)
+    old_filename = filename
+    old_result = result
+    old_longest_note = longest_note
+    # if notes_score < 30:
+    #     old_total_scre = total_score
+    #     old_onsets_score = onsets_score
+    #     old_notes_score = notes_score
+    #     filename = augmention_by_shift(filename, 6)
+    #     result, longest_note = find_all_note_lines(filename)
+    #     total_score, onsets_score, notes_score = get_score(filename, result, longest_note, base_frames)
+    #     os.remove(filename)
+    #     filename = old_filename
+    #     if total_score < old_total_scre:
+    #         result = old_result
+    #         longest_note = old_longest_note
+    #         total_score = old_total_scre
+    #         onsets_score = old_onsets_score
+    #         notes_score = old_notes_score
 
+    onstm = librosa.frames_to_time(result, sr=sr)
+    plt.subplot(3, 1, 1)
     CQT,base_notes = add_base_note_to_cqt_for_filename_by_base_notes(filename,result,result[0],CQT,longest_note)
     base_notes = [x + int(np.mean(longest_note) - np.mean(base_notes)) for x in base_notes]
     #print("base_notes is {}".format(base_notes))
@@ -175,6 +201,26 @@ def get_note_with_cqt_rms(filename):
 
     return plt,total_score,onsets_score,notes_score
 
+def get_score(filename,result,longest_note,base_frames):
+    min_d, best_y, _ = get_dtw_min(result, base_frames, 65)
+    onsets_score = 40 - int(min_d)
+    print("onsets_score is {}".format(onsets_score))
+    base_notes = base_note(filename)
+    base_notes = [x - (base_notes[0] - longest_note[0]) for x in base_notes]
+    print("base_notes is {}".format(base_notes))
+    euclidean_norm = lambda x, y: np.abs(x - y)
+    d, cost_matrix, acc_cost_matrix, path = dtw(longest_note, base_notes, dist=euclidean_norm)
+    notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
+    if notes_score <= 0:
+        onsets_score = int(onsets_score / 2)
+        notes_score = 0
+    if notes_score >= 40 and onsets_score <= 5:
+        onsets_score = int(40 * notes_score / 60)
+    print("notes_score is {}".format(notes_score))
+    total_score = onsets_score + notes_score
+    print("total_score is {}".format(total_score))
+    return total_score,onsets_score,notes_score
+
 def get_note_line_by_block_for_frames(note_frame,cqt):
     w,h = cqt.shape
     cqt_max = np.max(cqt)
@@ -199,7 +245,7 @@ def find_the_longest_note_line(note_frame,next_frame,cqt,low_check=False,high_ch
     sub_cqt = cqt[:,note_frame:next_frame]
     longest = 0
     best_note_line = 0
-    for i in range(20,w -20):
+    for i in range(15,w -20):
         a = sub_cqt[i]
         if list(a).count(cqt_max) > (next_frame - note_frame)*0.2:
             if list(a).count(cqt_max) > (next_frame - note_frame)*0.40:
@@ -213,7 +259,7 @@ def find_the_longest_note_line(note_frame,next_frame,cqt,low_check=False,high_ch
                 longest = b.get(c[0])
 
     if best_note_line == 0:
-        for i in range(20, w - 20):
+        for i in range(15, w - 20):
             a = sub_cqt[i]
             if list(a).count(cqt_max) > 3:
                 best_note_line = i
@@ -310,6 +356,11 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律七（2）（90）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/4.18MP3/旋律/旋律3.1.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2录音1(90).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋5熙(90).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1_40422（95）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律七（2）（90）-shift-6.wav'
+
 
 
 
@@ -319,6 +370,7 @@ if __name__ == "__main__":
     # plt.colorbar(format='%+2.0f dB')
     # plt.title('Constant-Q power spectrogram (note)')
     plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms(filename)
+
     plt.show()
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
@@ -337,7 +389,7 @@ if __name__ == "__main__":
     for dir in dir_list:
         file_list = os.listdir(dir)
         # shuffle(file_list)  # 将语音文件随机排列
-        #file_list = ['旋4谭（95）.wav','旋1录音4(78).wav']
+        #file_list = ['旋4.1(70).wav']
         for filename in file_list:
             # clear_dir(image_dir)
             # wavname = re.findall(pattern,filename)[0]
@@ -345,6 +397,7 @@ if __name__ == "__main__":
             # plt = draw_start_end_time(dir + filename)
             # plt = draw_baseline_and_note_on_cqt(dir + filename, False)
             plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms(dir + filename)
+
             # tmp = os.listdir(result_path)
 
             if filename.find("tune") > 0 or filename.find("add") > 0 or filename.find("shift") > 0:
