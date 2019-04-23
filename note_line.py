@@ -151,21 +151,21 @@ def get_note_with_cqt_rms(filename):
     old_filename = filename
     old_result = result
     old_longest_note = longest_note
-    # if notes_score < 30:
-    #     old_total_scre = total_score
-    #     old_onsets_score = onsets_score
-    #     old_notes_score = notes_score
-    #     filename = augmention_by_shift(filename, 6)
-    #     result, longest_note = find_all_note_lines(filename)
-    #     total_score, onsets_score, notes_score = get_score(filename, result, longest_note, base_frames)
-    #     os.remove(filename)
-    #     filename = old_filename
-    #     if total_score < old_total_scre:
-    #         result = old_result
-    #         longest_note = old_longest_note
-    #         total_score = old_total_scre
-    #         onsets_score = old_onsets_score
-    #         notes_score = old_notes_score
+    if notes_score < 40:
+        old_total_scre = total_score
+        old_onsets_score = onsets_score
+        old_notes_score = notes_score
+        filename = augmention_by_shift(filename, 6)
+        result, longest_note = find_all_note_lines(filename)
+        total_score, onsets_score, notes_score = get_score(filename, result, longest_note, base_frames)
+        os.remove(filename)
+        filename = old_filename
+        if total_score < old_total_scre:
+            result = old_result
+            longest_note = old_longest_note
+            total_score = old_total_scre
+            onsets_score = old_onsets_score
+            notes_score = old_notes_score
 
     onstm = librosa.frames_to_time(result, sr=sr)
     plt.subplot(3, 1, 1)
@@ -202,15 +202,24 @@ def get_note_with_cqt_rms(filename):
     return plt,total_score,onsets_score,notes_score
 
 def get_score(filename,result,longest_note,base_frames):
+    off = int(np.mean(base_frames) - np.mean(result))
+    # off = int((base_notes[0] - longest_note[0]))
+    base_frames = [x - off for x in base_frames]
     min_d, best_y, _ = get_dtw_min(result, base_frames, 65)
     onsets_score = 40 - int(min_d)
+    if len(result)<len(base_frames)*0.75:
+        onsets_score = onsets_score - int(40 * (len(base_frames) - len(result))/len(base_frames))
     print("onsets_score is {}".format(onsets_score))
     base_notes = base_note(filename)
-    base_notes = [x - (base_notes[0] - longest_note[0]) for x in base_notes]
+    off = int(np.mean(base_notes) - np.mean(longest_note))
+    #off = int((base_notes[0] - longest_note[0]))
+    base_notes = [x - off for x in base_notes]
     print("base_notes is {}".format(base_notes))
     euclidean_norm = lambda x, y: np.abs(x - y)
     d, cost_matrix, acc_cost_matrix, path = dtw(longest_note, base_notes, dist=euclidean_norm)
     notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
+    if len(longest_note)<len(base_notes)*0.75 and notes_score < 55:
+        notes_score = notes_score - int(60 * (len(base_notes) - len(longest_note))/len(base_notes))
     if notes_score <= 0:
         onsets_score = int(onsets_score / 2)
         notes_score = 0
@@ -245,7 +254,7 @@ def find_the_longest_note_line(note_frame,next_frame,cqt,low_check=False,high_ch
     sub_cqt = cqt[:,note_frame:next_frame]
     longest = 0
     best_note_line = 0
-    for i in range(15,w -20):
+    for i in range(20,w -20):
         a = sub_cqt[i]
         if list(a).count(cqt_max) > (next_frame - note_frame)*0.2:
             if list(a).count(cqt_max) > (next_frame - note_frame)*0.40:
@@ -259,7 +268,7 @@ def find_the_longest_note_line(note_frame,next_frame,cqt,low_check=False,high_ch
                 longest = b.get(c[0])
 
     if best_note_line == 0:
-        for i in range(15, w - 20):
+        for i in range(20, w - 20):
             a = sub_cqt[i]
             if list(a).count(cqt_max) > 3:
                 best_note_line = i
@@ -357,10 +366,12 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/4.18MP3/旋律/旋律3.1.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2录音1(90).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋5熙(90).wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1_40422（95）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律七（2）（90）-shift-6.wav'
-
+    filename = 'F:/项目/花城音乐项目/样式数据/4.18MP3/旋律/旋律1.1.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10熙(98).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4卉(35).wav'
 
 
 
@@ -426,8 +437,8 @@ if __name__ == "__main__":
                 grade = 'E'
             # result_path = result_path + grade + "/"
             # plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
-            grade = 'A'
-            plt.savefig(result_path + grade + "/" + filename + '.jpg', bbox_inches='tight', pad_inches=0)
+            #grade = 'A'
+            plt.savefig(result_path + grade + "/" + filename + "-" + str(total_score) + '.jpg', bbox_inches='tight', pad_inches=0)
             plt.clf()
 
     t1 = np.append(files_list_a, files_list_b).reshape(len(files_list_a) + len(files_list_b), 4)
