@@ -66,6 +66,7 @@ def find_all_note_lines(filename):
                 last = i
 
     print("1. result is {}".format(result))
+    result = find_loss_by_rms_mean(result, rms,CQT)
     longest_note = []
     for i in range(len(result)):
         x = result[i]
@@ -129,6 +130,73 @@ def augmention_by_shift(filename,shift):
     librosa.output.write_wav(save_path_file, b, sr)
     return save_path_file
 
+'''
+去掉位于音高线中间的节拍
+'''
+def check_false_by_rms_mean(result,rms,longest_note):
+    select_result = []
+    select_longest_note = []
+    select_result.append(result[0])
+    select_longest_note.append(longest_note[0])
+    for i in range(1,len(result)):
+        start = result[i] - 1
+        end = result[i] + 2
+        sub_rms = rms[start:end]
+        #print("i,std is {},{}".format(i,np.std(sub_rms)))
+        if i < len(result)-1:
+            if longest_note[i] != longest_note[i+1] or (longest_note[i] == longest_note[i+1] and np.std(sub_rms) > 0.15):
+                select_result.append(result[i])
+                select_longest_note.append(longest_note[i])
+        else:
+            if longest_note[i-1] != longest_note[i] or (longest_note[i-1] == longest_note[i] and np.std(sub_rms) > 0.15):
+                select_result.append(result[i])
+                select_longest_note.append(longest_note[i])
+    return select_result,select_longest_note
+
+'''
+找漏的
+'''
+def find_loss_by_rms_mean(result,rms,CQT):
+    select_result = result.copy()
+    rms_on_onset_frames_cqt = [rms[x] for x in result]
+    mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
+    print("mean_rms_on_frames is {}".format(mean_rms_on_frames))
+    for i in range(5,len(rms)-5):
+        off = [np.abs(x -i) for x in select_result]
+        min_off = np.min(off)
+        start = i - 1
+        end = i + 2
+        sub_rms = rms[start:end]
+        # 条件一：振幅有增加
+        sub_rms = [rms[start + 1] - rms[start],rms[start + 2] - rms[start],rms[start + 3] - rms[start]]
+        cond1 = np.max(sub_rms) > 0.36
+
+        # 条件二：有音高线
+        w,h = CQT.shape
+        cond2 = False
+        if cond1 and min_off > 10:
+            for j in range(w - 1, 15, -1):
+               if np.min(CQT[j, i:i + 5]) == np.max(CQT) :
+                    cond2 = True
+                    break
+
+        if rms[i+3] > rms[i+1] and cond1 and cond2 and min_off>10:
+            #print("np.std(sub_rms) is {}".format(np.std(sub_rms)))
+            print("np.max(sub_rms) is {}".format(np.max(sub_rms)))
+            if rms[i-3]< rms[i]:
+                select_result.append(i-3)
+            elif rms[i-2]< rms[i]:
+                select_result.append(i - 2)
+            elif rms[i-1]< rms[i]:
+                select_result.append(i - 1)
+            else:
+                select_result.append(i)
+    select_result.sort()
+    rms_on_onset_frames_cqt = [rms[x] for x in select_result]
+    mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
+    print("mean_rms_on_frames is {}".format(mean_rms_on_frames))
+    return select_result
+
 def get_note_with_cqt_rms(filename):
     y, sr = librosa.load(filename)
     rms = librosa.feature.rmse(y=y)[0]
@@ -137,6 +205,7 @@ def get_note_with_cqt_rms(filename):
     print("time is {}".format(time))
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     result, longest_note = find_all_note_lines(filename)
+    #result, longest_note = check_false_by_rms_mean(result, rms, longest_note)
     print("result is {}".format(result))
     print("longest_note is {}".format(longest_note))
         #print("x,longest_note_line is {},{}".format(x, longest_note_line))
@@ -151,12 +220,13 @@ def get_note_with_cqt_rms(filename):
     old_filename = filename
     old_result = result
     old_longest_note = longest_note
-    if notes_score < 40:
+    if notes_score < 40 and total_score > 60:
         old_total_scre = total_score
         old_onsets_score = onsets_score
         old_notes_score = notes_score
         filename = augmention_by_shift(filename, 6)
         result, longest_note = find_all_note_lines(filename)
+        #result,longest_note = check_false_by_rms_mean(result, rms, longest_note)
         total_score, onsets_score, notes_score = get_score(filename, result, longest_note, base_frames)
         os.remove(filename)
         filename = old_filename
@@ -167,6 +237,11 @@ def get_note_with_cqt_rms(filename):
             onsets_score = old_onsets_score
             notes_score = old_notes_score
 
+    print("std is {},{}".format(np.std(result[0:5]),np.std(base_frames[0:5])))
+    # if np.abs(np.std(result[0:5]) - np.std(base_frames[0:5]))/np.std(result[0:5]) > 0.3:
+    #     total_score, onsets_score, notes_score = 0,0,0
+    #     print("total_score, onsets_score, notes_score is {},{},{}".format(total_score, onsets_score, notes_score))
+        #result = find_loss_by_rms_mean(result, rms)
     onstm = librosa.frames_to_time(result, sr=sr)
     plt.subplot(3, 1, 1)
     CQT,base_notes = add_base_note_to_cqt_for_filename_by_base_notes(filename,result,result[0],CQT,longest_note)
@@ -216,8 +291,18 @@ def get_score(filename,result,longest_note,base_frames):
     base_notes = [x - off for x in base_notes]
     print("base_notes is {}".format(base_notes))
     euclidean_norm = lambda x, y: np.abs(x - y)
-    d, cost_matrix, acc_cost_matrix, path = dtw(longest_note, base_notes, dist=euclidean_norm)
-    notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
+    if(len(longest_note) != len(base_notes)):
+        d, cost_matrix, acc_cost_matrix, path = dtw(longest_note, base_notes, dist=euclidean_norm)
+        notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
+    else:
+        each_note_score = 60 / len(longest_note)
+        notes_score = 0
+        for i in range(len(longest_note)):
+            if np.abs(longest_note[i] - base_notes[i]) <= 1:
+                notes_score += each_note_score
+            elif np.abs(longest_note[i] - base_notes[i]) <= 2:
+                notes_score += each_note_score * 0.5
+        notes_score = int(notes_score)
     if len(longest_note)<len(base_notes)*0.75 and notes_score < 55:
         notes_score = notes_score - int(60 * (len(base_notes) - len(longest_note))/len(base_notes))
     if notes_score <= 0:
@@ -225,10 +310,79 @@ def get_score(filename,result,longest_note,base_frames):
         notes_score = 0
     if notes_score >= 40 and onsets_score <= 5:
         onsets_score = int(40 * notes_score / 60)
+    trend_score = check_notes_trend(longest_note,base_notes)
+    if trend_score/len(base_notes)<0.35:
+        print("trend_score is {}".format(trend_score))
+        total_score, onsets_score, notes_score = 0,0,0
     print("notes_score is {}".format(notes_score))
     total_score = onsets_score + notes_score
     print("total_score is {}".format(total_score))
     return total_score,onsets_score,notes_score
+
+def check_notes_trend(longest_note,base_notes):
+    diff_longest_note = []
+    diff_base_notes = []
+    for i in range(1,len(longest_note)):
+        if longest_note[i] > longest_note[i-1]:
+            tmp = 1
+        if longest_note[i] == longest_note[i-1]:
+            tmp = 0
+        if longest_note[i] < longest_note[i-1]:
+            tmp = 2
+        diff_longest_note.append(str(tmp))
+        diff_longest_note_str = ','.join(diff_longest_note)
+    for i in range(1,len(base_notes)):
+        if base_notes[i] > base_notes[i-1]:
+            tmp = 1
+        if base_notes[i] == base_notes[i-1]:
+            tmp = 0
+        if base_notes[i] < base_notes[i-1]:
+            tmp = 2
+        diff_base_notes.append(str(tmp))
+        diff_base_notes_str = ','.join(diff_base_notes)
+
+    list_intersect,number = getNumofCommonSubstr(diff_base_notes_str, diff_longest_note_str)
+    print("diff_base_notes, diff_longest_note,intersect is {}==={}==={}".format(diff_longest_note_str, diff_base_notes_str,list_intersect))
+    score = len(list_intersect)
+
+    return score
+
+"""
+:type nums1: List[int]
+:type nums2: List[int]
+:rtype: List[int]
+"""
+def intersect(nums1, nums2):
+  import collections
+  a, b = map(collections.Counter, (nums1, nums2))
+  return list((a & b).elements())
+
+
+'''
+求两个字符串的最长公共子串
+思想：建立一个二维数组，保存连续位相同与否的状态
+'''
+
+
+def getNumofCommonSubstr(str1, str2):
+    lstr1 = len(str1)
+    lstr2 = len(str2)
+    record = [[0 for i in range(lstr2 + 1)] for j in range(lstr1 + 1)]  # 多一位
+    maxNum = 0  # 最长匹配长度
+    p = 0  # 匹配的起始位
+
+    for i in range(lstr1):
+        for j in range(lstr2):
+            if str1[i] == str2[j]:
+                # 相同则累加
+                record[i + 1][j + 1] = record[i][j] + 1
+                if record[i + 1][j + 1] > maxNum:
+                    # 获取最大匹配长度
+                    maxNum = record[i + 1][j + 1]
+                    # 记录最大匹配长度的终止位置
+                    p = i + 1
+    return str1[p - maxNum:p], maxNum
+
 
 def get_note_line_by_block_for_frames(note_frame,cqt):
     w,h = cqt.shape
@@ -369,9 +523,10 @@ if __name__ == "__main__":
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1_40422（95）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律七（2）（90）-shift-6.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/4.18MP3/旋律/旋律1.1.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10熙(98).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4卉(35).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1罗（96）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10熙(98).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2.4(50).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2熙(0).wav'
 
 
 
@@ -387,7 +542,7 @@ if __name__ == "__main__":
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     # dir_list = ['e:/test_image/m1/A/']
-    #dir_list = []
+    dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
@@ -397,10 +552,15 @@ if __name__ == "__main__":
     # 要测试的数量
     test_num = 100
     score = 0
+    file_total = 0
+    total_10 = 0
+    total_15 = 0
+    total_20 = 0
     for dir in dir_list:
         file_list = os.listdir(dir)
         # shuffle(file_list)  # 将语音文件随机排列
         #file_list = ['旋4.1(70).wav']
+        file_total = len(file_list)
         for filename in file_list:
             # clear_dir(image_dir)
             # wavname = re.findall(pattern,filename)[0]
@@ -440,9 +600,18 @@ if __name__ == "__main__":
             #grade = 'A'
             plt.savefig(result_path + grade + "/" + filename + "-" + str(total_score) + '.jpg', bbox_inches='tight', pad_inches=0)
             plt.clf()
-
+            if np.abs(total_score - int(score)) <= 10:
+                total_10 += 1
+            if np.abs(total_score - int(score)) <= 15:
+                total_15 += 1
+            if np.abs(total_score - int(score)) <= 20:
+                total_20 += 1
     t1 = np.append(files_list_a, files_list_b).reshape(len(files_list_a) + len(files_list_b), 4)
     t2 = np.append(files_list_c, files_list_d).reshape(len(files_list_c) + len(files_list_d), 4)
     files_list = np.append(t1, t2).reshape(len(t1) + len(t2), 4)
+    #stat_total = [str(file_total) + "-" + str(total_10) + "-" + str(total_15) + "-" + str(total_20)]
+    #files_list = np.append(files_list, stat_total).reshape(len(files_list) + 1, 5)
 
+    print("file_total,yes_total is {},{},{},{},{}".format(file_total, total_10, total_15, total_20,
+                                                          total_10 / file_total))
     write_txt(files_list, new_old_txt, mode='w')
