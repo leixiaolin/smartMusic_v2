@@ -310,12 +310,12 @@ def get_score(filename,result,longest_note,base_frames):
         notes_score = 0
     if notes_score >= 40 and onsets_score <= 5:
         onsets_score = int(40 * notes_score / 60)
-    trend_score = check_notes_trend(longest_note,base_notes)
-    if trend_score/len(base_notes)<0.35:
-        print("trend_score is {}".format(trend_score))
-        total_score, onsets_score, notes_score = 0,0,0
-    print("notes_score is {}".format(notes_score))
     total_score = onsets_score + notes_score
+    trend_score = check_notes_trend(longest_note,base_notes)
+    print("trend_score is {}".format(trend_score/len(base_notes)))
+    if trend_score/len(base_notes)<0.25 and np.max([onsets_score,notes_score]) < 30 :
+        total_score = 0
+    print("notes_score is {}".format(notes_score))
     print("total_score is {}".format(total_score))
     return total_score,onsets_score,notes_score
 
@@ -330,7 +330,7 @@ def check_notes_trend(longest_note,base_notes):
         if longest_note[i] < longest_note[i-1]:
             tmp = 2
         diff_longest_note.append(str(tmp))
-        diff_longest_note_str = ','.join(diff_longest_note)
+        diff_longest_note_str = ''.join(diff_longest_note)
     for i in range(1,len(base_notes)):
         if base_notes[i] > base_notes[i-1]:
             tmp = 1
@@ -339,11 +339,21 @@ def check_notes_trend(longest_note,base_notes):
         if base_notes[i] < base_notes[i-1]:
             tmp = 2
         diff_base_notes.append(str(tmp))
-        diff_base_notes_str = ','.join(diff_base_notes)
+        diff_base_notes_str = ''.join(diff_base_notes)
 
     list_intersect,number = getNumofCommonSubstr(diff_base_notes_str, diff_longest_note_str)
     print("diff_base_notes, diff_longest_note,intersect is {}==={}==={}".format(diff_longest_note_str, diff_base_notes_str,list_intersect))
-    score = len(list_intersect)
+    print("find intersect index is {}".format(diff_longest_note_str.find(list_intersect)))
+    start = diff_longest_note_str.find(list_intersect)
+    end = start + len(list_intersect)
+    intersect_longest_note = longest_note[start:end+1]
+    print("sub longest_note is {}".format(intersect_longest_note))
+    start = diff_base_notes_str.find(list_intersect)
+    end = start + len(list_intersect)
+    intersect_base_notes = base_notes[start:end+1]
+    print("sub base_notes is {}".format(intersect_base_notes))
+    intersect_score = [1 if np.abs(intersect_longest_note[i] - intersect_base_notes[i])<1 else 0 for i in range(len(intersect_base_notes))]
+    score = np.sum(intersect_score)
 
     return score
 
@@ -525,8 +535,8 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/4.18MP3/旋律/旋律1.1.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1罗（96）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10熙(98).wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2.4(50).wav'
-    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2熙(0).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4.4(0).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2熙(0).wav'
 
 
 
@@ -542,7 +552,7 @@ if __name__ == "__main__":
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     # dir_list = ['e:/test_image/m1/A/']
-    dir_list = []
+    #dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
