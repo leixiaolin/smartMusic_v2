@@ -107,6 +107,21 @@ def find_all_note_lines(filename):
     print("2. result is {}".format(result))
     return result,longest_note
 
+def find_all_note_lines_v2(filename):
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    #time = librosa.get_duration(filename=filename)
+    #print("time is {}".format(time))
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    print("w.h is {},{}".format(w, h))
+    CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
+    onsets_frames, end_position = get_note_line_start(CQT)
+    all_note_lines = get_note_lines(CQT, onsets_frames)
+    onsets_frames, all_note_lines = del_false_note_lines(onsets_frames, all_note_lines, rms)
+    return onsets_frames,all_note_lines
+
 def check_by_median(longest_note):
     result = []
     note_median = np.median(longest_note)
@@ -204,7 +219,7 @@ def get_note_with_cqt_rms(filename):
     time = librosa.get_duration(filename=filename)
     print("time is {}".format(time))
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
-    result, longest_note = find_all_note_lines(filename)
+    result, longest_note = find_all_note_lines_v2(filename)
     #result, longest_note = check_false_by_rms_mean(result, rms, longest_note)
     print("result is {}".format(result))
     print("longest_note is {}".format(longest_note))
@@ -506,6 +521,106 @@ def find_the_longest_note_line(note_frame,next_frame,cqt,low_check=False,high_ch
             best_note_line = old_best_note_line
     return best_note_line
 
+def get_note_line_start(cqt):
+    result = []
+    end_result = []
+    w,h = cqt.shape
+    cqt_max = np.max(cqt)
+    cqt_min = np.min(cqt)
+    end_position = 0
+    for i in range(5,h-15):
+        # 该列存在亮点
+        if np.max(cqt[:,i]) == cqt_max and i > end_position:
+            sub_cqt = cqt[:,i:]
+            # 从上往下逐行判断
+            for j in range(w-20,10,-1):
+                row_cqt = sub_cqt[j]
+                #如果该行存在连续8个亮点
+                if np.min(row_cqt[0:8]) == cqt_max:
+                    #判断上下区域是否有音高线
+                    hight_cqt = cqt[j+10:j+20,i:i+10]
+                    low_cqt = np.zeros(hight_cqt.shape)
+                    if j - 20 > 0:
+                        low_cqt = cqt[j-20:j-10,i:i+10]
+                    check_nioce_cqt_start = j - 6 if j - 6 > 0 else 0
+                    check_nioce_cqt_end = j+6 if j + 6 < w else w
+                    check_nioce_cqt = cqt[check_nioce_cqt_start:check_nioce_cqt_end,i:i+10]
+                    check_nioce_low_result = False
+                    check_nioce_high_result = False
+                    for n in range(0,int((check_nioce_cqt_end-check_nioce_cqt_start-1)/2)):
+                        if np.max(check_nioce_cqt[n]) == cqt_min:
+                            check_nioce_low_result = True
+                            break
+                    for n in range(check_nioce_cqt_end - check_nioce_cqt_start-1,int((check_nioce_cqt_end - check_nioce_cqt_start - 1) / 2),-1):
+                        if np.max(check_nioce_cqt[n]) == cqt_min:
+                            check_nioce_high_result = True
+                            break
+
+                    # 如果上下区域存在音高线，则说明不是噪声，则将起点作为节拍起点，同时找出连续区域的结束点
+                    if check_nioce_low_result and check_nioce_high_result and (np.max(hight_cqt) == cqt_max or np.max(low_cqt) == cqt_max):
+                        if len(result) == 0:
+                            result.append(i)
+                            print("i,j is {}==={}".format(i,j))
+                        else:
+                            offset = [np.abs(x -i) for x in result]
+                            if np.min(offset) > 10:
+                                result.append(i)
+                                print("i,j is {}==={}".format(i, j))
+                        longest_end_position = 0
+                        #找出该连通块最大的长度
+                        for k in range(j-10,j):
+                            k_cqt = sub_cqt[k]
+                            end_position = i + k_cqt.tolist().index(cqt_min)
+                            if end_position > longest_end_position:
+                                longest_end_position = end_position
+                        end_result.append(longest_end_position)
+                        check_nioce_high_result = False
+                        check_nioce_low_result = False
+                        break
+    return result,end_result
+
+def get_note_lines(cqt,result):
+    note_lines = []
+    w,h = cqt.shape
+    cqt_max = np.max(cqt)
+    cqt_min = np.min(cqt)
+    for i in range(len(result)):
+        x = result[i]
+        sub_cqt = cqt[:,x:x+15]
+        # 从下往上逐行判断
+        for j in range(10,w-10):
+            row_cqt = sub_cqt[j]
+            #如果存在连续的亮点，长度大于8
+            max_acount = np.sum(row_cqt == cqt_max)
+            min_acount = np.sum(row_cqt == cqt_min)
+            if max_acount > min_acount and np.sum(sub_cqt[j-1] == cqt_min) > min_acount:
+                note_lines.append(j)
+                print("x,j is {},{}".format(x,j))
+                break
+    return note_lines
+def del_false_note_lines(onset_frames,all_note_lines,rms):
+    select_note_lines = []
+    select_note_lines.append(all_note_lines[0])
+    select_onset_frames = []
+    select_onset_frames.append(onset_frames[0])
+    print("max rms is {}".format(np.max(rms)))
+    for i in range(1,len(onset_frames)):
+        current_onset = onset_frames[i]
+        last_onset = onset_frames[i-1]
+        current_note = all_note_lines[i]
+        last_note = all_note_lines[i-1]
+        # 如果当前音高线等于前一个音高线
+        if current_note == last_note:
+            sub_rms = rms[i-1:i+2]
+            print("np.abs(rms[i+1] - rms[i-1]) is {},{},{}".format(rms[current_onset+1] , rms[current_onset-1],np.abs(rms[current_onset+1] - rms[current_onset-1])))
+            if np.abs(rms[current_onset+1] - rms[current_onset-1]) > 0.2:
+                select_note_lines.append(all_note_lines[i])
+                select_onset_frames.append(onset_frames[i])
+        else:
+            select_note_lines.append(all_note_lines[i])
+            select_onset_frames.append(onset_frames[i])
+    return select_onset_frames,select_note_lines
+
 if __name__ == "__main__":
 
     # 保存新文件名与原始文件的对应关系
@@ -529,7 +644,6 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律七（2）（90）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/4.18MP3/旋律/旋律3.1.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2录音1(90).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1_40422（95）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律七（2）（90）-shift-6.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/4.18MP3/旋律/旋律1.1.wav'
@@ -537,7 +651,8 @@ if __name__ == "__main__":
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10熙(98).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4.4(0).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2熙(0).wav'
-
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
 
 
 
@@ -552,7 +667,7 @@ if __name__ == "__main__":
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     # dir_list = ['e:/test_image/m1/A/']
-    #dir_list = []
+    dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
