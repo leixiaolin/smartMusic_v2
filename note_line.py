@@ -119,7 +119,7 @@ def find_all_note_lines_v2(filename):
     CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
     onsets_frames, end_position = get_note_line_start(CQT)
     all_note_lines = get_note_lines(CQT, onsets_frames)
-    onsets_frames, all_note_lines = del_false_note_lines(onsets_frames, all_note_lines, rms)
+    onsets_frames, all_note_lines = del_false_note_lines(onsets_frames, all_note_lines, rms,CQT)
     return onsets_frames,all_note_lines
 
 def check_by_median(longest_note):
@@ -560,12 +560,12 @@ def get_note_line_start(cqt):
                     if check_nioce_low_result and check_nioce_high_result and (np.max(hight_cqt) == cqt_max or np.max(low_cqt) == cqt_max):
                         if len(result) == 0:
                             result.append(i)
-                            print("i,j is {}==={}".format(i,j))
+                            #print("i,j is {}==={}".format(i,j))
                         else:
                             offset = [np.abs(x -i) for x in result]
                             if np.min(offset) > 10:
                                 result.append(i)
-                                print("i,j is {}==={}".format(i, j))
+                                #print("i,j is {}==={}".format(i, j))
                         longest_end_position = 0
                         #找出该连通块最大的长度
                         for k in range(j-10,j):
@@ -595,15 +595,15 @@ def get_note_lines(cqt,result):
             min_acount = np.sum(row_cqt == cqt_min)
             if max_acount > min_acount and np.sum(sub_cqt[j-1] == cqt_min) > min_acount:
                 note_lines.append(j)
-                print("x,j is {},{}".format(x,j))
+                #print("x,j is {},{}".format(x,j))
                 break
     return note_lines
-def del_false_note_lines(onset_frames,all_note_lines,rms):
+def del_false_note_lines(onset_frames,all_note_lines,rms,CQT):
     select_note_lines = []
     select_note_lines.append(all_note_lines[0])
     select_onset_frames = []
     select_onset_frames.append(onset_frames[0])
-    print("max rms is {}".format(np.max(rms)))
+    #print("max rms is {}".format(np.max(rms)))
     for i in range(1,len(onset_frames)):
         current_onset = onset_frames[i]
         last_onset = onset_frames[i-1]
@@ -611,9 +611,11 @@ def del_false_note_lines(onset_frames,all_note_lines,rms):
         last_note = all_note_lines[i-1]
         # 如果当前音高线等于前一个音高线
         if current_note == last_note:
-            sub_rms = rms[i-1:i+2]
-            print("np.abs(rms[i+1] - rms[i-1]) is {},{},{}".format(rms[current_onset+1] , rms[current_onset-1],np.abs(rms[current_onset+1] - rms[current_onset-1])))
-            if np.abs(rms[current_onset+1] - rms[current_onset-1]) > 0.2:
+            if CQT[current_note,current_onset-1] == np.min(CQT):
+                select_note_lines.append(all_note_lines[i])
+                select_onset_frames.append(onset_frames[i])
+                #print("np.abs(rms[i+1] - rms[i-1]) is {},{},{}".format(rms[current_onset+1] , rms[current_onset-1],np.abs(rms[current_onset+1] - rms[current_onset-1])))
+            elif np.abs(rms[current_onset+1] - rms[current_onset-1]) > 0.2:
                 select_note_lines.append(all_note_lines[i])
                 select_onset_frames.append(onset_frames[i])
         else:
@@ -652,7 +654,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4.4(0).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2熙(0).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
 
 
 
@@ -667,7 +669,7 @@ if __name__ == "__main__":
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     # dir_list = ['e:/test_image/m1/A/']
-    dir_list = []
+    #dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
