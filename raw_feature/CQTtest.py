@@ -15,18 +15,6 @@ def load_and_trim(path):
 
     return audio, sr
 
-#y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律3.100分.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（9）（100）.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节2罗（75）.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏一（4）（96）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2熙(0).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1罗（96）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2录音4(72).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
 
 
 def get_note_line_start(cqt):
@@ -78,6 +66,7 @@ def get_note_line_start(cqt):
                         #找出该连通块最大的长度
                         for k in range(j-10,j):
                             k_cqt = sub_cqt[k]
+                            print("k_cqt shape is {},{}".format(k_cqt.shape[0],np.min(k_cqt)))
                             end_position = i + k_cqt.tolist().index(cqt_min)
                             if end_position > longest_end_position:
                                 longest_end_position = end_position
@@ -107,7 +96,7 @@ def get_note_lines(cqt,result):
                 break
     return note_lines
 
-def del_false_note_lines(onset_frames,all_note_lines,rms):
+def del_false_note_lines(onset_frames,all_note_lines,rms,CQT):
     select_note_lines = []
     select_note_lines.append(all_note_lines[0])
     select_onset_frames = []
@@ -120,9 +109,11 @@ def del_false_note_lines(onset_frames,all_note_lines,rms):
         last_note = all_note_lines[i-1]
         # 如果当前音高线等于前一个音高线
         if current_note == last_note:
-            sub_rms = rms[i-1:i+2]
-            print("np.abs(rms[i+1] - rms[i-1]) is {},{},{}".format(rms[current_onset+1] , rms[current_onset-1],np.abs(rms[current_onset+1] - rms[current_onset-1])))
-            if np.abs(rms[current_onset+1] - rms[current_onset-1]) > 0.2:
+            if CQT[current_note,current_onset-1] == np.min(CQT):
+                select_note_lines.append(all_note_lines[i])
+                select_onset_frames.append(onset_frames[i])
+                print("np.abs(rms[i+1] - rms[i-1]) is {},{},{}".format(rms[current_onset+1] , rms[current_onset-1],np.abs(rms[current_onset+1] - rms[current_onset-1])))
+            elif np.abs(rms[current_onset+1] - rms[current_onset-1]) > 0.2:
                 select_note_lines.append(all_note_lines[i])
                 select_onset_frames.append(onset_frames[i])
         else:
@@ -130,6 +121,20 @@ def del_false_note_lines(onset_frames,all_note_lines,rms):
             select_onset_frames.append(onset_frames[i])
     return select_onset_frames,select_note_lines
 
+#y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
+filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律3.100分.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（9）（100）.wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节2罗（75）.wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏一（4）（96）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2熙(0).wav'
+filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1罗（96）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2录音4(72).wav'
+filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10文(97).wav'
 
 y, sr = load_and_trim(filename)
 y,sr = librosa.load(filename)
@@ -146,7 +151,7 @@ onsets_frames,end_position = get_note_line_start(CQT)
 print("onsets_frames is {}".format(onsets_frames))
 all_note_lines = get_note_lines(CQT,onsets_frames)
 print("all_note_lines is {}".format(all_note_lines))
-onsets_frames, all_note_lines = del_false_note_lines(onsets_frames,all_note_lines,rms)
+onsets_frames, all_note_lines = del_false_note_lines(onsets_frames,all_note_lines,rms,CQT)
 #CQT[:,onsets_frames[1]:h] = -100
 total_frames_number = get_total_frames_number(filename)
 print("total_frames_number is {}".format(total_frames_number))
