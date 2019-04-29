@@ -118,8 +118,11 @@ def find_all_note_lines_v2(filename):
     print("w.h is {},{}".format(w, h))
     CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
     onsets_frames, end_position = get_note_line_start(CQT)
-    all_note_lines = get_note_lines(CQT, onsets_frames)
+    onsets_frames = find_loss_by_rms_mean(onsets_frames, rms, CQT)
+    onsets_frames,all_note_lines = get_note_lines(CQT, onsets_frames)
     onsets_frames, all_note_lines = del_false_note_lines(onsets_frames, all_note_lines, rms,CQT)
+    all_note_lines = check_all_note_lines(onsets_frames, all_note_lines, CQT)
+    onsets_frames, all_note_lines = del_end_range(onsets_frames, all_note_lines, rms)
     return onsets_frames,all_note_lines
 
 def check_by_median(longest_note):
@@ -176,26 +179,21 @@ def find_loss_by_rms_mean(result,rms,CQT):
     rms_on_onset_frames_cqt = [rms[x] for x in result]
     mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
     print("mean_rms_on_frames is {}".format(mean_rms_on_frames))
+    rms_diff = np.diff(rms)
     for i in range(5,len(rms)-5):
         off = [np.abs(x -i) for x in select_result]
         min_off = np.min(off)
         start = i - 1
         end = i + 2
-        sub_rms = rms[start:end]
         # 条件一：振幅有增加
         sub_rms = [rms[start + 1] - rms[start],rms[start + 2] - rms[start],rms[start + 3] - rms[start]]
-        cond1 = np.max(sub_rms) > 0.36
+        cond1 = np.max(sub_rms) > 0.1
 
-        # 条件二：有音高线
-        w,h = CQT.shape
-        cond2 = False
-        if cond1 and min_off > 10:
-            for j in range(w - 1, 15, -1):
-               if np.min(CQT[j, i:i + 5]) == np.max(CQT) :
-                    cond2 = True
-                    break
+        # 条件一：跨过均值线
+        #cond2 = (rms[i] <= mean_rms_on_frames and rms[i+1]>mean_rms_on_frames) or (rms[i-1] <= mean_rms_on_frames and rms[i]>mean_rms_on_frames)
+        cond2 = rms_diff[i] > 0.3
 
-        if rms[i+3] > rms[i+1] and cond1 and cond2 and min_off>10:
+        if cond2 and min_off > 10:
             #print("np.std(sub_rms) is {}".format(np.std(sub_rms)))
             print("np.max(sub_rms) is {}".format(np.max(sub_rms)))
             if rms[i-3]< rms[i]:
@@ -291,6 +289,66 @@ def get_note_with_cqt_rms(filename):
 
     return plt,total_score,onsets_score,notes_score
 
+def get_note_with_cqt_rms_v2(filename):
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    time = librosa.get_duration(filename=filename)
+    print("time is {}".format(time))
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    result, longest_note = find_all_note_lines_v2(filename)
+    #result, longest_note = check_false_by_rms_mean(result, rms, longest_note)
+    print("result is {}".format(result))
+    print("longest_note is {}".format(longest_note))
+        #print("x,longest_note_line is {},{}".format(x, longest_note_line))
+    #print("longest_note is {}".format(longest_note))
+    # CQT[:,onsets_frames[1]:h] = -100
+    total_frames_number = get_total_frames_number(filename)
+    #print("total_frames_number is {}".format(total_frames_number))
+    # librosa.display.specshow(CQT)
+    base_frames = onsets_base_frames_for_note(filename)
+    print("base_frames is {}".format(base_frames))
+    total_score, onsets_score, notes_score = get_score(filename,result,longest_note,base_frames)
+
+    print("std is {},{}".format(np.std(result[0:5]),np.std(base_frames[0:5])))
+    # if np.abs(np.std(result[0:5]) - np.std(base_frames[0:5]))/np.std(result[0:5]) > 0.3:
+    #     total_score, onsets_score, notes_score = 0,0,0
+    #     print("total_score, onsets_score, notes_score is {},{},{}".format(total_score, onsets_score, notes_score))
+        #result = find_loss_by_rms_mean(result, rms)
+    onstm = librosa.frames_to_time(result, sr=sr)
+    plt.subplot(3, 1, 1)
+    CQT,base_notes = add_base_note_to_cqt_for_filename_by_base_notes(filename,result,result[0],CQT,longest_note)
+    base_notes = [x + int(np.mean(longest_note) - np.mean(base_notes)) for x in base_notes]
+    #print("base_notes is {}".format(base_notes))
+    librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
+    print(np.max(y))
+    # onstm = librosa.frames_to_time(onsets_frames, sr=sr)
+    plt.vlines(onstm, 0, sr, color='y', linestyle='solid')
+
+    plt.subplot(3, 1, 2)
+
+    plt.text(onstm[0],1,result[0])
+    max_rms = np.max(rms)
+    # rms = np.diff(rms)
+    times = librosa.frames_to_time(np.arange(len(rms)))
+    rms_on_onset_frames_cqt = [rms[x] for x in result]
+    mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
+    # rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
+    plt.plot(times, rms)
+    plt.axhline(mean_rms_on_frames,color='r')
+    # plt.axhline(min_rms_on_onset_frames_cqt)
+
+    # plt.vlines(onsets_frames_rms_best_time, 0,np.max(rms), color='y', linestyle='solid')
+    plt.vlines(onstm, 0, np.max(rms), color='y', linestyle='solid')
+    # plt.vlines(base_onsets, 0, np.max(rms), color='r', linestyle='solid')
+    plt.xlim(0, np.max(times))
+
+    plt.subplot(3, 1, 3)
+    librosa.display.waveplot(y, sr=sr)
+
+
+    return plt,total_score,onsets_score,notes_score
+
 def get_score(filename,result,longest_note,base_frames):
     off = int(np.mean(base_frames) - np.mean(result))
     # off = int((base_notes[0] - longest_note[0]))
@@ -326,10 +384,14 @@ def get_score(filename,result,longest_note,base_frames):
     if notes_score >= 40 and onsets_score <= 5:
         onsets_score = int(40 * notes_score / 60)
     total_score = onsets_score + notes_score
-    trend_score = check_notes_trend(longest_note,base_notes)
-    print("trend_score is {}".format(trend_score/len(base_notes)))
-    if trend_score/len(base_notes)<0.25 and np.max([onsets_score,notes_score]) < 30 :
-        total_score = 0
+    trend_score,trend_number = check_notes_trend(longest_note,base_notes)
+    print("trend_score is {}".format(60*trend_score))
+    if 60*trend_score > notes_score:
+        notes_score = int(60*trend_score)
+        total_score = notes_score + onsets_score
+
+    # if trend_score/len(base_notes)<0.25 and np.max([onsets_score,notes_score]) < 30 :
+    #     total_score = 0
     print("notes_score is {}".format(notes_score))
     print("total_score is {}".format(total_score))
     return total_score,onsets_score,notes_score
@@ -357,7 +419,7 @@ def check_notes_trend(longest_note,base_notes):
         diff_base_notes_str = ''.join(diff_base_notes)
 
     list_intersect,number = getNumofCommonSubstr(diff_base_notes_str, diff_longest_note_str)
-    print("diff_base_notes, diff_longest_note,intersect is {}==={}==={}".format(diff_longest_note_str, diff_base_notes_str,list_intersect))
+    print("diff_longest_note_str, diff_base_notes_str,intersect is {}==={}==={}".format(diff_longest_note_str, diff_base_notes_str,list_intersect))
     print("find intersect index is {}".format(diff_longest_note_str.find(list_intersect)))
     start = diff_longest_note_str.find(list_intersect)
     end = start + len(list_intersect)
@@ -368,9 +430,9 @@ def check_notes_trend(longest_note,base_notes):
     intersect_base_notes = base_notes[start:end+1]
     print("sub base_notes is {}".format(intersect_base_notes))
     intersect_score = [1 if np.abs(intersect_longest_note[i] - intersect_base_notes[i])<1 else 0 for i in range(len(intersect_base_notes))]
-    score = np.sum(intersect_score)
+    score = len(list_intersect)/len(diff_base_notes_str)
 
-    return score
+    return score,len(list_intersect)
 
 """
 :type nums1: List[int]
@@ -570,7 +632,11 @@ def get_note_line_start(cqt):
                         #找出该连通块最大的长度
                         for k in range(j-10,j):
                             k_cqt = sub_cqt[k]
-                            end_position = i + k_cqt.tolist().index(cqt_min)
+                            indexs_min = [i for i in range(len(k_cqt)) if k_cqt[i] == cqt_min]
+                            index_min = 0
+                            if len(indexs_min) > 0:
+                                index_min = indexs_min[0]
+                            end_position = i + index_min
                             if end_position > longest_end_position:
                                 longest_end_position = end_position
                         end_result.append(longest_end_position)
@@ -584,6 +650,7 @@ def get_note_lines(cqt,result):
     w,h = cqt.shape
     cqt_max = np.max(cqt)
     cqt_min = np.min(cqt)
+    selected_result = []
     for i in range(len(result)):
         x = result[i]
         sub_cqt = cqt[:,x:x+15]
@@ -595,9 +662,25 @@ def get_note_lines(cqt,result):
             min_acount = np.sum(row_cqt == cqt_min)
             if max_acount > min_acount and np.sum(sub_cqt[j-1] == cqt_min) > min_acount:
                 note_lines.append(j)
+                selected_result.append(x)
                 #print("x,j is {},{}".format(x,j))
                 break
-    return note_lines
+        if j == w -11:
+            if len(note_lines)>0:
+                note_lines.append(note_lines[-1])
+                selected_result.append(x)
+            else:
+                # 从下往上逐行判断
+                for j in range(10, w - 10):
+                    row_cqt = sub_cqt[j]
+                    max_acount = np.sum(row_cqt == cqt_max)
+                    if max_acount > 5:
+                        note_lines.append(j)
+                        selected_result.append(x)
+                        # print("x,j is {},{}".format(x,j))
+                        break
+
+    return selected_result,note_lines
 def del_false_note_lines(onset_frames,all_note_lines,rms,CQT):
     select_note_lines = []
     select_note_lines.append(all_note_lines[0])
@@ -611,17 +694,66 @@ def del_false_note_lines(onset_frames,all_note_lines,rms,CQT):
         last_note = all_note_lines[i-1]
         # 如果当前音高线等于前一个音高线
         if current_note == last_note:
-            if CQT[current_note,current_onset-1] == np.min(CQT):
+            if np.max(CQT[current_note:current_note+4,current_onset-1]) == np.min(CQT):
                 select_note_lines.append(all_note_lines[i])
                 select_onset_frames.append(onset_frames[i])
                 #print("np.abs(rms[i+1] - rms[i-1]) is {},{},{}".format(rms[current_onset+1] , rms[current_onset-1],np.abs(rms[current_onset+1] - rms[current_onset-1])))
-            elif np.abs(rms[current_onset+1] - rms[current_onset-1]) > 0.2:
+            elif np.abs(rms[current_onset+1] - rms[current_onset-1]) > 0.3:
                 select_note_lines.append(all_note_lines[i])
                 select_onset_frames.append(onset_frames[i])
         else:
             select_note_lines.append(all_note_lines[i])
             select_onset_frames.append(onset_frames[i])
     return select_onset_frames,select_note_lines
+
+def check_all_note_lines(onset_frames,all_note_lines,cqt):
+    note_lines_median = np.median(all_note_lines)
+    print("note_lines_median is {}".format(note_lines_median))
+    selected_note_lines = []
+    for i in range(len(all_note_lines)):
+        x = all_note_lines[i]
+        onset_frame = onset_frames[i]
+        if np.abs(x - note_lines_median)>10:
+            low_start = x + 1
+            note_line = modify_some_note_line(cqt,onset_frame,low_start)
+            if np.abs(note_line - note_lines_median)>10:
+                note_line = int(note_lines_median)
+            selected_note_lines.append(note_line)
+        else:
+            selected_note_lines.append(x)
+    return selected_note_lines
+
+def modify_some_note_line(cqt,onset_frame,low_start):
+    note_line = 0
+    w,h = cqt.shape
+    cqt_max = np.max(cqt)
+    cqt_min = np.min(cqt)
+
+    x = onset_frame
+    sub_cqt = cqt[:,x:x+15]
+    # 从下往上逐行判断
+    for j in range(low_start,w-10):
+        row_cqt = sub_cqt[j]
+        #如果存在连续的亮点，长度大于8
+        max_acount = np.sum(row_cqt == cqt_max)
+        min_acount = np.sum(row_cqt == cqt_min)
+        if max_acount > min_acount and np.sum(sub_cqt[j-1] == cqt_min) > min_acount:
+            note_line = j
+            #print("x,j is {},{}".format(x,j))
+            break
+    return note_line
+
+def del_end_range(onset_frames,all_note_lines,rms):
+    length = len(rms)
+    select_onset_frames = []
+    select_all_note_lines = []
+    for i in range(len(onset_frames)):
+        onset_frame = onset_frames[i]
+        note_line = all_note_lines[i]
+        if onset_frame < length - 40:
+            select_onset_frames.append(onset_frame)
+            select_all_note_lines.append(note_line)
+    return select_onset_frames,select_all_note_lines
 
 if __name__ == "__main__":
 
@@ -655,6 +787,16 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2熙(0).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10文(97).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1.3(93).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1熙(90).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋9熙(90).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋6谭（90）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1卉(80).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律二（1）（90）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4熙(90).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8.2(90).wav'
 
 
 
@@ -662,7 +804,7 @@ if __name__ == "__main__":
 
     # plt.colorbar(format='%+2.0f dB')
     # plt.title('Constant-Q power spectrogram (note)')
-    plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms(filename)
+    plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms_v2(filename)
 
     plt.show()
 
@@ -694,7 +836,7 @@ if __name__ == "__main__":
             print(dir + filename)
             # plt = draw_start_end_time(dir + filename)
             # plt = draw_baseline_and_note_on_cqt(dir + filename, False)
-            plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms(dir + filename)
+            plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms_v2(dir + filename)
 
             # tmp = os.listdir(result_path)
 
