@@ -25,7 +25,13 @@ def get_note_line_start_v2(cqt):
     times = []
     best_longest, best_begin, best_row = 0, 0, 0
     end = 0
-    for col in range(10,h-10):
+    best_col = 10
+    for col in range(10,45):
+        if np.max(cqt[col,:]) == min_cqt:
+            best_col = col
+            break
+    print("best_col is {}".format(best_col))
+    for col in range(best_col,h-10):
         col_cqt = cqt[10:, col] # 列向量
         # 存在亮点
         if np.max(col_cqt) == max_cqt and col >= end:
@@ -38,7 +44,7 @@ def get_note_line_start_v2(cqt):
                     offset += 1
                 else:
                     flag = False
-                    if best_longest > 5 :
+                    if best_longest > 4 :
                         result.append(col + best_begin)
                         end = col + best_begin + best_longest
                         end_result.append(end)
@@ -47,19 +53,17 @@ def get_note_line_start_v2(cqt):
     return result,end_result,times,note_lines
 
 def get_longest_for_cols_cqt(cols_cqt,min_cqt):
+    w,h = cols_cqt.shape
     best_longest, best_begin, best_row = 0, 0, 0
     for row in range(10, w - 10):
         row_cqt = cols_cqt[row]
         row_cqt = [1 if row_cqt[i] > min_cqt else 0 for i in range(len(row_cqt))]
         longest, begin = getLongestLine(row_cqt)
         if longest > best_longest:
-            last_best_longest = best_longest #保存之前的
-            last_best_row = best_row #保存之前的
             best_longest = longest
             best_begin = begin
             best_row = row
-    if best_longest - last_best_longest < 5:
-        best_row = last_best_row
+
     return best_longest, best_begin, best_row
 
 def get_note_line_start(cqt):
@@ -366,7 +370,70 @@ def get_loss_at_begin(cqt,result,all_note_lines,longest_numbers):
             longest_numbers.insert(0, best_longest)
     return result,all_note_lines,longest_numbers
 
+def draw_plt(filename):
+    y, sr = load_and_trim(filename)
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    time = librosa.get_duration(filename=filename)
+    print("time is {}".format(time))
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    w, h = CQT.shape
+    print("w.h is {},{}".format(w, h))
+    # onsets_frames = get_real_onsets_frames_rhythm(y)
+    CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
+    # onsets_frames,end_position = get_note_line_start(CQT)
+    onsets_frames, end_result, times, note_lines = get_note_line_start_v2(CQT)
+    onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
+    print("0 onsets_frames is {}".format(onsets_frames))
+    print("0 end_result is {}".format(end_result))
+    print("0 times is {}".format(times))
+    print("0 note_lines is {}".format(note_lines))
 
+    plt.subplot(3, 1, 1)
+    # librosa.display.specshow(CQT)
+    librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
+    print(np.max(y))
+    onstm = librosa.frames_to_time(onsets_frames, sr=sr)
+    end_time = librosa.frames_to_time(end_result, sr=sr)
+    # end_position_time = librosa.frames_to_time(end_position, sr=sr)
+    plt.vlines(onstm, 0, sr, color='y', linestyle='dashed')
+    #plt.vlines(end_time, 0, sr, color='r', linestyle='dashed')
+    # plt.vlines(end_position_time, 0,sr, color='r', linestyle='solid')
+    # plt.colorbar(format='%+2.0f dB')
+    # plt.title('Constant-Q power spectrogram (note)')
+    plt.subplot(3, 1, 2)
+    times = librosa.frames_to_time(np.arange(len(rms)))
+    # rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
+    # min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
+    # rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
+    plt.vlines(onstm, 0, np.max(rms), color='y', linestyle='dashed')
+    rms_on_frames = [rms[x] for x in onsets_frames]
+    mean_rms_on_frames = np.mean(rms_on_frames)
+    plt.plot(times, rms)
+    plt.xlim(0, np.max(times))
+    plt.axhline(mean_rms_on_frames, color='r')
+
+    plt.subplot(3, 1, 3)
+    rms = np.diff(rms)
+    rms = [0 - rms[i] if rms[i - 2] > rms[i - 1] and rms[i - 1] > rms[i] and rms[i + 1] > rms[i] and rms[i + 2] > rms[
+        i + 1] else 0 for i in range(2, len(rms) - 2)]
+    # rms = [rms[i] if rms[i+2] - rms[i] > 0.2   else 0 for i in range(2, len(rms) - 2) ]
+    rms.insert(0, 0)
+    rms.insert(1, 0)
+    rms.append(0)
+    rms.append(0)
+    times = librosa.frames_to_time(np.arange(len(rms)))
+    # rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
+    # min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
+    # rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
+    rms_on_frames = [rms[x] for x in onsets_frames]
+    mean_rms_on_frames = np.mean(rms_on_frames)
+    plt.plot(times, rms)
+    plt.axhline(mean_rms_on_frames, color='r')
+    plt.vlines(onstm, 0, np.max(rms), color='y', linestyle='dashed')
+    plt.xlim(0, np.max(times))
+    return plt
 
 #y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
@@ -386,65 +453,73 @@ filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（
 #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
 
 
-y, sr = load_and_trim(filename)
-y,sr = librosa.load(filename)
-rms = librosa.feature.rmse(y=y)[0]
-rms = [x / np.std(rms) for x in rms]
-time = librosa.get_duration(filename=filename)
-print("time is {}".format(time))
-CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref = np.max)
-w,h = CQT.shape
-print("w.h is {},{}".format(w,h))
-#onsets_frames = get_real_onsets_frames_rhythm(y)
-CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
-#onsets_frames,end_position = get_note_line_start(CQT)
-onsets_frames,end_result,times,note_lines = get_note_line_start_v2(CQT)
-onsets_frames,note_lines,times = get_note_lines(CQT,onsets_frames)
-print("0 onsets_frames is {}".format(onsets_frames))
-print("0 end_result is {}".format(end_result))
-print("0 times is {}".format(times))
-print("0 note_lines is {}".format(note_lines))
-
-plt.subplot(3,1,1)
-#librosa.display.specshow(CQT)
-librosa.display.specshow(CQT, y_axis='cqt_note',x_axis='time')
-print(np.max(y))
-onstm = librosa.frames_to_time(onsets_frames, sr=sr)
-end_time = librosa.frames_to_time(end_result, sr=sr)
-#end_position_time = librosa.frames_to_time(end_position, sr=sr)
-plt.vlines(onstm, 0,sr, color='y', linestyle='dashed')
-plt.vlines(end_time, 0,sr, color='r', linestyle='dashed')
-#plt.vlines(end_position_time, 0,sr, color='r', linestyle='solid')
-# plt.colorbar(format='%+2.0f dB')
-# plt.title('Constant-Q power spectrogram (note)')
-plt.subplot(3,1,2)
-times = librosa.frames_to_time(np.arange(len(rms)))
-# rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
-# min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
-# rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
-plt.vlines(onstm, 0,np.max(rms), color='y', linestyle='dashed')
-rms_on_frames = [rms[x] for x in onsets_frames]
-mean_rms_on_frames = np.mean(rms_on_frames)
-plt.plot(times, rms)
-plt.xlim(0,np.max(times))
-plt.axhline(mean_rms_on_frames, color='r')
-
-plt.subplot(3,1,3)
-rms = np.diff(rms)
-rms = [0-rms[i] if rms[i-2] > rms[i-1] and rms[i-1] > rms[i] and rms[i+1] > rms[i] and rms[i+2] > rms[i+1]  else 0 for i in range(2,len(rms)-2)]
-#rms = [rms[i] if rms[i+2] - rms[i] > 0.2   else 0 for i in range(2, len(rms) - 2) ]
-rms.insert(0,0)
-rms.insert(1,0)
-rms.append(0)
-rms.append(0)
-times = librosa.frames_to_time(np.arange(len(rms)))
-# rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
-# min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
-# rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
-rms_on_frames = [rms[x] for x in onsets_frames]
-mean_rms_on_frames = np.mean(rms_on_frames)
-plt.plot(times, rms)
-plt.axhline(mean_rms_on_frames, color='r')
-plt.vlines(onstm, 0,np.max(rms), color='y', linestyle='dashed')
-plt.xlim(0,np.max(times))
+draw_plt(filename)
 plt.show()
+
+if __name__ == "__main__":
+    #y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律3.100分.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（9）（100）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律五（3）（63）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏一（4）（96）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音4(78).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3王（80）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4文(75).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律6.4(90).wav'
+
+    draw_plt(filename)
+    plt.show()
+
+
+    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
+    #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
+    # dir_list = ['e:/test_image/m1/A/']
+    #dir_list = []
+    total_accuracy = 0
+    total_num = 0
+    result_path = 'e:/test_image/n/'
+    # clear_dir(result_path)
+    # 要测试的数量
+    test_num = 100
+    score = 0
+    for dir in dir_list:
+        file_list = os.listdir(dir)
+        # shuffle(file_list)  # 将语音文件随机排列
+        # file_list = ['视唱1-01（95）.wav']
+        for filename in file_list:
+            # clear_dir(image_dir)
+            # wavname = re.findall(pattern,filename)[0]
+            print(dir + filename)
+            # plt = draw_start_end_time(dir + filename)
+            # plt = draw_baseline_and_note_on_cqt(dir + filename, False)
+            plt = draw_plt(dir + filename)
+            # tmp = os.listdir(result_path)
+
+            if filename.find("tune") > 0 or filename.find("add") > 0 or filename.find("shift") > 0:
+                score = re.sub("\D", "", filename.split("-")[0])  # 筛选数字
+            else:
+                score = re.sub("\D", "", filename)  # 筛选数字
+
+            if str(score).find("100") > 0:
+                score = 100
+            else:
+                score = int(score) % 100
+
+            if int(score) >= 90:
+                grade = 'A'
+            elif int(score) >= 75:
+                grade = 'B'
+            elif int(score) >= 60:
+                grade = 'C'
+            elif int(score) >= 1:
+                grade = 'D'
+            else:
+                grade = 'E'
+            # result_path = result_path + grade + "/"
+            # plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
+            #grade = 'A'
+            plt.savefig(result_path + grade + "/" + filename + '.jpg', bbox_inches='tight', pad_inches=0)
+            plt.clf()
