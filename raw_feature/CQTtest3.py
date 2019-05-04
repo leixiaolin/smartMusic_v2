@@ -20,24 +20,31 @@ def get_note_line_start_v2(cqt):
     max_cqt = np.max(cqt)
     w,h = cqt.shape
     result = []
+    end_result = []
+    note_lines = []
+    times = []
     best_longest, best_begin, best_row = 0, 0, 0
-    offset = 15
     end = 0
     for col in range(10,h-10):
         col_cqt = cqt[10:, col] # 列向量
         # 存在亮点
-        if np.max(col_cqt) == max_cqt and col > end:
+        if np.max(col_cqt) == max_cqt and col >= end:
             flag = True
+            offset = 5
             while flag:
                 cols_cqt = cqt[10:, col:col+offset] #柜向量
                 best_longest, best_begin, best_row = get_longest_for_cols_cqt(cols_cqt,min_cqt)
-                if best_longest == offset:
-                    offset += 15
+                if best_begin + best_longest == offset:
+                    offset += 1
                 else:
                     flag = False
-                    result.append(col + best_begin)
-                    end = col + best_begin + best_longest
-    return result
+                    if best_longest > 5 :
+                        result.append(col + best_begin)
+                        end = col + best_begin + best_longest
+                        end_result.append(end)
+                        note_lines.append(best_row)
+                        times.append(best_longest)
+    return result,end_result,times,note_lines
 
 def get_longest_for_cols_cqt(cols_cqt,min_cqt):
     best_longest, best_begin, best_row = 0, 0, 0
@@ -46,9 +53,13 @@ def get_longest_for_cols_cqt(cols_cqt,min_cqt):
         row_cqt = [1 if row_cqt[i] > min_cqt else 0 for i in range(len(row_cqt))]
         longest, begin = getLongestLine(row_cqt)
         if longest > best_longest:
+            last_best_longest = best_longest #保存之前的
+            last_best_row = best_row #保存之前的
             best_longest = longest
             best_begin = begin
             best_row = row
+    if best_longest - last_best_longest < 5:
+        best_row = last_best_row
     return best_longest, best_begin, best_row
 
 def get_note_line_start(cqt):
@@ -129,54 +140,9 @@ def get_note_lines(cqt,result):
             next = h -10
         sub_cqt = cqt[:,x:next]
         note_line, longest_num = get_longest_note_line(sub_cqt)
-        if longest_num > 5 and longest_num < 30:
-            note_lines.append(note_line)
-            longest_numbers.append(longest_num)
-            selected_result.append(x)
-        elif longest_num >= 30:
-            #如果音高线以上有没有可分点
-            best_other_onset_frames, best_note_numbers = find_other_note_line(x,note_line+4,sub_cqt)
-            if len(best_other_onset_frames) > 1:
-                for i in range(len(best_other_onset_frames)):
-                    note_lines.append(note_line)
-                    longest_numbers.append(best_note_numbers[i])
-                    selected_result.append(best_other_onset_frames[i])
-            else:
-                # 一分为二
-                note_lines.append(note_line)
-                longest_numbers.append(int(longest_num/2))
-                selected_result.append(x)
-
-                note_lines.append(note_line)
-                longest_numbers.append(int(longest_num/2))
-                selected_result.append(x + int(longest_num/2))
-
-
-        # # 从下往上逐行判断
-        # for j in range(10,w-10):
-        #     row_cqt = sub_cqt[j]
-        #     #如果存在连续的亮点，长度大于8
-        #     max_acount = np.sum(row_cqt == cqt_max)
-        #     min_acount = np.sum(row_cqt == cqt_min)
-        #     if max_acount > min_acount and np.sum(sub_cqt[j-1] == cqt_min) > min_acount:
-        #         note_lines.append(j)
-        #         selected_result.append(x)
-        #         #print("x,j is {},{}".format(x,j))
-        #         break
-        # if j == w -11:
-        #     if len(note_lines)>0:
-        #         note_lines.append(note_lines[-1])
-        #         selected_result.append(x)
-        #     else:
-        #         # 从下往上逐行判断
-        #         for j in range(10, w - 10):
-        #             row_cqt = sub_cqt[j]
-        #             max_acount = np.sum(row_cqt == cqt_max)
-        #             if max_acount > 5:
-        #                 note_lines.append(j)
-        #                 selected_result.append(x)
-        #                 # print("x,j is {},{}".format(x,j))
-        #                 break
+        note_lines.append(note_line)
+        longest_numbers.append(longest_num)
+        selected_result.append(x)
 
     return selected_result,note_lines,longest_numbers
 
@@ -296,7 +262,7 @@ def del_end_range(onset_frames,all_note_lines,rms):
 # 如果音高线以上有没有可分点
 def find_other_note_line(onset_frame,note_line,sub_cqt):
     w,h = sub_cqt.shape
-    print("w,h is {},{}".format(w,h))
+    #print("w,h is {},{}".format(w,h))
     min_cqt = np.min(sub_cqt)
     max_cqt = np.max(sub_cqt)
     longest_num = 0
@@ -339,7 +305,7 @@ def get_all_small_note_line(start,nums):
 
 def get_longest_note_line(sub_cqt):
     w,h = sub_cqt.shape
-    print("w,h is {},{}".format(w,h))
+    #print("w,h is {},{}".format(w,h))
 
     longest_num = 0
     note_line = 0
@@ -377,33 +343,7 @@ def getLongestLine(nums):
         index += 1
     return res,begin
 
-def del_false_same(base_notes,onset_frames,notes_lines):
-    select_onset_frames = [onset_frames[0]]
-    select_notes_lines = [notes_lines[0]]
-    same_index = get_the_index_of_same(base_notes)
-    if len(same_index) == 0:
-        for i in range(1,len(notes_lines)):
-            if notes_lines[i] != notes_lines[i-1]:
-                select_onset_frames.append(onset_frames[i])
-                select_notes_lines.append(notes_lines[i])
-    else:
-        for i in range(1, len(notes_lines)):
-            if notes_lines[i] != notes_lines[i - 1]:
-                select_onset_frames.append(onset_frames[i])
-                select_notes_lines.append(notes_lines[i])
-            else:
-                # print("i ,longest_numbers[i-1] < onset_frames[i] - onset_frames[i-1] is {},{},{}".format(i,longest_numbers[i-1] ,onset_frames[i] - onset_frames[i-1]))
-                if (i in same_index and longest_numbers[i - 1] < onset_frames[i] - onset_frames[i - 1]) or \
-                        longest_numbers[i - 1] < onset_frames[i] - onset_frames[i - 1] - 2:
-                    select_onset_frames.append(onset_frames[i])
-                    select_notes_lines.append(notes_lines[i])
-    return select_onset_frames,select_notes_lines
-def get_the_index_of_same(base_notes):
-    same_index = []
-    for i in range(1, len(base_notes)):
-        if base_notes[i] == base_notes[i - 1]:
-            same_index.append(i)
-    return same_index
+
 
 def get_loss_at_begin(cqt,result,all_note_lines,longest_numbers):
     min_cqt = np.min(cqt)
@@ -440,10 +380,10 @@ filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1罗（9
 filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2录音4(72).wav'
 filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10罗（92）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（13）（98）.wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1熙(90).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1谭（98）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1谭（98）.wav'
+#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
 
 
 y, sr = load_and_trim(filename)
@@ -458,31 +398,22 @@ print("w.h is {},{}".format(w,h))
 #onsets_frames = get_real_onsets_frames_rhythm(y)
 CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
 #onsets_frames,end_position = get_note_line_start(CQT)
-onsets_frames = get_note_line_start_v2(CQT)
+onsets_frames,end_result,times,note_lines = get_note_line_start_v2(CQT)
+onsets_frames,note_lines,times = get_note_lines(CQT,onsets_frames)
 print("0 onsets_frames is {}".format(onsets_frames))
-onsets_frames = find_loss_by_rms_mean(onsets_frames,rms,CQT)
-print("onsets_frames is {}".format(onsets_frames))
-onsets_frames,all_note_lines,longest_numbers = get_note_lines(CQT,onsets_frames)
-onsets_frames,all_note_lines,longest_numbers = get_loss_at_begin(CQT,onsets_frames,all_note_lines,longest_numbers)
-print("1 onsets_frames is {}".format(onsets_frames))
-print("1 all_note_lines is {}".format(all_note_lines))
-print("longest_numbers is {}".format(longest_numbers))
-all_note_lines = check_all_note_lines(onsets_frames,all_note_lines,CQT)
-print("2 all_note_lines is {}".format(all_note_lines))
-#onsets_frames, all_note_lines = del_false_note_lines(onsets_frames,all_note_lines,rms,CQT)
-onsets_frames, all_note_lines = del_end_range(onsets_frames,all_note_lines,rms)
-base_notes = base_note(filename)
-onsets_frames,all_note_lines = del_false_same(base_notes,onsets_frames,all_note_lines)
-#CQT[:,onsets_frames[1]:h] = -100
-total_frames_number = get_total_frames_number(filename)
-print("total_frames_number is {}".format(total_frames_number))
+print("0 end_result is {}".format(end_result))
+print("0 times is {}".format(times))
+print("0 note_lines is {}".format(note_lines))
+
 plt.subplot(3,1,1)
 #librosa.display.specshow(CQT)
 librosa.display.specshow(CQT, y_axis='cqt_note',x_axis='time')
 print(np.max(y))
 onstm = librosa.frames_to_time(onsets_frames, sr=sr)
+end_time = librosa.frames_to_time(end_result, sr=sr)
 #end_position_time = librosa.frames_to_time(end_position, sr=sr)
 plt.vlines(onstm, 0,sr, color='y', linestyle='dashed')
+plt.vlines(end_time, 0,sr, color='r', linestyle='dashed')
 #plt.vlines(end_position_time, 0,sr, color='r', linestyle='solid')
 # plt.colorbar(format='%+2.0f dB')
 # plt.title('Constant-Q power spectrogram (note)')

@@ -119,11 +119,108 @@ def find_all_note_lines_v2(filename):
     CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
     onsets_frames, end_position = get_note_line_start(CQT)
     onsets_frames = find_loss_by_rms_mean(onsets_frames, rms, CQT)
-    onsets_frames,all_note_lines = get_note_lines(CQT, onsets_frames)
-    onsets_frames, all_note_lines = del_false_note_lines(onsets_frames, all_note_lines, rms,CQT)
+    #onsets_frames = get_loss(onsets_frames, rms)
+    onsets_frames,all_note_lines,longest_numbers = get_note_lines(CQT, onsets_frames)
+    onsets_frames, all_note_lines, longest_numbers = get_loss_at_begin(CQT, onsets_frames, all_note_lines, longest_numbers)
+    #onsets_frames, all_note_lines = del_false_note_lines(onsets_frames, all_note_lines, rms,CQT)
     all_note_lines = check_all_note_lines(onsets_frames, all_note_lines, CQT)
     onsets_frames, all_note_lines = del_end_range(onsets_frames, all_note_lines, rms)
-    return onsets_frames,all_note_lines
+    # base_notes = base_note(filename)
+    # match_start, match_end, loss_before, loss_after = get_match_notes_trend(all_note_lines,base_notes)
+    # if loss_before >= 3:
+    #     onsets_frames = get_loss_before(onsets_frames,rms,int(np.median(onsets_frames)))
+    #     onsets_frames, all_note_lines,longest_numbers = get_note_lines(CQT, onsets_frames)
+    #     all_note_lines = check_all_note_lines(onsets_frames, all_note_lines, CQT)
+    # if loss_after >= 3:
+    #     onsets_frames = get_loss_after(onsets_frames, rms, int(np.median(onsets_frames)))
+    #     onsets_frames, all_note_lines,longest_numbers = get_note_lines(CQT, onsets_frames)
+    #     all_note_lines = check_all_note_lines(onsets_frames, all_note_lines, CQT)
+    return onsets_frames,all_note_lines,longest_numbers
+
+def get_loss_at_begin(cqt,result,all_note_lines,longest_numbers):
+    min_cqt = np.min(cqt)
+    first = result[0]
+    best_longest, best_begin,best_row = 0,0,0
+    w,h = cqt.shape
+    if first > 60:
+        f_cqt = cqt[:,:first]
+        for row in range(10, w - 10):
+            row_cqt = f_cqt[row]
+            row_cqt = [1 if row_cqt[i] > min_cqt else 0 for i in range(len(row_cqt))]
+            longest,begin = getLongestLine(row_cqt)
+            if longest > best_longest:
+                best_longest = longest
+                best_begin = begin
+                best_row = row
+
+        if best_longest > 30:
+            result.insert(0,best_begin)
+            all_note_lines.insert(0,best_row)
+            longest_numbers.insert(0, best_longest)
+    return result,all_note_lines,longest_numbers
+
+def getLongestLine(nums):
+    sum1, res,begin,index = 0, 0,0,0
+    for i in nums:
+        #遇1加1，遇0置0
+        sum1 = sum1*i + i
+        if sum1 > res:
+            #记录连续1的长度
+            res = sum1
+            begin = index - sum1
+        index += 1
+    return res,begin
+
+def get_loss(result,rms):
+    select_result = result.copy()
+
+    rms_diff = [i if rms[i+2] - rms[i] > 0.2 else 0 for i in range(2, len(rms) - 2) ]
+    for i in rms_diff:
+        off = [np.abs(x - i) for x in select_result]
+        min_off = np.min(off)
+
+        if min_off > 20:
+            select_result.append(i)
+    select_result.sort()
+    return select_result
+
+def get_loss_before(result,rms,match_start):
+    select_result = result.copy()
+    rms_on_onset_frames_cqt = [rms[x] for x in result]
+    mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
+    print("mean_rms_on_frames is {}".format(mean_rms_on_frames))
+    rms_diff = np.diff(rms)
+    rms_diff = [i for i in range(2, len(rms) - 2) if rms[i - 2] > rms[i - 1] and rms[i - 1] > rms[i] and rms[i + 1] > rms[i] and rms[i + 2] > rms[i + 1]  and rms[i-2] - rms[i] > 0.18 and rms[i+2] - rms[i] > 0.18]
+    for i in rms_diff:
+        off = [np.abs(x - i) for x in select_result]
+        min_off = np.min(off)
+
+        if min_off > 10 and i < match_start:
+            select_result.append(i)
+    select_result.sort()
+    rms_on_onset_frames_cqt = [rms[x] for x in select_result]
+    mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
+    print("mean_rms_on_frames is {}".format(mean_rms_on_frames))
+    return select_result
+
+def get_loss_after(result,rms,match_end):
+    select_result = result.copy()
+    rms_on_onset_frames_cqt = [rms[x] for x in result]
+    mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
+    print("mean_rms_on_frames is {}".format(mean_rms_on_frames))
+    rms_diff = np.diff(rms)
+    rms_diff = [i for i in range(2, len(rms) - 2) if rms[i - 2] > rms[i - 1] and rms[i - 1] > rms[i] and rms[i + 1] > rms[i] and rms[i + 2] > rms[i + 1]  and rms[i-2] - rms[i] > 0.08 and rms[i+2] - rms[i] > 0.08]
+    for i in rms_diff:
+        off = [np.abs(x - i) for x in select_result]
+        min_off = np.min(off)
+
+        if min_off > 10 and i > match_end and i < len(rms)-50:
+            select_result.append(i)
+    select_result.sort()
+    rms_on_onset_frames_cqt = [rms[x] for x in select_result]
+    mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
+    print("mean_rms_on_frames is {}".format(mean_rms_on_frames))
+    return select_result
 
 def check_by_median(longest_note):
     result = []
@@ -180,27 +277,27 @@ def find_loss_by_rms_mean(result,rms,CQT):
     mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
     print("mean_rms_on_frames is {}".format(mean_rms_on_frames))
     rms_diff = np.diff(rms)
-    for i in range(5,len(rms)-5):
-        off = [np.abs(x -i) for x in select_result]
+    for i in range(5, len(rms) - 5):
+        off = [np.abs(x - i) for x in select_result]
         min_off = np.min(off)
         start = i - 1
         end = i + 2
         # 条件一：振幅有增加
-        sub_rms = [rms[start + 1] - rms[start],rms[start + 2] - rms[start],rms[start + 3] - rms[start]]
+        sub_rms = [rms[start + 1] - rms[start], rms[start + 2] - rms[start], rms[start + 3] - rms[start]]
         cond1 = np.max(sub_rms) > 0.1
 
         # 条件一：跨过均值线
-        #cond2 = (rms[i] <= mean_rms_on_frames and rms[i+1]>mean_rms_on_frames) or (rms[i-1] <= mean_rms_on_frames and rms[i]>mean_rms_on_frames)
+        # cond2 = (rms[i] <= mean_rms_on_frames and rms[i+1]>mean_rms_on_frames) or (rms[i-1] <= mean_rms_on_frames and rms[i]>mean_rms_on_frames)
         cond2 = rms_diff[i] > 0.3
 
         if cond2 and min_off > 10:
-            #print("np.std(sub_rms) is {}".format(np.std(sub_rms)))
+            # print("np.std(sub_rms) is {}".format(np.std(sub_rms)))
             print("np.max(sub_rms) is {}".format(np.max(sub_rms)))
-            if rms[i-3]< rms[i]:
-                select_result.append(i-3)
-            elif rms[i-2]< rms[i]:
+            if rms[i - 3] < rms[i]:
+                select_result.append(i - 3)
+            elif rms[i - 2] < rms[i]:
                 select_result.append(i - 2)
-            elif rms[i-1]< rms[i]:
+            elif rms[i - 1] < rms[i]:
                 select_result.append(i - 1)
             else:
                 select_result.append(i)
@@ -296,10 +393,13 @@ def get_note_with_cqt_rms_v2(filename):
     time = librosa.get_duration(filename=filename)
     print("time is {}".format(time))
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
-    result, longest_note = find_all_note_lines_v2(filename)
+    result, longest_note,longest_numbers = find_all_note_lines_v2(filename)
+    base_notes = base_note(filename)
+    #result, longest_note = del_false_same(base_notes, result, longest_note)
     #result, longest_note = check_false_by_rms_mean(result, rms, longest_note)
-    print("result is {}".format(result))
-    print("longest_note is {}".format(longest_note))
+    print("result is {},size is {}".format(result,len(result)))
+    print("longest_note is {},size is {}".format(longest_note,len(longest_note)))
+    print("longest_numbers is {},size is {}".format(longest_numbers,len(longest_numbers)))
         #print("x,longest_note_line is {},{}".format(x, longest_note_line))
     #print("longest_note is {}".format(longest_note))
     # CQT[:,onsets_frames[1]:h] = -100
@@ -307,10 +407,20 @@ def get_note_with_cqt_rms_v2(filename):
     #print("total_frames_number is {}".format(total_frames_number))
     # librosa.display.specshow(CQT)
     base_frames = onsets_base_frames_for_note(filename)
-    print("base_frames is {}".format(base_frames))
-    total_score, onsets_score, notes_score = get_score(filename,result,longest_note,base_frames)
+    print("base_frames is {},size is {}".format(base_frames,len(base_frames)))
+    total_score, onsets_score, notes_score,trend_number,base_notes_number = get_score(filename,result,longest_note,base_frames)
 
-    print("std is {},{}".format(np.std(result[0:5]),np.std(base_frames[0:5])))
+    print("before is {}".format(result))
+    result2, longest_note2 = del_false_same(base_notes, result, longest_note,longest_numbers)
+    print("aafter is {}".format(result2))
+    total_score2, onsets_score2, notes_score2, trend_number2, base_notes_number2 = get_score(filename, result2, longest_note2, base_frames)
+
+    print("total_score2, total_score is {},{}".format(total_score2, total_score))
+    if total_score2 != total_score:
+        total_score, onsets_score, notes_score, trend_number, base_notes_number = total_score2, onsets_score2, notes_score2, trend_number2, base_notes_number2
+        result, longest_note = result2, longest_note2
+    print("total_score, onsets_score, notes_score is {},{},{}".format(total_score, onsets_score, notes_score))
+    #print("std is {},{}".format(np.std(result[0:5]),np.std(base_frames[0:5])))
     # if np.abs(np.std(result[0:5]) - np.std(base_frames[0:5]))/np.std(result[0:5]) > 0.3:
     #     total_score, onsets_score, notes_score = 0,0,0
     #     print("total_score, onsets_score, notes_score is {},{},{}".format(total_score, onsets_score, notes_score))
@@ -347,9 +457,12 @@ def get_note_with_cqt_rms_v2(filename):
     librosa.display.waveplot(y, sr=sr)
 
 
-    return plt,total_score,onsets_score,notes_score
+    return plt,total_score,onsets_score,notes_score,trend_number,base_notes_number
 
 def get_score(filename,result,longest_note,base_frames):
+
+    base_notes = base_note(filename)
+    #result, longest_note = del_false_same(base_notes, result, longest_note)
     off = int(np.mean(base_frames) - np.mean(result))
     # off = int((base_notes[0] - longest_note[0]))
     base_frames = [x - off for x in base_frames]
@@ -358,7 +471,6 @@ def get_score(filename,result,longest_note,base_frames):
     if len(result)<len(base_frames)*0.75:
         onsets_score = onsets_score - int(40 * (len(base_frames) - len(result))/len(base_frames))
     print("onsets_score is {}".format(onsets_score))
-    base_notes = base_note(filename)
     off = int(np.mean(base_notes) - np.mean(longest_note))
     #off = int((base_notes[0] - longest_note[0]))
     base_notes = [x - off for x in base_notes]
@@ -390,15 +502,65 @@ def get_score(filename,result,longest_note,base_frames):
         notes_score = int(60*trend_score)
         total_score = notes_score + onsets_score
 
+    print("1.onsets_score is {}".format(onsets_score))
+    print("1.notes_score is {}".format(notes_score))
+    print("1.total_score is {}".format(total_score))
+    #如果动态时间规整得分不高，且总分及格的，重新按相对音高计算得分
+    if notes_score < 45 and onsets_score < 35:
+            onsets_score = int(40 * trend_number / len(base_notes))
+            notes_score = int(60 * trend_number/len(base_notes))
+            total_score = notes_score + onsets_score
     # if trend_score/len(base_notes)<0.25 and np.max([onsets_score,notes_score]) < 30 :
     #     total_score = 0
-    print("notes_score is {}".format(notes_score))
-    print("total_score is {}".format(total_score))
-    return total_score,onsets_score,notes_score
+    print("2.notes_score is {}".format(notes_score))
+    print("2.total_score is {}".format(total_score))
+
+    list_intersect_before, list_intersect, list_intersect_after = check_all_notes_trend(longest_note, base_notes)
+    print("list_intersect_before,list_intersect,list_intersect_after is {},{},{}".format(list_intersect_before,list_intersect,list_intersect_after))
+    # 如果总分小于85，则整体偏差分 30/85*total_score
+    # if total_score < 85:
+    #     gap = int(30/85*total_score)
+    #     o_gap = int(gap* 0.4)
+    #     n_gap = int(gap*0.6)
+    #     total_score -= gap
+    #     onsets_score -= o_gap
+    #     notes_score -= n_gap
+    return total_score,onsets_score,notes_score,trend_number,len(base_notes)
+
+def del_false_same(base_notes,onset_frames,notes_lines,longest_numbers):
+    select_onset_frames = [onset_frames[0]]
+    select_notes_lines = [notes_lines[0]]
+    same_index = get_the_index_of_same(base_notes)
+    print("dddddd onset_frames is {}".format(onset_frames))
+    if len(same_index) == 0:
+        for i in range(1,len(notes_lines)):
+            if notes_lines[i] != notes_lines[i-1]:
+                select_onset_frames.append(onset_frames[i])
+                select_notes_lines.append(notes_lines[i])
+    else:
+        for i in range(1, len(notes_lines)):
+            if notes_lines[i] != notes_lines[i - 1]:
+                select_onset_frames.append(onset_frames[i])
+                select_notes_lines.append(notes_lines[i])
+            else:
+                #print("i ,longest_numbers[i-1] < onset_frames[i] - onset_frames[i-1] is {},{},{}".format(i,longest_numbers[i-1] ,onset_frames[i] - onset_frames[i-1]))
+                if i in same_index or longest_numbers[i - 1] < onset_frames[i] - onset_frames[i - 1] - 2:
+                    select_onset_frames.append(onset_frames[i])
+                    select_notes_lines.append(notes_lines[i])
+    print("dddddd onset_frames is {}".format(select_onset_frames))
+    return select_onset_frames,select_notes_lines
+def get_the_index_of_same(base_notes):
+    same_index = []
+    for i in range(1, len(base_notes)):
+        if base_notes[i] == base_notes[i - 1]:
+            same_index.append(i)
+    return same_index
 
 def check_notes_trend(longest_note,base_notes):
     diff_longest_note = []
     diff_base_notes = []
+    diff_longest_note_str = ''
+    diff_base_notes_str = ''
     for i in range(1,len(longest_note)):
         if longest_note[i] > longest_note[i-1]:
             tmp = 1
@@ -433,6 +595,88 @@ def check_notes_trend(longest_note,base_notes):
     score = len(list_intersect)/len(diff_base_notes_str)
 
     return score,len(list_intersect)
+
+def get_match_notes(diff_base_notes_str,diff_longest_note_str):
+    list_intersect,number = getNumofCommonSubstr(diff_base_notes_str, diff_longest_note_str)
+    print("diff_longest_note_str, diff_base_notes_str,intersect is {}==={}==={}".format(diff_longest_note_str, diff_base_notes_str,list_intersect))
+    return list_intersect
+
+def check_all_notes_trend(longest_note,base_notes):
+    diff_longest_note = []
+    diff_base_notes = []
+    diff_longest_note_str = ''
+    diff_base_notes_str = ''
+    for i in range(1, len(longest_note)):
+        if longest_note[i] > longest_note[i - 1]:
+            tmp = 1
+        if longest_note[i] == longest_note[i - 1]:
+            tmp = 0
+        if longest_note[i] < longest_note[i - 1]:
+            tmp = 2
+        diff_longest_note.append(str(tmp))
+        diff_longest_note_str = ''.join(diff_longest_note)
+    for i in range(1, len(base_notes)):
+        if base_notes[i] > base_notes[i - 1]:
+            tmp = 1
+        if base_notes[i] == base_notes[i - 1]:
+            tmp = 0
+        if base_notes[i] < base_notes[i - 1]:
+            tmp = 2
+        diff_base_notes.append(str(tmp))
+        diff_base_notes_str = ''.join(diff_base_notes)
+    list_intersect = get_match_notes(diff_base_notes_str,diff_longest_note_str)
+    start1 = diff_longest_note_str.find(list_intersect)
+    end1 = start1 + len(list_intersect)
+
+    start2 = diff_base_notes_str.find(list_intersect)
+    end2 = start2 + len(list_intersect)
+    list_intersect_before = []
+    list_intersect_after = []
+    if start1 >= 2 and start2 >=2:
+        list_intersect_before = get_match_notes(diff_longest_note_str[0:start1],diff_base_notes_str[0:start2])
+    if end1 >= 2 and end2 >=2:
+        list_intersect_after = get_match_notes(diff_longest_note_str[end1+1:],diff_base_notes_str[end1+1:])
+
+    return list_intersect_before,list_intersect,list_intersect_after
+
+def get_match_notes_trend(longest_note,base_notes):
+    diff_longest_note = []
+    diff_base_notes = []
+    for i in range(1,len(longest_note)):
+        if longest_note[i] > longest_note[i-1]:
+            tmp = 1
+        if longest_note[i] == longest_note[i-1]:
+            tmp = 0
+        if longest_note[i] < longest_note[i-1]:
+            tmp = 2
+        diff_longest_note.append(str(tmp))
+        diff_longest_note_str = ''.join(diff_longest_note)
+    for i in range(1,len(base_notes)):
+        if base_notes[i] > base_notes[i-1]:
+            tmp = 1
+        if base_notes[i] == base_notes[i-1]:
+            tmp = 0
+        if base_notes[i] < base_notes[i-1]:
+            tmp = 2
+        diff_base_notes.append(str(tmp))
+        diff_base_notes_str = ''.join(diff_base_notes)
+
+    list_intersect,number = getNumofCommonSubstr(diff_base_notes_str, diff_longest_note_str)
+    print("diff_longest_note_str, diff_base_notes_str,intersect is {}==={}==={}".format(diff_longest_note_str, diff_base_notes_str,list_intersect))
+    print("find intersect index is {}".format(diff_longest_note_str.find(list_intersect)))
+    start = diff_longest_note_str.find(list_intersect)
+    end = start + len(list_intersect)
+    match_start = start
+    match_end = end
+    intersect_longest_note = longest_note[start:end+1]
+    print("sub longest_note is {}".format(intersect_longest_note))
+    start = diff_base_notes_str.find(list_intersect)
+    end = start + len(list_intersect)
+    loss_before = start
+    loss_after = len(diff_base_notes_str)-end
+
+
+    return match_start,match_end,loss_before,loss_after
 
 """
 :type nums1: List[int]
@@ -586,52 +830,55 @@ def find_the_longest_note_line(note_frame,next_frame,cqt,low_check=False,high_ch
 def get_note_line_start(cqt):
     result = []
     end_result = []
-    w,h = cqt.shape
+    w, h = cqt.shape
     cqt_max = np.max(cqt)
     cqt_min = np.min(cqt)
     end_position = 0
-    for i in range(5,h-15):
+    for i in range(5, h - 15):
         # 该列存在亮点
-        if np.max(cqt[:,i]) == cqt_max and i > end_position:
-            sub_cqt = cqt[:,i:]
+        if np.max(cqt[:, i]) == cqt_max and i > end_position:
+            sub_cqt = cqt[:, i:]
             # 从上往下逐行判断
-            for j in range(w-20,10,-1):
+            for j in range(w - 20, 10, -1):
                 row_cqt = sub_cqt[j]
-                #如果该行存在连续8个亮点
+                # 如果该行存在连续8个亮点
                 if np.min(row_cqt[0:8]) == cqt_max:
-                    #判断上下区域是否有音高线
-                    hight_cqt = cqt[j+10:j+20,i:i+10]
+                    # 判断上下区域是否有音高线
+                    hight_cqt = cqt[j + 10:j + 20, i:i + 10]
                     low_cqt = np.zeros(hight_cqt.shape)
                     if j - 20 > 0:
-                        low_cqt = cqt[j-20:j-10,i:i+10]
+                        low_cqt = cqt[j - 20:j - 10, i:i + 10]
                     check_nioce_cqt_start = j - 6 if j - 6 > 0 else 0
-                    check_nioce_cqt_end = j+6 if j + 6 < w else w
-                    check_nioce_cqt = cqt[check_nioce_cqt_start:check_nioce_cqt_end,i:i+10]
+                    check_nioce_cqt_end = j + 6 if j + 6 < w else w
+                    check_nioce_cqt = cqt[check_nioce_cqt_start:check_nioce_cqt_end, i:i + 10]
                     check_nioce_low_result = False
                     check_nioce_high_result = False
-                    for n in range(0,int((check_nioce_cqt_end-check_nioce_cqt_start-1)/2)):
+                    for n in range(0, int((check_nioce_cqt_end - check_nioce_cqt_start - 1) / 2)):
                         if np.max(check_nioce_cqt[n]) == cqt_min:
                             check_nioce_low_result = True
                             break
-                    for n in range(check_nioce_cqt_end - check_nioce_cqt_start-1,int((check_nioce_cqt_end - check_nioce_cqt_start - 1) / 2),-1):
+                    for n in range(check_nioce_cqt_end - check_nioce_cqt_start - 1,
+                                   int((check_nioce_cqt_end - check_nioce_cqt_start - 1) / 2), -1):
                         if np.max(check_nioce_cqt[n]) == cqt_min:
                             check_nioce_high_result = True
                             break
 
                     # 如果上下区域存在音高线，则说明不是噪声，则将起点作为节拍起点，同时找出连续区域的结束点
-                    if check_nioce_low_result and check_nioce_high_result and (np.max(hight_cqt) == cqt_max or np.max(low_cqt) == cqt_max):
+                    if check_nioce_low_result and check_nioce_high_result and (
+                            np.max(hight_cqt) == cqt_max or np.max(low_cqt) == cqt_max):
                         if len(result) == 0:
                             result.append(i)
-                            #print("i,j is {}==={}".format(i,j))
+                            # print("i,j is {}==={}".format(i,j))
                         else:
-                            offset = [np.abs(x -i) for x in result]
+                            offset = [np.abs(x - i) for x in result]
                             if np.min(offset) > 10:
                                 result.append(i)
-                                #print("i,j is {}==={}".format(i, j))
+                                # print("i,j is {}==={}".format(i, j))
                         longest_end_position = 0
-                        #找出该连通块最大的长度
-                        for k in range(j-10,j):
+                        # 找出该连通块最大的长度
+                        for k in range(j - 10, j):
                             k_cqt = sub_cqt[k]
+                            # print("k_cqt shape is {},{}".format(k_cqt.shape[0],np.min(k_cqt)))
                             indexs_min = [i for i in range(len(k_cqt)) if k_cqt[i] == cqt_min]
                             index_min = 0
                             if len(indexs_min) > 0:
@@ -643,44 +890,145 @@ def get_note_line_start(cqt):
                         check_nioce_high_result = False
                         check_nioce_low_result = False
                         break
-    return result,end_result
+    return result, end_result
 
 def get_note_lines(cqt,result):
     note_lines = []
-    w,h = cqt.shape
+    w, h = cqt.shape
     cqt_max = np.max(cqt)
     cqt_min = np.min(cqt)
     selected_result = []
+    longest_numbers = []
     for i in range(len(result)):
         x = result[i]
-        sub_cqt = cqt[:,x:x+15]
-        # 从下往上逐行判断
-        for j in range(10,w-10):
-            row_cqt = sub_cqt[j]
-            #如果存在连续的亮点，长度大于8
-            max_acount = np.sum(row_cqt == cqt_max)
-            min_acount = np.sum(row_cqt == cqt_min)
-            if max_acount > min_acount and np.sum(sub_cqt[j-1] == cqt_min) > min_acount:
-                note_lines.append(j)
-                selected_result.append(x)
-                #print("x,j is {},{}".format(x,j))
-                break
-        if j == w -11:
-            if len(note_lines)>0:
-                note_lines.append(note_lines[-1])
-                selected_result.append(x)
+        if i < len(result) - 1:
+            next = result[i + 1]
+        else:
+            next = h - 10
+        sub_cqt = cqt[:, x:next]
+        note_line, longest_num = get_longest_note_line(sub_cqt)
+        if longest_num > 5 and longest_num < 30:
+            note_lines.append(note_line)
+            longest_numbers.append(longest_num)
+            selected_result.append(x)
+        elif longest_num >= 30:
+            # 如果音高线以上有没有可分点
+            best_other_onset_frames, best_note_numbers = find_other_note_line(x, note_line + 4, sub_cqt)
+            if len(best_other_onset_frames) > 1:
+                for i in range(len(best_other_onset_frames)):
+                    note_lines.append(note_line)
+                    longest_numbers.append(best_note_numbers[i])
+                    selected_result.append(best_other_onset_frames[i])
             else:
-                # 从下往上逐行判断
-                for j in range(10, w - 10):
-                    row_cqt = sub_cqt[j]
-                    max_acount = np.sum(row_cqt == cqt_max)
-                    if max_acount > 5:
-                        note_lines.append(j)
-                        selected_result.append(x)
-                        # print("x,j is {},{}".format(x,j))
-                        break
+                # 一分为二
+                note_lines.append(note_line)
+                longest_numbers.append(int(longest_num / 2))
+                selected_result.append(x)
 
-    return selected_result,note_lines
+                note_lines.append(note_line)
+                longest_numbers.append(int(longest_num / 2))
+                selected_result.append(x + int(longest_num / 2))
+
+        # # 从下往上逐行判断
+        # for j in range(10,w-10):
+        #     row_cqt = sub_cqt[j]
+        #     #如果存在连续的亮点，长度大于8
+        #     max_acount = np.sum(row_cqt == cqt_max)
+        #     min_acount = np.sum(row_cqt == cqt_min)
+        #     if max_acount > min_acount and np.sum(sub_cqt[j-1] == cqt_min) > min_acount:
+        #         note_lines.append(j)
+        #         selected_result.append(x)
+        #         #print("x,j is {},{}".format(x,j))
+        #         break
+        # if j == w -11:
+        #     if len(note_lines)>0:
+        #         note_lines.append(note_lines[-1])
+        #         selected_result.append(x)
+        #     else:
+        #         # 从下往上逐行判断
+        #         for j in range(10, w - 10):
+        #             row_cqt = sub_cqt[j]
+        #             max_acount = np.sum(row_cqt == cqt_max)
+        #             if max_acount > 5:
+        #                 note_lines.append(j)
+        #                 selected_result.append(x)
+        #                 # print("x,j is {},{}".format(x,j))
+        #                 break
+
+    return selected_result, note_lines, longest_numbers
+
+# 如果音高线以上有没有可分点
+def find_other_note_line(onset_frame,note_line,sub_cqt):
+    w,h = sub_cqt.shape
+    print("w,h is {},{}".format(w,h))
+    min_cqt = np.min(sub_cqt)
+    max_cqt = np.max(sub_cqt)
+    longest_num = 0
+    best_note_numbers = []
+    best_other_onset_frames = []
+
+    for row in range(note_line+1,w-10):
+        row_cqt = sub_cqt[row]
+        if np.max(row_cqt) == max_cqt:
+            row_cqt = [1 if row_cqt[i] > min_cqt else 0 for i in range(len(row_cqt))]
+            other_onset_frames,note_numbers = get_all_small_note_line(onset_frame,row_cqt)
+            lenght_other_onset_frmaes = len(other_onset_frames)
+            if lenght_other_onset_frmaes > longest_num:
+                longest_num = lenght_other_onset_frmaes
+                best_note_numbers = note_numbers
+                best_other_onset_frames = other_onset_frames
+    return best_other_onset_frames,best_note_numbers
+
+def get_all_small_note_line(start,nums):
+    sum1, res = 0, 0
+    index = 0
+    onset_frames = []
+    note_numbers = []
+    start_index = 0
+    last_sum1 = 0
+    for i in nums:
+        #遇1加1，遇0置0
+        sum1 = sum1*i + i
+
+        if sum1 == 1: # 记录开始点
+            start_index = index
+        index +=1
+
+        if sum1 == 0 and last_sum1 > 10:
+            onset_frames.append(start + start_index)
+            note_numbers.append(last_sum1)
+        last_sum1 = sum1
+
+    return onset_frames,note_numbers
+
+def get_longest_note_line(sub_cqt):
+    w, h = sub_cqt.shape
+    #print("w,h is {},{}".format(w, h))
+
+    longest_num = 0
+    note_line = 0
+    if h > 0:
+        min_cqt = np.min(sub_cqt)
+        for row in range(10, w - 10):
+            row_cqt = sub_cqt[row]
+            row_cqt = [1 if row_cqt[i] > min_cqt else 0 for i in range(len(row_cqt))]
+            total_continue = continueOne(row_cqt)
+            if total_continue > longest_num:
+                longest_num = total_continue
+                note_line = row
+    return note_line, longest_num
+
+
+def continueOne(nums):
+    sum1, res = 0, 0
+    for i in nums:
+        #遇1加1，遇0置0
+        sum1 = sum1*i + i
+        if sum1 > res:
+            #记录连续1的长度
+            res = sum1
+    return res
+
 def del_false_note_lines(onset_frames,all_note_lines,rms,CQT):
     select_note_lines = []
     select_note_lines.append(all_note_lines[0])
@@ -797,6 +1145,9 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4熙(90).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8.2(90).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1.1(96).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律五（4）（60）.wav'
 
 
 
@@ -804,13 +1155,13 @@ if __name__ == "__main__":
 
     # plt.colorbar(format='%+2.0f dB')
     # plt.title('Constant-Q power spectrogram (note)')
-    plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms_v2(filename)
+    plt,total_score,onsets_score,notes_score,trend_number,base_notes_number = get_note_with_cqt_rms_v2(filename)
 
     plt.show()
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
-    # dir_list = ['e:/test_image/m1/A/']
+    dir_list = ['e:/test_image/m/A/']
     #dir_list = []
     total_accuracy = 0
     total_num = 0
@@ -836,7 +1187,7 @@ if __name__ == "__main__":
             print(dir + filename)
             # plt = draw_start_end_time(dir + filename)
             # plt = draw_baseline_and_note_on_cqt(dir + filename, False)
-            plt,total_score,onsets_score,notes_score = get_note_with_cqt_rms_v2(dir + filename)
+            plt,total_score,onsets_score,notes_score,trend_number,base_notes_number = get_note_with_cqt_rms_v2(dir + filename)
 
             # tmp = os.listdir(result_path)
 
@@ -852,22 +1203,23 @@ if __name__ == "__main__":
 
             if int(score) >= 90:
                 grade = 'A'
-                files_list_a.append([filename + ' - ' + grade, total_score, onsets_score, notes_score])
+                files_list_a.append([filename + ' - ' + grade, total_score, onsets_score, notes_score,trend_number,base_notes_number])
             elif int(score) >= 75:
                 grade = 'B'
-                files_list_b.append([filename + ' - ' + grade, total_score, onsets_score, notes_score])
+                files_list_b.append([filename + ' - ' + grade, total_score, onsets_score, notes_score,trend_number,base_notes_number])
             elif int(score) >= 60:
                 grade = 'C'
-                files_list_c.append([filename + ' - ' + grade, total_score, onsets_score, notes_score])
+                files_list_c.append([filename + ' - ' + grade, total_score, onsets_score, notes_score,trend_number,base_notes_number])
             elif int(score) >= 1:
                 grade = 'D'
-                files_list_d.append([filename + ' - ' + grade, total_score, onsets_score, notes_score])
+                files_list_d.append([filename + ' - ' + grade, total_score, onsets_score, notes_score,trend_number,base_notes_number])
             else:
                 grade = 'E'
             # result_path = result_path + grade + "/"
             # plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
             #grade = 'A'
-            plt.savefig(result_path + grade + "/" + filename + "-" + str(total_score) + '.jpg', bbox_inches='tight', pad_inches=0)
+            if np.abs(total_score - int(score)) > 15:
+                plt.savefig(result_path + grade + "/" + filename + "-" + str(total_score) + '.jpg', bbox_inches='tight', pad_inches=0)
             plt.clf()
             if np.abs(total_score - int(score)) <= 10:
                 total_10 += 1
@@ -875,9 +1227,9 @@ if __name__ == "__main__":
                 total_15 += 1
             if np.abs(total_score - int(score)) <= 20:
                 total_20 += 1
-    t1 = np.append(files_list_a, files_list_b).reshape(len(files_list_a) + len(files_list_b), 4)
-    t2 = np.append(files_list_c, files_list_d).reshape(len(files_list_c) + len(files_list_d), 4)
-    files_list = np.append(t1, t2).reshape(len(t1) + len(t2), 4)
+    t1 = np.append(files_list_a, files_list_b).reshape(len(files_list_a) + len(files_list_b), 6)
+    t2 = np.append(files_list_c, files_list_d).reshape(len(files_list_c) + len(files_list_d), 6)
+    files_list = np.append(t1, t2).reshape(len(t1) + len(t2), 6)
     #stat_total = [str(file_total) + "-" + str(total_10) + "-" + str(total_15) + "-" + str(total_20)]
     #files_list = np.append(files_list, stat_total).reshape(len(files_list) + 1, 5)
 
