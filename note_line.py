@@ -416,7 +416,7 @@ def get_note_with_cqt_rms_v2(filename):
     total_score2, onsets_score2, notes_score2, trend_number2, base_notes_number2 = get_score(filename, result2, longest_note2, base_frames)
 
     print("total_score2, total_score is {},{}".format(total_score2, total_score))
-    if total_score2 != total_score:
+    if total_score2 >= total_score:
         total_score, onsets_score, notes_score, trend_number, base_notes_number = total_score2, onsets_score2, notes_score2, trend_number2, base_notes_number2
         result, longest_note = result2, longest_note2
     print("total_score, onsets_score, notes_score is {},{},{}".format(total_score, onsets_score, notes_score))
@@ -1147,7 +1147,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8.2(90).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1.1(96).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律五（4）（60）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律二（2）（88）.wav'
 
 
 
