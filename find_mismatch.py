@@ -78,6 +78,24 @@ def get_deviation(standard_y,recognize_y,codes,each_onset_score):
             score = each_onset_score * offset
         total +=score
     return total
+
+def get_deviation_for_note(standard_y,recognize_y,codes,each_onset_score):
+    #each_onset_score = 100/len(standard_y)
+    score = 0
+    total = 0
+    length = len(standard_y) if len(standard_y) < len(recognize_y) else len(recognize_y)
+    for i in range(length-1):
+        offset =np.abs((recognize_y[i+1]-recognize_y[i]) /(standard_y[i+1] - standard_y[i]) -1)
+        standard_offset = get_code_offset(codes[i])
+        if offset <= standard_offset:
+            score = 0
+        elif offset >= 1:
+            score = each_onset_score
+        else:
+            score = each_onset_score * offset
+        total +=score
+    return total
+
 def get_code_offset(code):
     offset = 0
     code = re.sub("\D", "", code)  # 筛选数字
@@ -315,6 +333,38 @@ def get_score_jz_by_cqt_rms_optimised(filename):
 
     return int(score),int(lost_score),int(ex_score),int(min_d)
 
+
+'''
+计算节奏型音频的分数
+'''
+def get_score_for_note(onsets_frames,base_frames,type_index):
+
+
+    recognize_y = onsets_frames
+
+    #min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
+
+
+    standard_y = base_frames
+    print("standard_y is {}".format(standard_y))
+
+    code = get_code(type_index,2)
+    each_onset_score = 100 / len(standard_y)
+    print("each_onset_score is {}".format(each_onset_score))
+    ex_recognize_y = []
+
+    min_d = get_deviation_for_note(standard_y, recognize_y, code, each_onset_score)
+    #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+
+    # # 计算成绩测试
+    #print('偏移分值为：{}'.format(min_d))
+    onsets_frames_strength = np.ones(len(recognize_y))
+    onsets_frames_strength = [x *0.5 for x in onsets_frames_strength]
+    score,lost_score,ex_score,min_d = get_score_detail_for_note(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+    #print('最终得分为：{}'.format(score))
+
+    return int(score),int(lost_score),int(ex_score),int(min_d)
+
 '''
 计算节奏型音频的分数
 '''
@@ -398,6 +448,14 @@ if __name__ == '__main__':
     # filename = './mp3/节奏/节奏四（4）（60）.wav'
     # filename = './mp3/节奏/节奏2-02（20）.wav'
 
-    score, lost_score, ex_score, min_d = get_score_jz(filename)
+    #score, lost_score, ex_score, min_d = get_score_jz(filename)
+    #print("score, lost_score, ex_score, min_d is {},{},{},{}".format(score, lost_score, ex_score, min_d))
+
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
+    onsets_frames = [75, 96, 133, 155, 163, 173, 183, 194, 232, 251, 268, 286, 308]
+    base_frames = [0, 17, 51, 68, 76, 85, 93, 102, 119, 135, 152, 169, 186, 203]
+    recognize_times = [12, 31, 16, 6, 9, 6, 11, 6, 10, 14, 15, 14, 38]
+    type_index = get_onsets_index_by_filename_rhythm(filename)
+    score, lost_score, ex_score, min_d = get_score_for_note(onsets_frames, base_frames, type_index)
     print("score, lost_score, ex_score, min_d is {},{},{},{}".format(score, lost_score, ex_score, min_d))
 

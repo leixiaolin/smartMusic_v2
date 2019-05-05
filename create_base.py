@@ -157,6 +157,11 @@ def onsets_base_frames(code,frames_number):
     #ds.append(frames_number)
     return ds
 
+def get_rhythm_codes(filename):
+    type_index = get_onsets_index_by_filename_rhythm(filename)
+    codes = get_basetime(rhythm_codes[type_index])
+    return codes
+
 def onsets_base_frames_rhythm(index,frames_number):
     result = get_basetime(rhythm_codes[index])
     print(result)
@@ -255,7 +260,7 @@ def add_base_note_to_cqt_for_filename_by_base_notes(filename,base_frames,first_f
     if len(CQT) < 1:
         CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     w, h = CQT.shape
-    CQT[0:20, :] = np.min(CQT)
+    CQT[0:10, :] = np.min(CQT)
     if len(base_notes) < 1:
         base_notes = base_note(filename)
     base_notes = [x + 2 - np.min(base_notes) for x in base_notes]

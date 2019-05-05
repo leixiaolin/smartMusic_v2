@@ -118,7 +118,7 @@ def find_all_note_lines_v2(filename):
     print("w.h is {},{}".format(w, h))
     CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
     onsets_frames, end_position = get_note_line_start(CQT)
-    onsets_frames = find_loss_by_rms_mean(onsets_frames, rms, CQT)
+    onsets_frames,find_loss = find_loss_by_rms_mean(onsets_frames, rms, CQT)
     #onsets_frames = get_loss(onsets_frames, rms)
     onsets_frames,all_note_lines,longest_numbers = get_note_lines(CQT, onsets_frames)
     onsets_frames, all_note_lines, longest_numbers = get_loss_at_begin(CQT, onsets_frames, all_note_lines, longest_numbers)
@@ -135,7 +135,7 @@ def find_all_note_lines_v2(filename):
     #     onsets_frames = get_loss_after(onsets_frames, rms, int(np.median(onsets_frames)))
     #     onsets_frames, all_note_lines,longest_numbers = get_note_lines(CQT, onsets_frames)
     #     all_note_lines = check_all_note_lines(onsets_frames, all_note_lines, CQT)
-    return onsets_frames,all_note_lines,longest_numbers
+    return onsets_frames,all_note_lines,longest_numbers,find_loss
 
 def get_loss_at_begin(cqt,result,all_note_lines,longest_numbers):
     min_cqt = np.min(cqt)
@@ -277,35 +277,46 @@ def find_loss_by_rms_mean(result,rms,CQT):
     mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
     print("mean_rms_on_frames is {}".format(mean_rms_on_frames))
     rms_diff = np.diff(rms)
+    find_loss = []
     for i in range(5, len(rms) - 5):
         off = [np.abs(x - i) for x in select_result]
         min_off = np.min(off)
-        start = i - 1
-        end = i + 2
-        # 条件一：振幅有增加
-        sub_rms = [rms[start + 1] - rms[start], rms[start + 2] - rms[start], rms[start + 3] - rms[start]]
-        cond1 = np.max(sub_rms) > 0.1
 
-        # 条件一：跨过均值线
-        # cond2 = (rms[i] <= mean_rms_on_frames and rms[i+1]>mean_rms_on_frames) or (rms[i-1] <= mean_rms_on_frames and rms[i]>mean_rms_on_frames)
-        cond2 = rms_diff[i] > 0.3
+        if rms[i+1] > rms[i]:
+            hightest_point_after = find_hightest_after(i, rms)
+            cond1 = rms[hightest_point_after] - rms[i] > 0.8
+        else:
+            cond1 = False
 
-        if cond2 and min_off > 10:
+        if cond1 and min_off > 10:
             # print("np.std(sub_rms) is {}".format(np.std(sub_rms)))
-            print("np.max(sub_rms) is {}".format(np.max(sub_rms)))
+            #print("np.max(sub_rms) is {}".format(np.max(sub_rms)))
             if rms[i - 3] < rms[i]:
                 select_result.append(i - 3)
+                find_loss.append(i-3)
             elif rms[i - 2] < rms[i]:
                 select_result.append(i - 2)
+                find_loss.append(i - 2)
             elif rms[i - 1] < rms[i]:
                 select_result.append(i - 1)
+                find_loss.append(i - 1)
             else:
                 select_result.append(i)
+                find_loss.append(i)
     select_result.sort()
     rms_on_onset_frames_cqt = [rms[x] for x in select_result]
     mean_rms_on_frames = np.mean(rms_on_onset_frames_cqt)
     print("mean_rms_on_frames is {}".format(mean_rms_on_frames))
-    return select_result
+    return select_result,find_loss
+
+def find_hightest_after(start,rms):
+    good_point = start
+    for i in range(start+1,len(rms)-1):
+        if rms[i] > rms[i-1]:
+            good_point += 1
+        else:
+            break
+    return good_point
 
 def get_note_with_cqt_rms(filename):
     y, sr = librosa.load(filename)
@@ -318,6 +329,7 @@ def get_note_with_cqt_rms(filename):
     #result, longest_note = check_false_by_rms_mean(result, rms, longest_note)
     print("result is {}".format(result))
     print("longest_note is {}".format(longest_note))
+    print("np.std(longest_note) is {}".format(np.std(longest_note)))
         #print("x,longest_note_line is {},{}".format(x, longest_note_line))
     #print("longest_note is {}".format(longest_note))
     # CQT[:,onsets_frames[1]:h] = -100
@@ -393,13 +405,14 @@ def get_note_with_cqt_rms_v2(filename):
     time = librosa.get_duration(filename=filename)
     print("time is {}".format(time))
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
-    result, longest_note,longest_numbers = find_all_note_lines_v2(filename)
+    result, longest_note,longest_numbers,find_loss = find_all_note_lines_v2(filename)
     base_notes = base_note(filename)
     #result, longest_note = del_false_same(base_notes, result, longest_note)
     #result, longest_note = check_false_by_rms_mean(result, rms, longest_note)
     print("result is {},size is {}".format(result,len(result)))
     print("longest_note is {},size is {}".format(longest_note,len(longest_note)))
     print("longest_numbers is {},size is {}".format(longest_numbers,len(longest_numbers)))
+    print("np.std(longest_note) is {}".format(np.std(longest_note)))
         #print("x,longest_note_line is {},{}".format(x, longest_note_line))
     #print("longest_note is {}".format(longest_note))
     # CQT[:,onsets_frames[1]:h] = -100
@@ -411,7 +424,7 @@ def get_note_with_cqt_rms_v2(filename):
     total_score, onsets_score, notes_score,trend_number,base_notes_number = get_score(filename,result,longest_note,base_frames)
 
     print("before is {}".format(result))
-    result2, longest_note2 = del_false_same(base_notes, result, longest_note,longest_numbers)
+    result2, longest_note2 = del_false_same(base_notes, result, longest_note,longest_numbers,find_loss)
     print("aafter is {}".format(result2))
     total_score2, onsets_score2, notes_score2, trend_number2, base_notes_number2 = get_score(filename, result2, longest_note2, base_frames)
 
@@ -419,6 +432,11 @@ def get_note_with_cqt_rms_v2(filename):
     if total_score2 >= total_score:
         total_score, onsets_score, notes_score, trend_number, base_notes_number = total_score2, onsets_score2, notes_score2, trend_number2, base_notes_number2
         result, longest_note = result2, longest_note2
+
+    if total_score < 75 and total_score > 60:
+        total_score -= 15
+        onsets_score -= 6
+        notes_score -= 9
     print("total_score, onsets_score, notes_score is {},{},{}".format(total_score, onsets_score, notes_score))
     #print("std is {},{}".format(np.std(result[0:5]),np.std(base_frames[0:5])))
     # if np.abs(np.std(result[0:5]) - np.std(base_frames[0:5]))/np.std(result[0:5]) > 0.3:
@@ -527,7 +545,7 @@ def get_score(filename,result,longest_note,base_frames):
     #     notes_score -= n_gap
     return total_score,onsets_score,notes_score,trend_number,len(base_notes)
 
-def del_false_same(base_notes,onset_frames,notes_lines,longest_numbers):
+def del_false_same(base_notes,onset_frames,notes_lines,longest_numbers,find_loss):
     select_onset_frames = [onset_frames[0]]
     select_notes_lines = [notes_lines[0]]
     same_index = get_the_index_of_same(base_notes)
@@ -544,7 +562,7 @@ def del_false_same(base_notes,onset_frames,notes_lines,longest_numbers):
                 select_notes_lines.append(notes_lines[i])
             else:
                 #print("i ,longest_numbers[i-1] < onset_frames[i] - onset_frames[i-1] is {},{},{}".format(i,longest_numbers[i-1] ,onset_frames[i] - onset_frames[i-1]))
-                if i in same_index or longest_numbers[i - 1] < onset_frames[i] - onset_frames[i - 1] - 2:
+                if i in same_index or onset_frames[i] in find_loss:
                     select_onset_frames.append(onset_frames[i])
                     select_notes_lines.append(notes_lines[i])
     print("dddddd onset_frames is {}".format(select_onset_frames))
@@ -1058,17 +1076,23 @@ def check_all_note_lines(onset_frames,all_note_lines,cqt):
     note_lines_median = np.median(all_note_lines)
     print("note_lines_median is {}".format(note_lines_median))
     selected_note_lines = []
+    last = note_lines_median
     for i in range(len(all_note_lines)):
         x = all_note_lines[i]
         onset_frame = onset_frames[i]
-        if np.abs(x - note_lines_median)>10:
+        if np.abs(x - note_lines_median)>8:
             low_start = x + 1
             note_line = modify_some_note_line(cqt,onset_frame,low_start)
-            if np.abs(note_line - note_lines_median)>10:
+            if np.abs(note_line - note_lines_median)>8:
                 note_line = int(note_lines_median)
             selected_note_lines.append(note_line)
+        elif x - last > 8:
+            selected_note_lines.append(x - 12)
+        elif last - x > 8:
+            selected_note_lines.append(x + 12)
         else:
             selected_note_lines.append(x)
+        last = selected_note_lines[-1]
     return selected_note_lines
 
 def modify_some_note_line(cqt,onset_frame,low_start):
@@ -1147,7 +1171,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8.2(90).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1.1(96).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律二（2）（88）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋9卉(80).wav'
 
 
 
@@ -1161,7 +1185,7 @@ if __name__ == "__main__":
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
-    dir_list = ['e:/test_image/m/A/']
+    #dir_list = ['e:/test_image/m/A/']
     #dir_list = []
     total_accuracy = 0
     total_num = 0
