@@ -1173,7 +1173,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋9卉(80).wav'
 
-
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律8_40340（80）.wav'
 
     #y, sr = load_and_trim(filename)
 
@@ -1183,7 +1183,7 @@ if __name__ == "__main__":
 
     plt.show()
 
-    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m/A/']
     #dir_list = []

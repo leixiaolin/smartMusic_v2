@@ -93,7 +93,15 @@ def merge_note_line(result,end_result,times,note_lines):
             i += 1
     return select_result,select_end_result,select_times,select_note_lines
 
-def merge_note_line_by_distance(result,times,note_lines):
+def merge_note_line_by_distance(result,times,note_lines,rhythm_codes):
+    small_code_indexs = [i for i in range(len(rhythm_codes)) if rhythm_codes[i] == '250']
+    # less_half = [i for i in range(len(small_code_indexs)) if small_code_indexs[i] < int(len(rhythm_codes) / 2)]
+    # more_half = [i for i in range(len(small_code_indexs)) if small_code_indexs[i] > int(len(rhythm_codes) / 2)]
+    threshold = 9
+    times_threshold = 5
+    if len(small_code_indexs) > 0:
+        threshold = 3
+        times_threshold = 2
     select_result = []
     select_times = []
     select_note_lines = []
@@ -102,7 +110,7 @@ def merge_note_line_by_distance(result,times,note_lines):
     select_note_lines.append(note_lines[0])
 
     for i in range(1,len(result)):
-        if result[i] - result[i-1] > 9 and times[i] > 5:
+        if result[i] - result[i-1] > threshold and times[i] > times_threshold:
             select_result.append(result[i])
             select_times.append(times[i])
             select_note_lines.append(note_lines[i])
@@ -266,17 +274,23 @@ def check_all_note_lines(onset_frames,all_note_lines,cqt):
     note_lines_median = np.median(all_note_lines)
     print("note_lines_median is {}".format(note_lines_median))
     selected_note_lines = []
+    last = note_lines_median
     for i in range(len(all_note_lines)):
         x = all_note_lines[i]
         onset_frame = onset_frames[i]
-        if np.abs(x - note_lines_median)>10:
+        if np.abs(x - note_lines_median) > 8:
             low_start = x + 1
-            note_line = modify_some_note_line(cqt,onset_frame,low_start)
-            if np.abs(note_line - note_lines_median)>10:
+            note_line = modify_some_note_line(cqt, onset_frame, low_start)
+            if np.abs(note_line - note_lines_median) > 8:
                 note_line = int(note_lines_median)
             selected_note_lines.append(note_line)
+        elif x - last > 8:
+            selected_note_lines.append(x - 12)
+        elif last - x > 8:
+            selected_note_lines.append(x + 12)
         else:
             selected_note_lines.append(x)
+        last = selected_note_lines[-1]
     return selected_note_lines
 
 def del_false_note_lines(onset_frames,all_note_lines,rms,CQT):
@@ -352,11 +366,14 @@ def del_end_range(onset_frames,all_note_lines,times,rms):
     select_onset_frames = []
     select_all_note_lines = []
     select_times = []
+    threshold = 40
+    if onset_frames[-1] - onset_frames[-2] < 25:
+        threshold = 20
     for i in range(len(onset_frames)):
         onset_frame = onset_frames[i]
         note_line = all_note_lines[i]
         t = times[i]
-        if onset_frame < length - 40:
+        if onset_frame < length - threshold:
             select_onset_frames.append(onset_frame)
             select_all_note_lines.append(note_line)
             select_times.append(t)
@@ -497,7 +514,7 @@ def getNumofCommonSubstr(str1, str2):
 
 def get_match_notes(diff_base_notes_str,diff_longest_note_str):
     list_intersect,number = getNumofCommonSubstr(diff_base_notes_str, diff_longest_note_str)
-    print("diff_longest_note_str, diff_base_notes_str,intersect is {}==={}==={}".format(diff_longest_note_str, diff_base_notes_str,list_intersect))
+    #print("diff_longest_note_str, diff_base_notes_str,intersect is {}==={}==={}".format(diff_longest_note_str, diff_base_notes_str,list_intersect))
     return list_intersect
 
 def check_all_notes_trend(longest_note,base_notes):
@@ -547,11 +564,16 @@ def find_hightest_after(start,rms):
             break
     return good_point
 
-def change_rms(onsets_frames,rms,topN):
+def change_rms(onsets_frames,note_lines,rms,topN):
     result = []
     keyMap = {}
     indexMap = {}
-    select_onset_frames = onsets_frames.copy()
+    #select_onset_frames = onsets_frames.copy()
+    select_onset_frames = []
+    select_onset_frames.append(onsets_frames[0])
+    for i in range(1,len(note_lines)):
+        if np.abs(note_lines[i] - note_lines[i-1])>1:
+            select_onset_frames.append(onsets_frames[i])
     for i in range(1,len(rms)-3):
         if (i==1 and rms[2] > rms [1]) or (rms[i+1] > rms[i] and rms[i-1] > rms[i]):
             hightest_point_after = find_hightest_after(i, rms)
@@ -589,6 +611,145 @@ def cal_note_score(longest_note,base_notes):
                 notes_score += each_note_score * 0.5
         notes_score = int(notes_score)
     return notes_score
+def cal_score_v2(filename, result, longest_note, base_frames):
+    total_score, onsets_score, notes_score, trend_number, base_notes_number = get_score(filename, result, longest_note, base_frames)
+
+    if total_score < 75 and total_score > 60:
+        total_score -= 15
+        onsets_score -= 6
+        notes_score -= 9
+    print("cal_score_v2 total_score, onsets_score, notes_score is {},{},{} ".format(total_score, onsets_score, notes_score))
+    return total_score,onsets_score,notes_score
+def get_score(filename,result,longest_note,base_frames):
+
+    base_notes = base_note(filename)
+    #result, longest_note = del_false_same(base_notes, result, longest_note)
+    off = int(np.mean(base_frames) - np.mean(result))
+    # off = int((base_notes[0] - longest_note[0]))
+    base_frames = [x - off for x in base_frames]
+    min_d, best_y, _ = get_dtw_min(result, base_frames, 65)
+    onsets_score = 40 - int(min_d)
+    if len(result)<len(base_frames)*0.75:
+        onsets_score = onsets_score - int(40 * (len(base_frames) - len(result))/len(base_frames))
+    #print("onsets_score is {}".format(onsets_score))
+    off = int(np.mean(base_notes) - np.mean(longest_note))
+    #off = int((base_notes[0] - longest_note[0]))
+    base_notes = [x - off for x in base_notes]
+    #print("base_notes is {}".format(base_notes))
+    euclidean_norm = lambda x, y: np.abs(x - y)
+    if(len(longest_note) != len(base_notes)):
+        d, cost_matrix, acc_cost_matrix, path = dtw(longest_note, base_notes, dist=euclidean_norm)
+        notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
+    else:
+        each_note_score = 60 / len(longest_note)
+        notes_score = 0
+        for i in range(len(longest_note)):
+            if np.abs(longest_note[i] - base_notes[i]) <= 1:
+                notes_score += each_note_score
+            elif np.abs(longest_note[i] - base_notes[i]) <= 2:
+                notes_score += each_note_score * 0.5
+        notes_score = int(notes_score)
+    if len(longest_note)<len(base_notes)*0.75 and notes_score < 55:
+        notes_score = notes_score - int(60 * (len(base_notes) - len(longest_note))/len(base_notes))
+    if notes_score <= 0:
+        onsets_score = int(onsets_score / 2)
+        notes_score = 0
+    if notes_score >= 40 and onsets_score <= 5:
+        onsets_score = int(40 * notes_score / 60)
+    total_score = onsets_score + notes_score
+    trend_score,trend_number = check_notes_trend(longest_note,base_notes)
+    #print("trend_score is {}".format(60*trend_score))
+    if 60*trend_score > notes_score:
+        notes_score = int(60*trend_score)
+        total_score = notes_score + onsets_score
+
+    #print("1.onsets_score is {}".format(onsets_score))
+    #print("1.notes_score is {}".format(notes_score))
+    #print("1.total_score is {}".format(total_score))
+    #如果动态时间规整得分不高，且总分及格的，重新按相对音高计算得分
+    if notes_score < 45 and onsets_score < 35:
+            onsets_score = int(40 * trend_number / len(base_notes))
+            notes_score = int(60 * trend_number/len(base_notes))
+            total_score = notes_score + onsets_score
+    # if trend_score/len(base_notes)<0.25 and np.max([onsets_score,notes_score]) < 30 :
+    #     total_score = 0
+    #print("2.notes_score is {}".format(notes_score))
+    #print("2.total_score is {}".format(total_score))
+
+    list_intersect_before, list_intersect, list_intersect_after = check_all_notes_trend(longest_note, base_notes)
+    #print("list_intersect_before,list_intersect,list_intersect_after is {},{},{}".format(list_intersect_before,list_intersect,list_intersect_after))
+    # 如果总分小于85，则整体偏差分 30/85*total_score
+    # if total_score < 85:
+    #     gap = int(30/85*total_score)
+    #     o_gap = int(gap* 0.4)
+    #     n_gap = int(gap*0.6)
+    #     total_score -= gap
+    #     onsets_score -= o_gap
+    #     notes_score -= n_gap
+    return total_score,onsets_score,notes_score,trend_number,len(base_notes)
+
+def check_notes_trend(longest_note,base_notes):
+    diff_longest_note = []
+    diff_base_notes = []
+    diff_longest_note_str = ''
+    diff_base_notes_str = ''
+    for i in range(1,len(longest_note)):
+        if longest_note[i] > longest_note[i-1]:
+            tmp = 1
+        if longest_note[i] == longest_note[i-1]:
+            tmp = 0
+        if longest_note[i] < longest_note[i-1]:
+            tmp = 2
+        diff_longest_note.append(str(tmp))
+        diff_longest_note_str = ''.join(diff_longest_note)
+    for i in range(1,len(base_notes)):
+        if base_notes[i] > base_notes[i-1]:
+            tmp = 1
+        if base_notes[i] == base_notes[i-1]:
+            tmp = 0
+        if base_notes[i] < base_notes[i-1]:
+            tmp = 2
+        diff_base_notes.append(str(tmp))
+        diff_base_notes_str = ''.join(diff_base_notes)
+
+    list_intersect,number = getNumofCommonSubstr(diff_base_notes_str, diff_longest_note_str)
+    #print("diff_longest_note_str, diff_base_notes_str,intersect is {}==={}==={}".format(diff_longest_note_str, diff_base_notes_str,list_intersect))
+    #print("find intersect index is {}".format(diff_longest_note_str.find(list_intersect)))
+    start = diff_longest_note_str.find(list_intersect)
+    end = start + len(list_intersect)
+    intersect_longest_note = longest_note[start:end+1]
+    #print("sub longest_note is {}".format(intersect_longest_note))
+    start = diff_base_notes_str.find(list_intersect)
+    end = start + len(list_intersect)
+    intersect_base_notes = base_notes[start:end+1]
+    #print("sub base_notes is {}".format(intersect_base_notes))
+    intersect_score = [1 if np.abs(intersect_longest_note[i] - intersect_base_notes[i])<1 else 0 for i in range(len(intersect_base_notes))]
+    score = len(list_intersect)/len(diff_base_notes_str)
+
+    return score,len(list_intersect)
+
+def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes):
+    type_index = get_onsets_index_by_filename_rhythm(filename)
+    onset_score, lost_score, ex_score, min_d = get_score_for_note(onsets_frames.copy(), base_frames.copy(), type_index)
+    print("score, lost_score, ex_score, min_d is {},{},{},{}".format(onset_score, lost_score, ex_score, min_d))
+    # onset_score = cal_dtw_distance(onsets_frames.copy(), base_frames.copy())
+    note_score = cal_note_score(note_lines, base_notes)
+    onset_score = int(onset_score * 0.4)
+    score = onset_score + note_score
+
+    if onset_score >= 36 and score < 90:
+        note_score = int(60 * onset_score / 40)
+    elif onset_score > 30 and note_score < 36:
+        note_score = int(60 * onset_score / 40)
+
+    if note_score > 50 and score < 83:
+        onset_score = int(40 / 60 * note_score)
+    elif onset_score <= 24 and note_score > 45:
+        onset_score = int(40 / 60 * note_score)
+
+    score = onset_score + note_score
+    return score,onset_score, note_score
+
 def draw_plt(filename):
     y, sr = load_and_trim(filename)
     y, sr = librosa.load(filename)
@@ -608,11 +769,12 @@ def draw_plt(filename):
     onsets_frames, end_result, times, note_lines = get_note_line_start_v2(CQT,rhythm_codes)
     #onsets_frames, end_result, times, note_lines = merge_note_line(onsets_frames, end_result, times, note_lines)
     #onsets_frames = find_loss_by_rms_mean(onsets_frames, rms, CQT)
-    onsets_frames,keyMap = change_rms(onsets_frames,rms,len(base_frames))
+    onsets_frames,keyMap = change_rms(onsets_frames,note_lines,rms,len(base_frames))
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     onsets_frames, note_lines, times = del_false_same(base_notes, onsets_frames, note_lines, times,keyMap)
+    note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
     onsets_frames, note_lines,times = del_end_range(onsets_frames, note_lines,times, rms)
-    onsets_frames, times, note_lines = merge_note_line_by_distance(onsets_frames, times, note_lines)
+    onsets_frames, times, note_lines = merge_note_line_by_distance(onsets_frames, times, note_lines,rhythm_codes)
 
     print("0 onsets_frames is {},size is {}".format(onsets_frames,len(onsets_frames)))
     print("0 end_result is {},size is {}".format(end_result,len(end_result)))
@@ -623,15 +785,19 @@ def draw_plt(filename):
                                                                                          list_intersect,
                                                                                          list_intersect_after))
 
-    type_index = get_onsets_index_by_filename_rhythm(filename)
-    onset_score, lost_score, ex_score, min_d = get_score_for_note(onsets_frames.copy(), base_frames.copy(), type_index)
-    print("score, lost_score, ex_score, min_d is {},{},{},{}".format(onset_score, lost_score, ex_score, min_d))
-    #onset_score = cal_dtw_distance(onsets_frames.copy(), base_frames.copy())
-    note_scroe = cal_note_score(note_lines, base_notes)
-    onset_score = int(onset_score*0.4)
-    score = onset_score + note_scroe
-    print("score, onset_score, note_scroe is {},{},{}".format(score, onset_score, note_scroe ))
+    score1, onset_score1, note_score1 = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes)
 
+    print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
+
+    score2, onset_score2, note_score2 = cal_score_v2(filename, onsets_frames, note_lines, base_frames)
+
+    if max(score1,score2)>85:
+        if score1 >= score2:
+            score, onset_score, note_score = score1,onset_score1, note_score1
+        else:
+            score, onset_score, note_score = score2, onset_score2, note_score2
+    else:
+        score, onset_score, note_score = score1, onset_score1, note_score1
     plt.subplot(3, 1, 1)
     # librosa.display.specshow(CQT)
     librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
@@ -677,7 +843,7 @@ def draw_plt(filename):
     plt.axhline(mean_rms_on_frames, color='r')
     plt.vlines(onstm, 0, np.max(rms), color='y', linestyle='dashed')
     plt.xlim(0, np.max(times))
-    return plt,score,onset_score, note_scroe
+    return plt,score,onset_score, note_score
 
 
 if __name__ == "__main__":
@@ -699,13 +865,15 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律十（2）（80）.wav'
 
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-03（10）.wav'
+
     plt.close()
-    plt, score,onset_score, note_scroe = draw_plt(filename)
+    plt, total_score,onset_score, note_scroe = draw_plt(filename)
     plt.show()
     plt.clf()
 
 
-    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/D/']
     dir_list = []
@@ -724,6 +892,7 @@ if __name__ == "__main__":
         file_list = os.listdir(dir)
         # shuffle(file_list)  # 将语音文件随机排列
         # file_list = ['视唱1-01（95）.wav']
+        file_total = len(file_list)
         for filename in file_list:
             # clear_dir(image_dir)
             # wavname = re.findall(pattern,filename)[0]
