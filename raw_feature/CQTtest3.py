@@ -126,7 +126,7 @@ def del_false_same(base_notes, onset_frames, notes_lines, longest_numbers,keyMap
                     select_notes_lines.append(notes_lines[i])
                     select_longest_numbers.append(longest_numbers[i])
                 if longest_numbers[i - 1] == onset_frames[i] - onset_frames[i - 1]:
-                    if keyMap.get(onset_frames[i]) > 1.75:
+                    if not keyMap.get(onset_frames[i]) is None and keyMap.get(onset_frames[i]) > 1.75:
                         select_onset_frames.append(onset_frames[i])
                         select_notes_lines.append(notes_lines[i])
                         select_longest_numbers.append(longest_numbers[i])
@@ -697,7 +697,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律1_40312（95）.wav'
     filename = 'e:/test_image/m1/A/旋律1_40312（95）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律十（1）（90）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律十（2）（80）.wav'
 
     plt.close()
     plt, score,onset_score, note_scroe = draw_plt(filename)
@@ -708,7 +708,7 @@ if __name__ == "__main__":
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/D/']
-    #dir_list = []
+    dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
