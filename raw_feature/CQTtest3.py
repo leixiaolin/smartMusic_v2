@@ -110,7 +110,7 @@ def merge_note_line_by_distance(result,times,note_lines,rhythm_codes):
     select_note_lines.append(note_lines[0])
 
     for i in range(1,len(result)):
-        if result[i] - result[i-1] > threshold and times[i] > times_threshold:
+        if result[i] - select_result[-1] > threshold and times[i] > times_threshold:
             select_result.append(result[i])
             select_times.append(times[i])
             select_note_lines.append(note_lines[i])
@@ -578,7 +578,7 @@ def change_rms(onsets_frames,note_lines,rms,topN):
         if (i==1 and rms[2] > rms [1]) or (rms[i+1] > rms[i] and rms[i-1] > rms[i]):
             hightest_point_after = find_hightest_after(i, rms)
             if rms[hightest_point_after] - rms[i] > 0.3:
-                print("rms[hightest_point_after] - rms[i] is {}".format(rms[hightest_point_after] - rms[i] ))
+                print("rms[hightest_point_after] - rms[i],i is {}=={}".format(rms[hightest_point_after] - rms[i],i))
                 value = rms[hightest_point_after] - rms[i]
                 result.append(value)
                 keyMap[value] = i
@@ -737,18 +737,47 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes):
     onset_score = int(onset_score * 0.4)
     score = onset_score + note_score
 
-    if onset_score >= 36 and score < 90:
-        note_score = int(60 * onset_score / 40)
-    elif onset_score > 30 and note_score < 36:
-        note_score = int(60 * onset_score / 40)
-
-    if note_score > 50 and score < 83:
+    # if onset_score >= 36 and score < 90:
+    #     note_score = int(60 * onset_score / 40)
+    # elif onset_score > 30 and note_score < 36:
+    #     note_score = int(60 * onset_score / 40)
+    #
+    if note_score > 56:
         onset_score = int(40 / 60 * note_score)
-    elif onset_score <= 24 and note_score > 45:
+    elif note_score> 50 and score < 80:
         onset_score = int(40 / 60 * note_score)
 
     score = onset_score + note_score
+
+    # 漏唱数过多
+    if len(base_frames) - len(onsets_frames) >= 5:
+        score,onset_score,note_score = 40,15,25
+
+    #旋律分小于0
+    if note_score < 0:
+        note_score = int(60 * onset_score / 40)
+        score = onset_score + note_score
     return score,onset_score, note_score
+
+def del_middle_by_cqt(onset_frames,cqt):
+    result = []
+    for x in onset_frames:
+        flag = check_middle_by_cqt(x,cqt)
+        if flag is False:
+            result.append(x)
+    return result
+def check_middle_by_cqt(onset_frame,cqt):
+    w,h = cqt.shape
+    max_cqt = np.max(cqt)
+    min_cqt = np.min(cqt)
+    col_cqt = cqt[:,onset_frame]
+    flag = False
+    for i in range(w-10,30,-1):
+        if col_cqt[i] == max_cqt:
+            if np.max(cqt[i+1,onset_frame-3:onset_frame + 3]) == min_cqt and np.min(cqt[i,onset_frame-3:onset_frame + 3]) == max_cqt:
+                flag = True
+            break
+    return flag
 
 def draw_plt(filename):
     y, sr = load_and_trim(filename)
@@ -767,9 +796,11 @@ def draw_plt(filename):
     # onsets_frames,end_position = get_note_line_start(CQT)
     rhythm_codes = get_rhythm_codes(filename)
     onsets_frames, end_result, times, note_lines = get_note_line_start_v2(CQT,rhythm_codes)
+    print("frames_total ===== is {}".format(onsets_frames[-1] + times[-1] - onsets_frames[0]))
     #onsets_frames, end_result, times, note_lines = merge_note_line(onsets_frames, end_result, times, note_lines)
     #onsets_frames = find_loss_by_rms_mean(onsets_frames, rms, CQT)
     onsets_frames,keyMap = change_rms(onsets_frames,note_lines,rms,len(base_frames))
+    onsets_frames = del_middle_by_cqt(onsets_frames, CQT)
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     onsets_frames, note_lines, times = del_false_same(base_notes, onsets_frames, note_lines, times,keyMap)
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
@@ -789,15 +820,16 @@ def draw_plt(filename):
 
     print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
 
-    score2, onset_score2, note_score2 = cal_score_v2(filename, onsets_frames, note_lines, base_frames)
-
-    if max(score1,score2)>85:
-        if score1 >= score2:
-            score, onset_score, note_score = score1,onset_score1, note_score1
-        else:
-            score, onset_score, note_score = score2, onset_score2, note_score2
-    else:
-        score, onset_score, note_score = score1, onset_score1, note_score1
+    # score2, onset_score2, note_score2 = cal_score_v2(filename, onsets_frames, note_lines, base_frames)
+    #
+    # if max(score1,score2)>85:
+    #     if score1 >= score2:
+    #         score, onset_score, note_score = score1,onset_score1, note_score1
+    #     else:
+    #         score, onset_score, note_score = score2, onset_score2, note_score2
+    # else:
+    #     score, onset_score, note_score = score1, onset_score1, note_score1
+    score, onset_score, note_score = score1, onset_score1, note_score1
     plt.subplot(3, 1, 1)
     # librosa.display.specshow(CQT)
     librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
@@ -863,9 +895,9 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律1_40312（95）.wav'
     filename = 'e:/test_image/m1/A/旋律1_40312（95）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律十（2）（80）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律十（2）（80）.wav'
 
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-03（10）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1语(80).wav'
 
     plt.close()
     plt, total_score,onset_score, note_scroe = draw_plt(filename)
@@ -926,7 +958,7 @@ if __name__ == "__main__":
             # plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
             #grade = 'A'
             #plt.savefig(result_path + grade + "/" + filename + '-'+ str(total_score) + '-' + str(onset_score) + '-' + str(note_scroe)  + '.jpg', bbox_inches='tight', pad_inches=0)
-            if np.abs(total_score - int(score)) > 15:
+            if np.abs(total_score - int(score)) > 15 or True:
                 plt.savefig( result_path + grade + "/" + filename + '-' + str(total_score) + '-' + str(onset_score) + '-' + str(note_scroe) + '.jpg', bbox_inches='tight', pad_inches=0)
             plt.clf()
 
