@@ -21,15 +21,19 @@ def get_note_line_start_v2(cqt,rhythm_codes):
     small_code_indexs = [i for i in range(len(rhythm_codes)) if rhythm_codes[i] == '250']
     threshold_length = 4
     threshold_length_before = 4
+    threshold_length_midle = 4
     threshold_length_after = 4
     if len(small_code_indexs) < 1:
         threshold_length = 10
     else:
-        less_half = [i for i in range(len(small_code_indexs)) if small_code_indexs[i] < int(len(rhythm_codes)/2) ]
-        more_half = [i for i in range(len(small_code_indexs)) if small_code_indexs[i] > int(len(rhythm_codes) / 2)]
-        if len(less_half) < 1:
+        before_half = [i for i in range(len(small_code_indexs)) if small_code_indexs[i] <= int(len(rhythm_codes)/3) ]
+        middle_half = [i for i in range(len(small_code_indexs)) if small_code_indexs[i] > int(len(rhythm_codes)/3) and  small_code_indexs[i] <= int(len(rhythm_codes)*2/3)]
+        after_half = [i for i in range(len(small_code_indexs)) if small_code_indexs[i] > int(len(rhythm_codes)*2/3)]
+        if len(before_half) < 1:
             threshold_length_before = 10
-        if len(more_half) < 1:
+        if len(middle_half) < 1:
+            threshold_length_midle = 10
+        if len(after_half) < 1:
             threshold_length_after = 10
     min_cqt = np.min(cqt)
     max_cqt = np.max(cqt)
@@ -59,8 +63,10 @@ def get_note_line_start_v2(cqt,rhythm_codes):
                     offset += 1
                 else:
                     flag = False
-                    if col <= int(h/2):
+                    if col <= int(h/3):
                         threshold_length = threshold_length_before
+                    elif col > int(h/3) and col <= int(h*2/3):
+                        threshold_length = threshold_length_midle
                     else:
                         threshold_length = threshold_length_after
 
@@ -571,6 +577,7 @@ def change_rms(onsets_frames,note_lines,rms,topN):
     #select_onset_frames = onsets_frames.copy()
     select_onset_frames = []
     select_onset_frames.append(onsets_frames[0])
+    new_added = []
     for i in range(1,len(note_lines)):
         if np.abs(note_lines[i] - note_lines[i-1])>1:
             select_onset_frames.append(onsets_frames[i])
@@ -590,8 +597,11 @@ def change_rms(onsets_frames,note_lines,rms,topN):
         offset = [np.abs(index - x) for x in select_onset_frames]
         if index > onsets_frames[0] and np.min(offset) > 9:
             select_onset_frames.append(index)
+            new_added.append(index)
+            print("add index is {}".format(index))
     select_onset_frames.sort()
-    return select_onset_frames,indexMap
+    print("all frames is {}".format(select_onset_frames))
+    return select_onset_frames,indexMap,new_added
 def cal_note_score(longest_note,base_notes):
     off = int(np.mean(base_notes) - np.mean(longest_note))
     # off = int((base_notes[0] - longest_note[0]))
@@ -773,7 +783,7 @@ def check_middle_by_cqt(onset_frame,cqt):
     col_cqt = cqt[:,onset_frame]
     flag = False
     for i in range(w-10,30,-1):
-        if col_cqt[i] == max_cqt:
+        if np.min(col_cqt[i-1:i+1]) == max_cqt:
             if np.max(cqt[i+1,onset_frame-3:onset_frame + 3]) == min_cqt and np.min(cqt[i,onset_frame-3:onset_frame + 3]) == max_cqt:
                 flag = True
             break
@@ -799,7 +809,7 @@ def draw_plt(filename):
     print("frames_total ===== is {}".format(onsets_frames[-1] + times[-1] - onsets_frames[0]))
     #onsets_frames, end_result, times, note_lines = merge_note_line(onsets_frames, end_result, times, note_lines)
     #onsets_frames = find_loss_by_rms_mean(onsets_frames, rms, CQT)
-    onsets_frames,keyMap = change_rms(onsets_frames,note_lines,rms,len(base_frames))
+    onsets_frames,keyMap,new_added = change_rms(onsets_frames,note_lines,rms,len(base_frames))
     onsets_frames = del_middle_by_cqt(onsets_frames, CQT)
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     onsets_frames, note_lines, times = del_false_same(base_notes, onsets_frames, note_lines, times,keyMap)
@@ -897,7 +907,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律十（2）（80）.wav'
 
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1语(80).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律七（3）（95）.wav'
 
     plt.close()
     plt, total_score,onset_score, note_scroe = draw_plt(filename)
