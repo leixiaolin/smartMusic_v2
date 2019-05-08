@@ -190,6 +190,7 @@ def onsets_base_frames_for_note(filename):
     y, sr = librosa.load(filename)
     start, end = get_start_and_end_for_note(y, sr)
     frames_total = end - start
+    print("frames_total is {}".format(frames_total))
     type_index = get_onsets_index_by_filename_rhythm(filename)
     base_frames = onsets_base_frames_rhythm(type_index, frames_total)
     return base_frames
@@ -1632,9 +1633,9 @@ def get_onsets_index_by_filename_rhythm(filename):
         return 9
     elif filename.find("旋律1") >= 0 or filename.find("旋律一") >= 0 or filename.find("视唱一") >= 0 or filename.find("视唱1") >= 0 or filename.find("旋1") >= 0:
         return 0
-    elif filename.find("旋律2") >= 0 or filename.find("旋律二") >= 0 or filename.find("视唱二") >= 0 or filename.find("旋律题2") >= 0 or filename.find("旋2") >= 0:
+    elif filename.find("旋律2") >= 0 or filename.find("旋律二") >= 0 or filename.find("视唱二") >= 0 or filename.find("视唱2") >= 0 or filename.find("旋2") >= 0:
         return 1
-    elif filename.find("旋律3") >= 0 or filename.find("旋律三") >= 0 or filename.find("视唱三") >= 0 or filename.find("旋律题3") >= 0 or filename.find("旋3") >= 0:
+    elif filename.find("旋律3") >= 0 or filename.find("旋律三") >= 0 or filename.find("视唱三") >= 0 or filename.find("视唱3") >= 0 or filename.find("旋3") >= 0:
         return 2
     elif filename.find("旋律4") >= 0 or filename.find("旋律四") >= 0 or filename.find("视唱四") >= 0 or filename.find("视唱4") >= 0 or filename.find("旋4") >= 0:
         return 3
