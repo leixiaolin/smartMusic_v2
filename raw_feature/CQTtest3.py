@@ -284,7 +284,7 @@ def check_all_note_lines(onset_frames,all_note_lines,cqt):
     for i in range(len(all_note_lines)):
         x = all_note_lines[i]
         onset_frame = onset_frames[i]
-        if np.abs(x - note_lines_median) > 8:
+        if np.abs(x - note_lines_median) > 10:
             low_start = x + 1
             note_line = modify_some_note_line(cqt, onset_frame, low_start)
             if np.abs(note_line - note_lines_median) > 8:
@@ -441,9 +441,12 @@ def get_longest_note_line(sub_cqt):
             row_cqt = sub_cqt[row]
             row_cqt = [1 if row_cqt[i] > min_cqt else 0 for i in range(len(row_cqt))]
             total_continue = continueOne(row_cqt)
-            if total_continue > longest_num:
-                longest_num = total_continue
-                note_line = row
+            if total_continue > 0.8 * h:
+                return row, total_continue
+            else:
+                if total_continue > longest_num:
+                    longest_num = total_continue
+                    note_line = row
     return note_line,longest_num
 
 
@@ -591,7 +594,7 @@ def change_rms(onsets_frames,note_lines,rms,cqt,topN,rhythm_codes):
         if (i==1 and rms[2] > rms [1]) or (rms[i+1] > rms[i] and rms[i-1] > rms[i]):
             hightest_point_after = find_hightest_after(i, rms)
             if rms[hightest_point_after] - rms[i] > 0.3:
-                print("rms[hightest_point_after] - rms[i],i is {}=={}".format(rms[hightest_point_after] - rms[i],i))
+                #print("rms[hightest_point_after] - rms[i],i is {}=={}".format(rms[hightest_point_after] - rms[i],i))
                 value = rms[hightest_point_after] - rms[i]
                 result.append(value)
                 keyMap[value] = i
@@ -803,12 +806,19 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
             score, onset_score, note_score = 80,35,45
     return score,onset_score, note_score
 
-def del_middle_by_cqt(onset_frames,cqt):
+def del_middle_by_cqt(onset_frames,indexMap,cqt):
     result = []
+
+
     for x in onset_frames:
-        flag = check_middle_by_cqt(x,cqt)
-        if flag is False:
+        value = indexMap.get(x)
+        if not value is None and value > 2.0:
             result.append(x)
+        else:
+            flag = check_middle_by_cqt(x,cqt)
+            if flag is False:
+                result.append(x)
+
     return result
 def check_middle_by_cqt(onset_frame,cqt):
     w,h = cqt.shape
@@ -843,15 +853,25 @@ def draw_plt(filename):
     print("frames_total ===== is {}".format(onsets_frames[-1] + times[-1] - onsets_frames[0]))
     #onsets_frames, end_result, times, note_lines = merge_note_line(onsets_frames, end_result, times, note_lines)
     #onsets_frames = find_loss_by_rms_mean(onsets_frames, rms, CQT)
-    onsets_frames,keyMap,new_added = change_rms(onsets_frames,note_lines,rms,CQT,len(base_frames),rhythm_codes)
-    onsets_frames = del_middle_by_cqt(onsets_frames, CQT)
+    #print("====01 onsets_frames is {}".format(onsets_frames))
+    onsets_frames,indexMap,new_added = change_rms(onsets_frames,note_lines,rms,CQT,len(base_frames),rhythm_codes)
+    #print("====02 onsets_frames is {}".format(onsets_frames))
+    onsets_frames = del_middle_by_cqt(onsets_frames,indexMap, CQT)
+    #print("====03 onsets_frames is {}".format(onsets_frames))
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
-    onsets_frames, note_lines, times = del_false_same(base_notes, onsets_frames, note_lines, times,keyMap)
+    #print("====04 onsets_frames is {}".format(onsets_frames))
+    onsets_frames, note_lines, times = del_false_same(base_notes, onsets_frames, note_lines, times,indexMap)
+    #print("====05 onsets_frames is {}".format(onsets_frames))
+    print("before check_all_note_lines is {}".format(note_lines))
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
+    print("after check_all_note_lines is {}".format(note_lines))
     onsets_frames, note_lines,times = del_end_range(onsets_frames, note_lines,times, rms)
+    #print("====06 onsets_frames is {}".format(onsets_frames))
     onsets_frames, times, note_lines = merge_note_line_by_distance(onsets_frames, times, note_lines,rhythm_codes)
+    #print("====07 onsets_frames is {}".format(onsets_frames))
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
+    #print("====08 onsets_frames is {}".format(onsets_frames))
 
     print("0 onsets_frames is {},size is {}".format(onsets_frames,len(onsets_frames)))
     print("0 end_result is {},size is {}".format(end_result,len(end_result)))
@@ -943,7 +963,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律十（2）（80）.wav'
 
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋7谭（93）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1罗（96）.wav'
 
     plt.close()
     plt, total_score,onset_score, note_scroe = draw_plt(filename)
@@ -954,7 +974,7 @@ if __name__ == "__main__":
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/D/']
-    dir_list = []
+    #dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
