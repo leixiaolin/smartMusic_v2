@@ -353,7 +353,24 @@ def get_score_for_note(onsets_frames,base_frames,type_index):
     print("each_onset_score is {}".format(each_onset_score))
     ex_recognize_y = []
 
-    min_d = get_deviation_for_note(standard_y, recognize_y, code, each_onset_score)
+    ex_recognize_y = []
+    # 多唱的情况
+    if len(standard_y) < len(recognize_y):
+        _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
+        # 剥离多唱节拍，便于计算整体偏差分
+        modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
+        min_d = get_deviation_for_note(standard_y, modify_recognize_y, code, each_onset_score)
+    # 漏唱的情况
+    if len(standard_y) > len(recognize_y):
+        _, lost_standard_y = get_mismatch_line(recognize_y.copy(), standard_y.copy())
+        # 加上漏唱节拍，便于计算整体偏差分
+        modify_standard_y = recognize_y.copy()
+        for x in lost_standard_y:
+            modify_standard_y.append(x)
+        modify_standard_y.sort()
+        min_d = get_deviation_for_note(modify_standard_y, recognize_y, code, each_onset_score)
+    if len(standard_y) == len(recognize_y):
+        min_d = get_deviation_for_note(standard_y, recognize_y, code, each_onset_score)
     #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
 
     # # 计算成绩测试

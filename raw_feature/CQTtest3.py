@@ -107,7 +107,7 @@ def merge_note_line_by_distance(result,times,note_lines,rhythm_codes):
     times_threshold = 5
     if len(small_code_indexs) > 0:
         threshold = 3
-        times_threshold = 2
+        times_threshold = 3
     select_result = []
     select_times = []
     select_note_lines = []
@@ -570,14 +570,20 @@ def find_hightest_after(start,rms):
             break
     return good_point
 
-def change_rms(onsets_frames,note_lines,rms,topN):
+def change_rms(onsets_frames,note_lines,rms,cqt,topN,rhythm_codes):
     result = []
     keyMap = {}
     indexMap = {}
     #select_onset_frames = onsets_frames.copy()
     select_onset_frames = []
     select_onset_frames.append(onsets_frames[0])
+    print("all onsets_frames is {}".format(onsets_frames))
     new_added = []
+    small_code_indexs = [i for i in range(len(rhythm_codes)) if rhythm_codes[i] == '250']
+
+    threshold = 9
+    if len(small_code_indexs) > 0:
+        threshold = 5
     for i in range(1,len(note_lines)):
         if np.abs(note_lines[i] - note_lines[i-1])>1:
             select_onset_frames.append(onsets_frames[i])
@@ -595,10 +601,18 @@ def change_rms(onsets_frames,note_lines,rms,topN):
     for key in topN_key:
         index = keyMap.get(key)
         offset = [np.abs(index - x) for x in select_onset_frames]
-        if index > onsets_frames[0] and np.min(offset) > 9:
+        if index > onsets_frames[0] and np.min(offset) > threshold:
             select_onset_frames.append(index)
             new_added.append(index)
             print("add index is {}".format(index))
+        elif index < onsets_frames[0] and key > 1.8:
+            cols_cqt = cqt[10:, index:onsets_frames[0]]  # 柜向量
+            min_cqt = np.min(cqt)
+            best_longest, best_begin, best_row = get_longest_for_cols_cqt(cols_cqt, min_cqt)
+            if best_longest > 10:
+                select_onset_frames.append(index)
+                new_added.append(index)
+                print("add index is {}".format(index))
     select_onset_frames.sort()
     print("all frames is {}".format(select_onset_frames))
     return select_onset_frames,indexMap,new_added
@@ -738,7 +752,7 @@ def check_notes_trend(longest_note,base_notes):
 
     return score,len(list_intersect)
 
-def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes):
+def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times):
     type_index = get_onsets_index_by_filename_rhythm(filename)
     onset_score, lost_score, ex_score, min_d = get_score_for_note(onsets_frames.copy(), base_frames.copy(), type_index)
     print("score, lost_score, ex_score, min_d is {},{},{},{}".format(onset_score, lost_score, ex_score, min_d))
@@ -754,7 +768,7 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes):
     #
     if note_score > 56:
         onset_score = int(40 / 60 * note_score)
-    elif note_score> 50 and score < 80:
+    elif note_score> 50 and score <= 80:
         onset_score = int(40 / 60 * note_score)
 
     score = onset_score + note_score
@@ -767,6 +781,26 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes):
     if note_score < 0:
         note_score = int(60 * onset_score / 40)
         score = onset_score + note_score
+
+    #判断每个节拍的时长
+    total_offset = 0
+    for i in range(1,len(onsets_frames)):
+        if times[i-1] <= (onsets_frames[i] - onsets_frames[i-1])/3:
+            total_offset += 1
+    if total_offset >= 2 and score >= 90:
+        tmp_score = int(5 * total_offset)
+        score, onset_score, note_score = score - tmp_score, onset_score - int(tmp_score/2), note_score - int(tmp_score/2)
+    #如果节拍完全吻合数较多
+    length = len(onsets_frames) if len(onsets_frames) < len(base_frames) else len(base_frames)
+    base_frames = [x - (base_frames[0] - onsets_frames[0]) for x in base_frames]
+    onset_diff = [1 if onsets_frames[i]-base_frames[i]<2 else 0 for i in range(length)]
+    if len(onsets_frames) == len(base_frames):
+        if np.sum(onset_diff)>=5 and score<91:
+            score, onset_score, note_score = 91,40,51
+    if np.abs(len(onsets_frames) - len(base_frames)) <= 3:
+        onset_diff = [1 if onsets_frames[i] - base_frames[i] < 4 else 0 for i in range(length)]
+        if np.sum(onset_diff)>=5 and score<80:
+            score, onset_score, note_score = 80,35,45
     return score,onset_score, note_score
 
 def del_middle_by_cqt(onset_frames,cqt):
@@ -809,13 +843,15 @@ def draw_plt(filename):
     print("frames_total ===== is {}".format(onsets_frames[-1] + times[-1] - onsets_frames[0]))
     #onsets_frames, end_result, times, note_lines = merge_note_line(onsets_frames, end_result, times, note_lines)
     #onsets_frames = find_loss_by_rms_mean(onsets_frames, rms, CQT)
-    onsets_frames,keyMap,new_added = change_rms(onsets_frames,note_lines,rms,len(base_frames))
+    onsets_frames,keyMap,new_added = change_rms(onsets_frames,note_lines,rms,CQT,len(base_frames),rhythm_codes)
     onsets_frames = del_middle_by_cqt(onsets_frames, CQT)
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     onsets_frames, note_lines, times = del_false_same(base_notes, onsets_frames, note_lines, times,keyMap)
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
     onsets_frames, note_lines,times = del_end_range(onsets_frames, note_lines,times, rms)
     onsets_frames, times, note_lines = merge_note_line_by_distance(onsets_frames, times, note_lines,rhythm_codes)
+    onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
+    note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
 
     print("0 onsets_frames is {},size is {}".format(onsets_frames,len(onsets_frames)))
     print("0 end_result is {},size is {}".format(end_result,len(end_result)))
@@ -826,7 +862,7 @@ def draw_plt(filename):
                                                                                          list_intersect,
                                                                                          list_intersect_after))
 
-    score1, onset_score1, note_score1 = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes)
+    score1, onset_score1, note_score1 = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes,times)
 
     print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
 
@@ -907,7 +943,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律十（2）（80）.wav'
 
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律七（3）（95）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋7谭（93）.wav'
 
     plt.close()
     plt, total_score,onset_score, note_scroe = draw_plt(filename)
@@ -915,7 +951,7 @@ if __name__ == "__main__":
     plt.clf()
 
 
-    dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/D/']
     dir_list = []
@@ -968,8 +1004,13 @@ if __name__ == "__main__":
             # plt.savefig(result_path + filename + '.jpg', bbox_inches='tight', pad_inches=0)
             #grade = 'A'
             #plt.savefig(result_path + grade + "/" + filename + '-'+ str(total_score) + '-' + str(onset_score) + '-' + str(note_scroe)  + '.jpg', bbox_inches='tight', pad_inches=0)
-            if np.abs(total_score - int(score)) > 15 or True:
-                plt.savefig( result_path + grade + "/" + filename + '-' + str(total_score) + '-' + str(onset_score) + '-' + str(note_scroe) + '.jpg', bbox_inches='tight', pad_inches=0)
+            # plt.savefig(result_path + grade + "/" + filename + '-' + str(total_score) + '-' + str(onset_score) + '-' + str(note_scroe) + '.jpg', bbox_inches='tight', pad_inches=0)
+            if grade == 'D':
+                if total_score > 70:
+                    plt.savefig(result_path + grade + "/" + filename + '-' + str(total_score) + '-' + str(onset_score) + '-' + str(note_scroe) + '.jpg', bbox_inches='tight', pad_inches=0)
+            else:
+                if np.abs(total_score - int(score)) > 15 :
+                    plt.savefig( result_path + grade + "/" + filename + '-' + str(total_score) + '-' + str(onset_score) + '-' + str(note_scroe) + '.jpg', bbox_inches='tight', pad_inches=0)
             plt.clf()
 
             if np.abs(total_score - int(score)) <= 10:
