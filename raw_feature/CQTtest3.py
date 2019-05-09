@@ -250,11 +250,78 @@ def get_note_lines(cqt,result):
             next = h -10
         sub_cqt = cqt[:,x:next]
         note_line, longest_num = get_longest_note_line(sub_cqt)
+        # flag,low_begin, low_note_line, low_longest_num,high_begin,high_note_line,high_longest_num = check_more_note_line(sub_cqt,note_line, longest_num)
+        # #判断是否存在可再分的情况
+        # if flag is True:
+        #     if low_begin<high_begin:
+        #         #前一条
+        #         note_lines.append(low_note_line)
+        #         longest_numbers.append(low_longest_num)
+        #         selected_result.append(x)
+        #         #后一条
+        #         note_lines.append(high_note_line)
+        #         longest_numbers.append(high_longest_num)
+        #         selected_result.append(x+low_longest_num)
+        #     else:
+        #         # 前一条
+        #         note_lines.append(high_note_line)
+        #         longest_numbers.append(high_longest_num)
+        #         selected_result.append(x)
+        #         # 后一条
+        #         note_lines.append(low_note_line)
+        #         longest_numbers.append(low_longest_num)
+        #         selected_result.append(x + high_longest_num)
+        # else:
+        #     note_lines.append(note_line)
+        #     longest_numbers.append(longest_num)
+        #     selected_result.append(x)
         note_lines.append(note_line)
         longest_numbers.append(longest_num)
         selected_result.append(x)
-
     return selected_result,note_lines,longest_numbers
+
+def check_more_note_line(sub_cqt,note_line, longest_num):
+    w, h = sub_cqt.shape
+    # print("w,h is {},{}".format(w,h))
+
+    best_longest_num = 0
+    best_note_line = 0
+    best_begin = 0
+    if h > 0:
+        min_cqt = np.min(sub_cqt)
+        #取音高线下侧
+        for row in range(note_line-1, note_line -10,-1):
+            row_cqt = sub_cqt[row]
+            row_cqt = [1 if row_cqt[i] > min_cqt else 0 for i in range(len(row_cqt))]
+            total_continue,begin  = getLongestLine(row_cqt)
+            if total_continue > longest_num or (total_continue == longest_num and row<note_line-1):
+                best_longest_num = total_continue
+                best_note_line = row
+                best_begin = begin
+        low_note_line = best_note_line
+        low_longest_num = best_longest_num
+        low_begin = best_begin
+
+        # 取音高线上侧
+        best_longest_num = 0
+        best_note_line = 0
+        best_begin = 0
+        for row in range(note_line+1, note_line + 10):
+            row_cqt = sub_cqt[row]
+            row_cqt = [1 if row_cqt[i] > min_cqt else 0 for i in range(len(row_cqt))]
+            total_continue,begin = getLongestLine(row_cqt)
+            if total_continue > longest_num or (total_continue == longest_num and row>note_line+1):
+                best_longest_num = total_continue
+                best_note_line = row
+                best_begin = begin
+        high_note_line = best_note_line
+        high_longest_num = best_longest_num
+        high_begin = best_begin
+
+        if (longest_num - low_longest_num - high_longest_num) < 3:
+            return True,low_begin,low_note_line, low_longest_num,high_begin,high_note_line,high_longest_num
+        else:
+            return False, low_begin, low_note_line, low_longest_num,high_begin,high_note_line,high_longest_num
 
 def modify_some_note_line(cqt,onset_frame,low_start):
     note_line = 0
@@ -771,7 +838,7 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
     #
     if note_score > 56:
         onset_score = int(40 / 60 * note_score)
-    elif note_score> 50 and score <= 80:
+    elif note_score> 50 and score <= 80 and score > 70:
         onset_score = int(40 / 60 * note_score)
 
     score = onset_score + note_score
@@ -781,7 +848,7 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
         score,onset_score,note_score = 40,15,25
 
     #旋律分小于0
-    if note_score < 0:
+    if note_score < 5:
         note_score = int(60 * onset_score / 40)
         score = onset_score + note_score
 
@@ -963,7 +1030,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律十（2）（80）.wav'
 
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1罗（96）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1文(85).wav'
 
     plt.close()
     plt, total_score,onset_score, note_scroe = draw_plt(filename)
@@ -974,7 +1041,7 @@ if __name__ == "__main__":
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/D/']
-    #dir_list = []
+    dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
