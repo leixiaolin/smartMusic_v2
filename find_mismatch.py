@@ -364,11 +364,11 @@ def get_score_for_note(onsets_frames,base_frames,type_index):
     if len(standard_y) > len(recognize_y):
         _, lost_standard_y = get_mismatch_line(recognize_y.copy(), standard_y.copy())
         # 加上漏唱节拍，便于计算整体偏差分
-        modify_standard_y = recognize_y.copy()
+        modify_recognize_y = recognize_y.copy()
         for x in lost_standard_y:
-            modify_standard_y.append(x)
-        modify_standard_y.sort()
-        min_d = get_deviation_for_note(modify_standard_y, recognize_y, code, each_onset_score)
+            modify_recognize_y.append(x)
+            modify_recognize_y.sort()
+        min_d = get_deviation_for_note(standard_y, modify_recognize_y, code, each_onset_score)
     if len(standard_y) == len(recognize_y):
         min_d = get_deviation_for_note(standard_y, recognize_y, code, each_onset_score)
     #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
