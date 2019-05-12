@@ -325,13 +325,13 @@ def get_missing_by_best_threshod(y,onsets_frames,best_threshod):
     onsets_frames.sort()
     return onsets_frames
 
-def get_onsets_by_cqt_rms(filename,gap=0.1):
+def get_onsets_by_cqt_rms(filename,onset_code,gap=0.1):
 
     y, sr = librosa.load(filename)
-    type_index = get_onsets_index_by_filename(filename)
+    #type_index = get_onsets_index_by_filename(filename)
     total_frames_number = get_total_frames_number(filename)
     # base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
-    base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+    base_frames = onsets_base_frames(onset_code, total_frames_number)
     # 标准节拍个数
     topN = len(base_frames)
     gap = 0.1
@@ -393,11 +393,11 @@ def get_onsets_by_cqt_rms(filename,gap=0.1):
 
     return best_onset_frames_cqt,threshold
 
-def get_onsets_by_cqt_rms_optimised(filename):
-    type_index = get_onsets_index_by_filename(filename)
+def get_onsets_by_cqt_rms_optimised(filename,onset_code):
+    #type_index = get_onsets_index_by_filename(filename)
     total_frames_number = get_total_frames_number(filename)
     # base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
-    base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+    base_frames = onsets_base_frames(onset_code, total_frames_number)
     # 标准节拍个数
     topN = len(base_frames)
     y, sr = librosa.load(filename)
@@ -409,7 +409,7 @@ def get_onsets_by_cqt_rms_optimised(filename):
         #print("0. onset_frames_cqt is {}".format(onsets_frames))
     # 如果已经匹配很好，就直接返回
     if len(onsets_frames)>0 and len(onsets_frames) == topN:
-        base_frames = onsets_base_frames(codes[type_index], total_frames_number - onsets_frames[0])
+        base_frames = onsets_base_frames(onset_code, total_frames_number - onsets_frames[0])
         base_frames = [x + (onsets_frames[0] - base_frames[0]) for x in base_frames]
         min_d, best_y, modify_onsets_frames = get_dtw_min(onsets_frames.copy(), base_frames, 65)
         print("min_d is {}".format(min_d))
@@ -425,14 +425,14 @@ def get_onsets_by_cqt_rms_optimised(filename):
     best_onset_frames_cqt = []
     best_total = 0
     best_threshold = 0
-    onset_frames_cqt,threshold = get_onsets_by_cqt_rms(filename)
+    onset_frames_cqt,threshold = get_onsets_by_cqt_rms(filename,onset_code)
     if len(onset_frames_cqt) >= best_total:
         best_total = len(onset_frames_cqt)
         best_onset_frames_cqt = onset_frames_cqt
         best_threshold = threshold
 
     if len(onset_frames_cqt) < topN and onsets_frames != get_real_onsets_frames_rhythm(y, modify_by_energy=True, gap=0.12):
-        onset_frames_cqt,threshold = get_onsets_by_cqt_rms(filename, 0.12)
+        onset_frames_cqt,threshold = get_onsets_by_cqt_rms(filename,onset_code, 0.12)
         if len(onset_frames_cqt) >= best_total:
             best_total = len(onset_frames_cqt)
             best_onset_frames_cqt = onset_frames_cqt
@@ -440,7 +440,7 @@ def get_onsets_by_cqt_rms_optimised(filename):
 
 
     if len(onset_frames_cqt) < topN and onsets_frames != get_real_onsets_frames_rhythm(y, modify_by_energy=True, gap=0.09):
-        onset_frames_cqt,threshold = get_onsets_by_cqt_rms(filename, 0.09)
+        onset_frames_cqt,threshold = get_onsets_by_cqt_rms(filename,onset_code, 0.09)
         if len(onset_frames_cqt) >= best_total:
             best_total = len(onset_frames_cqt)
             best_onset_frames_cqt = onset_frames_cqt
@@ -588,11 +588,11 @@ def get_detail_cqt_rms_secondary_optimised(filename):
     best_y = []
     # 标准节拍时间点
     if len(onset_frames_cqt)> 0:
-        base_frames = onsets_base_frames(codes[type_index], total_frames_number - onset_frames_cqt[0])
-        base_frames = [x + (onset_frames_cqt[0] - base_frames[0]) for x in base_frames]
+        base_frames = onsets_base_frames_for_note(filename)
+        base_frames = [x + onset_frames_cqt[0] - base_frames[0] for x in base_frames]
         min_d, best_y, onsets_frames = get_dtw_min(onset_frames_cqt, base_frames, 65)
     else:
-        base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+        base_frames = onsets_base_frames_for_note(filename)
     base_onsets = librosa.frames_to_time(base_frames, sr=sr)
     plt.close() # 关闭第一次的图片句柄
 

@@ -31,7 +31,7 @@ index = 0
 
 # 测试单个文件
 #files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏六（5）（80）.wav']
-#files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40210（30）.wav']
+files = ['F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40210（30）.wav']
 for filename in files:
     print(filename)
     if filename.find('wav') <= 0:

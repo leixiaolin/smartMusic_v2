@@ -15,36 +15,7 @@ import multiprocessing
 import time
 import threading
 
-codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
-                  '[2000;1000,1000;500,500,1000;2000]',
-                  '[1000,1000;500,500,1000;1000,1000;2000]',
-                  '[1000,--(1000);1000,--(1000);500,250,250,1000;--(1000),1000]',
-                  '[500;1000,500,1000,500;500,500,500,250,250,500,500;250,250,500,500,1000]',
-                  '[1000,--(1000);1000,--(1000);1000,-(500),500;1000,1000]',
-                  '[750,250,500,500,500,-(500);500,1000,500,500,-(500);750,250,500,500,500,-(500)]',
-                  '[500,1000,500,500,250,250;1000,500,750,250,500;3000]',
-                  '[500,500,500;1000,500;500,500,500;1500;500,500,500;1000,500;500;1000;1500]',
-                  '[500,500,1000;500,500;1000;375,125,250,250,375,125,250,250;500,500,1000]'])
-note_codes = np.array(['[3,3,3,3,3,3,3,5,1,2,3]',
-                       '[5,5,3,2,1,2,5,3,2]',
-                       '[5,5,3,2,1,2,2,3,2,6-,5-]',
-                       '[5,1+,7,1+,2+,1+,7,6,5,2,4,3,6,5]',
-                       '[3,6,7,1+,2+,1+,7,6,3]',
-                       '[1+,7,1+,2+,3+,2+,1+,7,6,7,1+,2+,7,1+,7,1+,2+,1+]',
-                       '[5,6,1+,6,2,3,1,6-,5-]',
-                       '[5,5,6,5,6,5,1,3,0,2,2,5-,2,1]',
-                       '[3,2,1,2,1,1,2,3,4,5,3,6,5,5,3]',
-                       '[3,4,5,1+,7,6,5]'])
-rhythm_codes = np.array(['[500,500,1000;500,500,1000;500,500,750,250;2000]',
-                        '[1000,1000;500,500,1000;1000,500,500; 2000]',
-                        '[1000,1000;500,500,1000;500,250,250,500,500;2000]',
-                        '[500,1000,500;250,250,250,250,500,500;500,500,500,500;2000]',
-                        '[1000;500,500,1000;500,500,500,500;2000]',
-                        '[500;500,500,500,500;500,500,500,500;500,500,500,500;250,250,250,250,500]',
-                        '[1000,750,250,2000;500,500,500,500,2000]',
-                        '[1000,1000,1000,500,500;1000,1000,1000,--(1000);250,750,1000,1000;1000,4000]',
-                        '[1500,500,500,500;2500,500;1000,500,500,500,500;2500,500]',
-                        '[500,500;1500,500,500,500;2000]'])
+
 pitch_base = ['C','D','E','F','G','A','B']
 pitch_number = ['1','2','3','4','5','6','7']
 pitch_v = [0,2,4,5,7,9,11]
@@ -58,19 +29,7 @@ def load_and_trim(path,threshold=5):
 
     return audio, sr
 
-def get_code(index,type):
 
-    if type == 1:
-        code = codes[index]
-    if type == 2:
-        code = rhythm_codes[index]
-    if type == 3:
-        code = note_codes[index]
-    code = code.replace(";", ',')
-    code = code.replace("[", '')
-    code = code.replace("]", '')
-    code = [x for x in code.split(',')]
-    return code
 
 def get_basetime(s):
     if s is None or len(s) < 1:
@@ -157,13 +116,9 @@ def onsets_base_frames(code,frames_number):
     #ds.append(frames_number)
     return ds
 
-def get_rhythm_codes(filename):
-    type_index = get_onsets_index_by_filename_rhythm(filename)
-    codes = get_basetime(rhythm_codes[type_index])
-    return codes
 
-def onsets_base_frames_rhythm(index,frames_number):
-    result = get_basetime(rhythm_codes[index])
+def onsets_base_frames_rhythm(rhythm_code,frames_number):
+    result = get_basetime(rhythm_code)
     print(result)
     total = 0
     for r in result:
@@ -184,27 +139,27 @@ def onsets_base_frames_rhythm(index,frames_number):
     #ds.append(frames_number-5)
     return ds
 
-def onsets_base_frames_for_note(filename):
+def onsets_base_frames_for_note(filename,rhythm_code):
     #frames_total = get_total_frames_number_for_note(filename)
     #frames_total = get_total_frames_number(filename)
     y, sr = librosa.load(filename)
     start, end = get_start_and_end_for_note(y, sr)
     frames_total = end - start
     print("frames_total is {}".format(frames_total))
-    type_index = get_onsets_index_by_filename_rhythm(filename)
-    base_frames = onsets_base_frames_rhythm(type_index, frames_total)
-    return base_frames
+    #type_index = get_onsets_index_by_filename_rhythm(filename)
+    base_frames = onsets_base_frames_rhythm(rhythm_code, frames_total)
+    return base_frames,frames_total
 
-def base_note(filename):
-    type_index = get_onsets_index_by_filename_rhythm(filename)
-    pitch_code = note_codes[type_index]
+def base_note(filename,pitch_code):
+    #type_index = get_onsets_index_by_filename_rhythm(filename)
+    #pitch_code = note_codes[type_index]
     chroma_pitch = get_chroma_pitch(pitch_code)
     #print(chroma_pitch)
     return chroma_pitch
 
-def add_base_note_to_cqt(cqt,base_notes,base_frames,end,filename):
-    type_index = get_onsets_index_by_filename_rhythm(filename)
-    codes = get_basetime(rhythm_codes[type_index])
+def add_base_note_to_cqt(cqt,base_notes,base_frames,end,filename,rhythm_code):
+    #type_index = get_onsets_index_by_filename_rhythm(filename)
+    codes = get_basetime(rhythm_code)
     for i in range(len(base_frames)-1):
         start_frame = base_frames[i]
         if codes[i+1].find("-") >= 0:
@@ -221,7 +176,7 @@ def add_base_note_to_cqt(cqt,base_notes,base_frames,end,filename):
     cqt[base_notes[-1],base_frames[-1]:end] = -20
     return cqt
 
-def add_base_note_to_cqt_for_filename(filename,first_frame=[],CQT=[]):
+def add_base_note_to_cqt_for_filename(filename,rhythm_code,first_frame=[],CQT=[]):
     y, sr = librosa.load(filename)
     start, end = get_start_and_end_for_note(y, sr)
     base_frames = onsets_base_frames_for_note(filename)
@@ -236,8 +191,8 @@ def add_base_note_to_cqt_for_filename(filename,first_frame=[],CQT=[]):
     CQT[0:20, :] = np.min(CQT)
     base_notes = base_note(filename)
     base_notes = [x + 5 - np.min(base_notes) for x in base_notes]
-    type_index = get_onsets_index_by_filename_rhythm(filename)
-    codes = get_basetime(rhythm_codes[type_index])
+    #type_index = get_onsets_index_by_filename_rhythm(filename)
+    codes = get_basetime(rhythm_code)
     for i in range(len(base_frames)-1):
         start_frame = base_frames[i]
         if codes[i+1].find("-") >= 0:
@@ -265,8 +220,8 @@ def add_base_note_to_cqt_for_filename_by_base_notes(filename,base_frames,first_f
     if len(base_notes) < 1:
         base_notes = base_note(filename)
     base_notes = [x + 2 - np.min(base_notes) for x in base_notes]
-    type_index = get_onsets_index_by_filename_rhythm(filename)
-    codes = get_basetime(rhythm_codes[type_index])
+    # type_index = get_onsets_index_by_filename_rhythm(filename)
+    # codes = get_basetime(rhythm_codes[type_index])
     length = len(base_notes) if len(base_notes) < len(base_frames) else len(base_frames)
     for i in range(length -1):
         start_frame = base_frames[i]
@@ -306,10 +261,9 @@ def get_min_range_frames_rhythm(frame_numbers,current_frames_number):
 '''
 获取最小帧距
 '''
-def get_min_width_rhythm(filename):
+def get_min_width_rhythm(filename,rhythm_code):
     total_frames_number = get_total_frames_number(filename)
-    type_index = get_onsets_index_by_filename_rhythm(filename)
-    base_frames = onsets_base_frames_rhythm(type_index, total_frames_number)
+    base_frames = onsets_base_frames_rhythm(rhythm_code, total_frames_number)
     base_frames_diff = np.diff(base_frames)
     result = np.min(base_frames_diff)
     return result
@@ -317,10 +271,9 @@ def get_min_width_rhythm(filename):
 '''
 获取最小帧距
 '''
-def get_min_width_onsets(filename):
+def get_min_width_onsets(filename,code):
     total_frames_number = get_total_frames_number(filename)
-    type_index = get_onsets_index_by_filename(filename)
-    base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+    base_frames = onsets_base_frames(code, total_frames_number)
     base_frames_diff = np.diff(base_frames)
     result = np.min(base_frames_diff)
     return result
@@ -1075,10 +1028,10 @@ def get_onsets_frames_for_jz(filename):
     CQT[0:20, :] = -100
 
     # 标准节拍时间点
-    type_index = get_onsets_index_by_filename(filename)
+    #type_index = get_onsets_index_by_filename(filename,code)
     total_frames_number = get_total_frames_number(filename)
     # base_frames = onsets_base_frames_rhythm(type_index,total_frames_number)
-    base_frames = onsets_base_frames(codes[type_index], total_frames_number)
+    base_frames = onsets_base_frames(code, total_frames_number)
     base_onsets = librosa.frames_to_time(base_frames, sr=sr)
 
     first_frame = base_frames[1] - base_frames[0]
@@ -1604,53 +1557,7 @@ def get_onsets_frames_by_cqt_for_rhythm(y,sr):
     return result
 
 
-def get_onsets_index_by_filename(filename):
-    if filename.find("节奏10") >= 0 or filename.find("节奏十") >= 0 or filename.find("节奏题十") >= 0 or filename.find("节奏题10") >= 0 or filename.find("节10") >= 0:
-        return 9
-    elif filename.find("节奏1") >= 0 or filename.find("节奏一") >= 0 or filename.find("节奏题一") >= 0 or filename.find("节奏题1") >= 0 or filename.find("节1") >= 0:
-        return 0
-    elif filename.find("节奏2") >= 0 or filename.find("节奏二") >= 0 or filename.find("节奏题二") >= 0 or filename.find("节奏题2") >= 0 or filename.find("节2") >= 0:
-        return 1
-    elif filename.find("节奏3") >= 0 or filename.find("节奏三") >= 0 or filename.find("节奏题三") >= 0 or filename.find("节奏题3") >= 0 or filename.find("节3") >= 0:
-        return 2
-    elif filename.find("节奏4") >= 0 or filename.find("节奏四") >= 0 or filename.find("节奏题四") >= 0 or filename.find("节奏题4") >= 0 or filename.find("节4") >= 0:
-        return 3
-    elif filename.find("节奏5") >= 0 or filename.find("节奏五") >= 0 or filename.find("节奏题五") >= 0 or filename.find("节奏题5") >= 0 or filename.find("节5") >= 0:
-        return 4
-    elif filename.find("节奏6") >= 0 or filename.find("节奏六") >= 0 or filename.find("节奏题六") >= 0 or filename.find("节奏题6") >= 0 or filename.find("节6") >= 0:
-        return 5
-    elif filename.find("节奏7") >= 0 or filename.find("节奏七") >= 0 or filename.find("节奏题七") >= 0 or filename.find("节奏题7") >= 0 or filename.find("节7") >= 0:
-        return 6
-    elif filename.find("节奏8") >= 0 or filename.find("节奏八") >= 0 or filename.find("节奏题八") >= 0 or filename.find("节奏题8") >= 0 or filename.find("节8") >= 0:
-        return 7
-    elif filename.find("节奏9") >= 0 or filename.find("节奏九") >= 0 or filename.find("节奏题九") >= 0 or filename.find("节奏题9") >= 0 or filename.find("节9") >= 0:
-        return 8
-    else:
-        return -1
 
-def get_onsets_index_by_filename_rhythm(filename):
-    if filename.find("旋律10") >= 0 or filename.find("旋律十") >= 0 or filename.find("视唱十") >= 0 or filename.find("视唱10") >= 0 or filename.find("旋10") >= 0:
-        return 9
-    elif filename.find("旋律1") >= 0 or filename.find("旋律一") >= 0 or filename.find("视唱一") >= 0 or filename.find("视唱1") >= 0 or filename.find("旋1") >= 0:
-        return 0
-    elif filename.find("旋律2") >= 0 or filename.find("旋律二") >= 0 or filename.find("视唱二") >= 0 or filename.find("视唱2") >= 0 or filename.find("旋2") >= 0:
-        return 1
-    elif filename.find("旋律3") >= 0 or filename.find("旋律三") >= 0 or filename.find("视唱三") >= 0 or filename.find("视唱3") >= 0 or filename.find("旋3") >= 0:
-        return 2
-    elif filename.find("旋律4") >= 0 or filename.find("旋律四") >= 0 or filename.find("视唱四") >= 0 or filename.find("视唱4") >= 0 or filename.find("旋4") >= 0:
-        return 3
-    elif filename.find("旋律5") >= 0 or filename.find("旋律五") >= 0 or filename.find("视唱五") >= 0 or filename.find("视唱5") >= 0 or filename.find("旋5") >= 0:
-        return 4
-    elif filename.find("旋律6") >= 0 or filename.find("旋律六") >= 0 or filename.find("视唱六") >= 0 or filename.find("视唱6") >= 0 or filename.find("旋6") >= 0:
-        return 5
-    elif filename.find("旋律7") >= 0 or filename.find("旋律七") >= 0 or filename.find("视唱七") >= 0 or filename.find("视唱7") >= 0 or filename.find("旋7") >= 0:
-        return 6
-    elif filename.find("旋律8") >= 0 or filename.find("旋律八") >= 0 or filename.find("视唱八") >= 0 or filename.find("视唱8") >= 0 or filename.find("旋8") >= 0:
-        return 7
-    elif filename.find("旋律9") >= 0 or filename.find("旋律九") >= 0 or filename.find("视唱九") >= 0 or filename.find("视唱9") >= 0 or filename.find("旋9") >= 0:
-        return 8
-    else:
-        return -1
 
 def get_total_frames_number(path):
     # audio, sr = librosa.load(path)
