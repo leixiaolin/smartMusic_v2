@@ -53,7 +53,7 @@ def get_note_line_start_v2(cqt,rhythm_code):
         if np.max(cqt[col,:]) == min_cqt:
             best_col = col
             break
-    print("best_col is {}".format(best_col))
+    #print("best_col is {}".format(best_col))
     for col in range(best_col,h-10):
         col_cqt = cqt[10:, col] # 列向量
         # 存在亮点
@@ -393,13 +393,13 @@ def modify_some_note_line(cqt,onset_frame,low_start):
         min_acount = np.sum(row_cqt == cqt_min)
         if max_acount > min_acount and np.sum(sub_cqt[j-1] == cqt_min) > min_acount:
             note_line = j
-            print("x,j is {},{}".format(x,j))
+            #print("x,j is {},{}".format(x,j))
             break
     return note_line
 
 def check_all_note_lines(onset_frames,all_note_lines,cqt):
     note_lines_median = np.median(all_note_lines)
-    print("note_lines_median is {}".format(note_lines_median))
+    #print("note_lines_median is {}".format(note_lines_median))
     selected_note_lines = []
     last = note_lines_median
     for i in range(len(all_note_lines)):
@@ -425,7 +425,7 @@ def del_false_note_lines(onset_frames,all_note_lines,rms,CQT):
     select_note_lines.append(all_note_lines[0])
     select_onset_frames = []
     select_onset_frames.append(onset_frames[0])
-    print("max rms is {}".format(np.max(rms)))
+    #print("max rms is {}".format(np.max(rms)))
     for i in range(1,len(onset_frames)):
         current_onset = onset_frames[i]
         last_onset = onset_frames[i-1]
@@ -737,7 +737,7 @@ def change_rms(onsets_frames,note_lines,rms,cqt,topN,rhythm_code):
     #select_onset_frames = onsets_frames.copy()
     select_onset_frames = []
     select_onset_frames.append(onsets_frames[0])
-    print("all onsets_frames is {}".format(onsets_frames))
+    #print("all onsets_frames is {}".format(onsets_frames))
     new_added = []
     small_code_indexs = [i for i in range(len(rhythm_code)) if rhythm_code[i] == '250']
 
@@ -751,7 +751,7 @@ def change_rms(onsets_frames,note_lines,rms,cqt,topN,rhythm_code):
         if (i==1 and rms[2] > rms [1]) or (rms[i+1] > rms[i] and rms[i-1] > rms[i]):
             hightest_point_after = find_hightest_after(i, rms)
             if rms[hightest_point_after] - rms[i] > 0.3:
-                print("rms[hightest_point_after] - rms[i],i is {}=={}".format(rms[hightest_point_after] - rms[i],i))
+                #print("rms[hightest_point_after] - rms[i],i is {}=={}".format(rms[hightest_point_after] - rms[i],i))
                 value = rms[hightest_point_after] - rms[i]
                 result.append(value)
                 keyMap[value] = i
@@ -764,7 +764,7 @@ def change_rms(onsets_frames,note_lines,rms,cqt,topN,rhythm_code):
         if index > onsets_frames[0] and np.min(offset) > threshold:
             select_onset_frames.append(index)
             new_added.append(index)
-            print("add index is {}".format(index))
+            #print("add index is {}".format(index))
         elif index < onsets_frames[0] and key > 1.8:
             cols_cqt = cqt[10:, index:onsets_frames[0]]  # 柜向量
             min_cqt = np.min(cqt)
@@ -772,15 +772,15 @@ def change_rms(onsets_frames,note_lines,rms,cqt,topN,rhythm_code):
             if best_longest > 10:
                 select_onset_frames.append(index)
                 new_added.append(index)
-                print("add index is {}".format(index))
+                #print("add index is {}".format(index))
     select_onset_frames.sort()
-    print("all frames is {}".format(select_onset_frames))
+    #print("all frames is {}".format(select_onset_frames))
     return select_onset_frames,indexMap,new_added
 def cal_note_score(longest_note,base_notes):
     off = int(np.mean(base_notes) - np.mean(longest_note))
     # off = int((base_notes[0] - longest_note[0]))
     base_notes = [x - off for x in base_notes]
-    print("base_notes is {}".format(base_notes))
+    #print("base_notes is {}".format(base_notes))
     euclidean_norm = lambda x, y: np.abs(x - y)
     if (len(longest_note) != len(base_notes)):
         d, cost_matrix, acc_cost_matrix, path = dtw(longest_note, base_notes, dist=euclidean_norm)
@@ -802,7 +802,7 @@ def cal_score_v2(filename, result, longest_note, base_frames):
         total_score -= 15
         onsets_score -= 6
         notes_score -= 9
-    print("cal_score_v2 total_score, onsets_score, notes_score is {},{},{} ".format(total_score, onsets_score, notes_score))
+    #print("cal_score_v2 total_score, onsets_score, notes_score is {},{},{} ".format(total_score, onsets_score, notes_score))
     return total_score,onsets_score,notes_score
 def get_score(filename,result,longest_note,base_frames):
 
@@ -915,7 +915,7 @@ def check_notes_trend(longest_note,base_notes):
 def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times,rhythm_code):
     #type_index = get_onsets_index_by_filename_rhythm(filename)
     onset_score, lost_score, ex_score, min_d = get_score_for_note_v2(onsets_frames.copy(), base_frames.copy(), rhythm_code)
-    print("score, lost_score, ex_score, min_d is {},{},{},{}".format(onset_score, lost_score, ex_score, min_d))
+    #print("score, lost_score, ex_score, min_d is {},{},{},{}".format(onset_score, lost_score, ex_score, min_d))
     # onset_score = cal_dtw_distance(onsets_frames.copy(), base_frames.copy())
     note_score = cal_note_score(note_lines, base_notes)
     onset_score = int(onset_score * 0.4)
@@ -1237,10 +1237,10 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     rms = librosa.feature.rmse(y=y)[0]
     rms = [x / np.std(rms) for x in rms]
     time = librosa.get_duration(filename=filename)
-    print("time is {}".format(time))
+    #print("time is {}".format(time))
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     w, h = CQT.shape
-    print("w.h is {},{}".format(w, h))
+    #print("w.h is {},{}".format(w, h))
     # onsets_frames = get_real_onsets_frames_rhythm(y)
     base_frames,frames_total = onsets_base_frames_for_note(filename,rhythm_code)
     base_notes = base_note(filename,pitch_code)
@@ -1248,48 +1248,48 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     # onsets_frames,end_position = get_note_line_start(CQT)
     #rhythm_codes = get_rhythm_codes(filename)
     onsets_frames, end_result, times, note_lines = get_note_line_start_v2(CQT,rhythm_code)
-    print("frames_total ===== is {}".format(onsets_frames[-1] + times[-1] - onsets_frames[0]))
+    #print("frames_total ===== is {}".format(onsets_frames[-1] + times[-1] - onsets_frames[0]))
     #onsets_frames, end_result, times, note_lines = merge_note_line(onsets_frames, end_result, times, note_lines)
     #onsets_frames = find_loss_by_rms_mean(onsets_frames, rms, CQT)
-    print("get_note_line_start_v2====01 onsets_frames is {}".format(onsets_frames))
+    #print("get_note_line_start_v2====01 onsets_frames is {}".format(onsets_frames))
     onsets_frames,indexMap,new_added = change_rms(onsets_frames,note_lines,rms,CQT,len(base_frames),pitch_code)
-    print("change_rms====02 onsets_frames is {}".format(onsets_frames))
+    #print("change_rms====02 onsets_frames is {}".format(onsets_frames))
     onsets_frames, times, note_lines = check_fisrt_frame_is_noice(onsets_frames, times, note_lines, CQT)
     onsets_frames = modify_by_local_min_rms(onsets_frames, rms)
     onsets_frames = del_middle_by_cqt(onsets_frames,indexMap, CQT,rms)
-    print("del_middle_by_cqt====03 onsets_frames is {}".format(onsets_frames))
+    #print("del_middle_by_cqt====03 onsets_frames is {}".format(onsets_frames))
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
-    print("get_note_lines====04 onsets_frames is {}".format(onsets_frames))
+    #print("get_note_lines====04 onsets_frames is {}".format(onsets_frames))
     onsets_frames, note_lines, times = del_false_same(base_notes, onsets_frames, note_lines, times,indexMap)
-    print("del_false_same====05 onsets_frames is {}".format(onsets_frames))
-    print("before check_all_note_lines is {}".format(note_lines))
+    #print("del_false_same====05 onsets_frames is {}".format(onsets_frames))
+    #print("before check_all_note_lines is {}".format(note_lines))
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
-    print("after check_all_note_lines is {}".format(note_lines))
+    #print("after check_all_note_lines is {}".format(note_lines))
     onsets_frames, note_lines,times = del_end_range(onsets_frames, note_lines,times, rms,frames_total)
-    print("del_end_range====06 onsets_frames is {}".format(onsets_frames))
+    #print("del_end_range====06 onsets_frames is {}".format(onsets_frames))
     onsets_frames, times, note_lines = merge_note_line_by_distance(onsets_frames, times, note_lines,rhythm_code,end_result[-1] - onsets_frames[0])
-    print("merge_note_line_by_distance====07 onsets_frames is {}".format(onsets_frames))
+    #print("merge_note_line_by_distance====07 onsets_frames is {}".format(onsets_frames))
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
-    print("get_note_lines====08 onsets_frames is {}".format(onsets_frames))
+    #print("get_note_lines====08 onsets_frames is {}".format(onsets_frames))
 
-    print("0 onsets_frames is {},size is {}".format(onsets_frames,len(onsets_frames)))
-    print("0 end_result is {},size is {}".format(end_result,len(end_result)))
-    print("0 times is {},size is {}".format(times,len(times)))
-    print("0 note_lines is {},size is {}".format(note_lines,len(note_lines)))
+    #print("0 onsets_frames is {},size is {}".format(onsets_frames,len(onsets_frames)))
+    #print("0 end_result is {},size is {}".format(end_result,len(end_result)))
+    #print("0 times is {},size is {}".format(times,len(times)))
+    #print("0 note_lines is {},size is {}".format(note_lines,len(note_lines)))
     # list_intersect_before, list_intersect, list_intersect_after = check_all_notes_trend(note_lines, base_notes)
     # print("list_intersect_before,list_intersect,list_intersect_after is {},{},{}".format(list_intersect_before,
     #                                                                                      list_intersect,
     #                                                                                      list_intersect_after))
     maybe_onset_frames = find_maybe_position_rhythm_code(onsets_frames[0], end_result[-1] - onsets_frames[0], rhythm_code)
     base_frames = maybe_onset_frames[:-1]
-    print("maybe_onset_frames  is {}".format(maybe_onset_frames))
-    print("final onsets_frames is {}".format(onsets_frames))
-    print("final note_lines is {}".format(note_lines))
-    print("final times is {}".format(times))
+    #print("maybe_onset_frames  is {}".format(maybe_onset_frames))
+    #print("final onsets_frames is {}".format(onsets_frames))
+    #print("final note_lines is {}".format(note_lines))
+    #print("final times is {}".format(times))
     score1, onset_score1, note_score1 = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes,times, rhythm_code)
 
-    print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
+    #print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
 
     score, onset_score, note_score = score1, onset_score1, note_score1
 

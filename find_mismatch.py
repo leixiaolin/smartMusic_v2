@@ -415,7 +415,7 @@ def get_score_for_note_v2(onsets_frames,base_frames,rhythm_code):
 
     xc,yc = get_matched_onset_frames_by_path_v2(standard_y, recognize_y)
     std_number = len(standard_y) - len(xc) + len(recognize_y) - len(yc)
-    print("std_number is {}".format(std_number))
+    #print("std_number is {}".format(std_number))
 
     min_d = get_deviation_for_note(xc,yc, rhythm_code, each_onset_score)
     # # 计算成绩测试
@@ -425,7 +425,7 @@ def get_score_for_note_v2(onsets_frames,base_frames,rhythm_code):
     score,lost_score,ex_score,min_d = get_score_detail_for_note(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
     #print('最终得分为：{}'.format(score))
     if std_number >= 4:
-        print(len(base_frames))
+        #print(len(base_frames))
         score = int(score - each_onset_score*std_number*0.5)
 
     return int(score),int(lost_score),int(ex_score),int(min_d)

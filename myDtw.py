@@ -89,7 +89,91 @@ def cal_dtw_distance(ts_a, ts_b):
 
     # Return DTW distance given window
     return cost[-1, -1]
+def get_real_onset_by_path(onset_frames,path):
+    select_onset_frames = []
+    select_onset_frames.append(onset_frames[0])
+    lenght = len(onset_frames) if len(onset_frames) <= len(path) else len(path)
+    for i in range(1,lenght):
+        if path[i] != path[i-1]:
+            select_onset_frames.append(onset_frames[i])
+    return select_onset_frames
+def get_matched_onset_frames_by_path(x,y):
+    xd = np.diff(x)
+    yd = np.diff(y)
 
+    euclidean_norm = lambda x, y: np.abs(x - y)
+    d, cost_matrix, acc_cost_matrix, path = dtw(xd, yd, dist=euclidean_norm)
+    print("d is {}".format(d))
+    print("np.sum(acc_cost_matrix.shape) is {}".format(np.sum(acc_cost_matrix.shape)))
+    print("cost_matrix is :")
+    print(cost_matrix)
+    print("acc_cost_matrix is :")
+    print(acc_cost_matrix)
+    print("path is {}".format(path))
+    print("path2 is {}".format(path[0]))
+    xc = get_real_onset_by_path(x, path[1])
+    yc = get_real_onset_by_path(y, path[0])
+    # print(xc)
+    #
+    # print("path2 is {}".format(path[1]))
+    # print(yc)
+    # print(np.diff(xc))
+    # print(np.diff(yc))
+    return xc,yc
+
+def get_matched_onset_frames_by_path_v2(x,y):
+    #print("x is {},size is {}".format(x,len(x)))
+    #print("y is {},size is {}".format(y,len(y)))
+    xd = np.diff(x)
+    yd = np.diff(y)
+    xc = []
+    xc.append(x[0])
+    yc = []
+    yc.append(y[0])
+
+    length = len(x)
+    xi = 0
+    yi = 0
+    check_gap = 10
+    x_start = xi
+    x_end = xi + 1
+    y_start = yi
+    y_end = yi + 1
+    gap = x[x_end] - x[x_start]
+    y_gap = np.sum(yd[y_start:y_end])
+    check_gap = np.abs(gap - y_gap)/y_gap
+    while x_end < length:
+        while check_gap > 0.45:
+            print("checking ============{}========{}".format(x_start,x_end))
+            #如果下一条是多窄
+            if gap < np.sum(yd[x_start:y_end]):
+                x_end += 1
+                if x_end >= length:
+                    break
+                print("x_start,x_end is {},{}".format(x_start,x_end))
+                gap = x[x_end] - x[x_start]
+                y_gap = np.sum(yd[y_start:y_end])
+                check_gap = np.abs(gap - y_gap) / y_gap
+            else: #如果下一条是多宽
+                y_end += 1
+                y_gap = np.sum(yd[y_start:y_end])
+                check_gap = np.abs(gap - y_gap) / y_gap
+        if x_end < len(x):
+            xc.append(x[x_end])
+        if y_end < len(y):
+            yc.append(y[y_end])
+        x_start = x_end
+        x_end = x_start + 1
+        if x_end >= length:
+            break
+        y_start = y_end
+        y_end = y_start + 1
+        if y_end >= len(y):
+            break
+        gap = x[x_end] - x[x_start]
+        y_gap = np.sum(yd[y_start:y_end])
+        check_gap = np.abs(gap - y_gap) / y_gap
+    return xc,yc
 # 找出多唱或漏唱的线的帧
 def get_mismatch_line(standard_y,recognize_y):
     # standard_y标准线的帧列表 recognize_y识别线的帧列表
@@ -142,3 +226,19 @@ if __name__ == '__main__':
     print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d ,np.sum(acc_cost_matrix.shape)))
     notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
     print("notes_score is {}".format(notes_score))
+
+    x = np.array([0, 14, 28, 55, 68, 82, 109, 123, 136, 156, 163])
+    y = np.array([22, 53, 87, 124, 147, 170, 194, 214])
+    # x = np.array([42, 49, 65])
+    # y = np.array([0, 19, 38])
+    # y = [i - (y[0] - x[0]) for i in y]
+    xd = np.diff(x)
+    yd = np.diff(y)
+    print(xd)
+    print(yd)
+
+    xc, yc = get_matched_onset_frames_by_path_v2(x, y)
+    print(xc)
+    print(yc)
+    print(np.diff(xc))
+    print(np.diff(yc))

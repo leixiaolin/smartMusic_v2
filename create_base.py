@@ -119,7 +119,7 @@ def onsets_base_frames(code,frames_number):
 
 def onsets_base_frames_rhythm(rhythm_code,frames_number):
     result = get_basetime(rhythm_code)
-    print(result)
+    #print(result)
     total = 0
     for r in result:
         if int(r) > 0:  # 不是空音
@@ -145,7 +145,7 @@ def onsets_base_frames_for_note(filename,rhythm_code):
     y, sr = librosa.load(filename)
     start, end = get_start_and_end_for_note(y, sr)
     frames_total = end - start
-    print("frames_total is {}".format(frames_total))
+    #print("frames_total is {}".format(frames_total))
     #type_index = get_onsets_index_by_filename_rhythm(filename)
     base_frames = onsets_base_frames_rhythm(rhythm_code, frames_total)
     return base_frames,frames_total
@@ -1119,8 +1119,8 @@ def find_n_largest(a,topN):
     #re2 = map(a.index, heapq.nlargest(total, a))  # 求最大的三个索引    nsmallest与nlargest相反，求最小
     re2 = [i for i,x in enumerate(a) if x in re1]
 
-    print(re1)
-    print(list(re2))  # 因为re1由map()生成的不是list，直接print不出来，添加list()就行了
+    #print(re1)
+    #print(list(re2))  # 因为re1由map()生成的不是list，直接print不出来，添加list()就行了
     return list(re2)
 def max_min(x, y, z):
     max = min = x
@@ -1654,7 +1654,7 @@ def get_start_and_end_for_note(y, sr):
     #y, sr = librosa.load(filename)
     times, states = get_viterbi_state(y, silence_threshold)
     rms = librosa.feature.rmse(y=y)[0]
-    print("rms len is {}".format(len(rms)))
+    #print("rms len is {}".format(len(rms)))
     rms = [x / np.std(rms) for x in rms]
     mean_rms = np.mean(rms)
     rms = [1 if x > mean_rms* 0.25 else 0 for x in rms]

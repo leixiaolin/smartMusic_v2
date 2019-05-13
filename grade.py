@@ -60,7 +60,7 @@ def get_score_detail_for_note(standard_y, recognize_y, onsets_total, onsets_stre
     lost_score = 0
     ex_score = 0
     if lost_num:
-        print('漏唱了' + str(lost_num) + '句')
+        #print('漏唱了' + str(lost_num) + '句')
         if lost_num/total_length > 0.1:
             lost_score = 100 / onsets_total * lost_num * 0.5
     elif len(ex_frames) >= 1:
@@ -68,7 +68,8 @@ def get_score_detail_for_note(standard_y, recognize_y, onsets_total, onsets_stre
             strength = 0.5
             ex_score += int(100 / onsets_total * strength)
     else:
-        print('节拍数一致')
+        #print('节拍数一致')
+        pass
     # 计算分数
     score = score - int(lost_score) - int(ex_score) - int(min_d)
     if score < 0:

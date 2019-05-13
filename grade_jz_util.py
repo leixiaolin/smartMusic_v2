@@ -1,6 +1,8 @@
 import argparse
 import sys
 from find_mismatch import *
+import warnings
+warnings.simplefilter('ignore')
 
 def write_txt(content, filename, mode='w'):
     """保存txt数据
@@ -17,7 +19,7 @@ parser.add_argument("file_path", help="音频文件的路径",type=str)
 parser.add_argument("rhythm_code", help="音频文件的节奏编码",type=str)
 
 args = parser.parse_args()
-print(len(sys.argv))
+#print(len(sys.argv))
 if len(sys.argv) != 3:
      parser.print_help()
      sys.exit(1)
@@ -33,6 +35,9 @@ else:
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
     content = 'score, lost_score, ex_score, min_d is ' + str(score) + ' ' + str(lost_score) + str(ex_score) + ' '+ str(min_d)
+    content +=  "\n"
     save_path = os.path.join(filepath,output_file)
     write_txt(content, save_path, mode='w')
-    #python grade_jz_util.py F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4欧(95).wav [19,60,92,128,161,178,197,230,263]
+    detail = '整体节奏偏离较大，流畅平稳性有待加强'
+    write_txt(detail, save_path, mode='a')
+    #python grade_jz_util.py F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav [1000,1000;2000;1000,500,500;2000]

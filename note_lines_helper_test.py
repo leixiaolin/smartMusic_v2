@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import librosa.display
 import numpy as np
 from note_lines_helper import *
+import os
 # 1. Get the file path to the included audio example
 # Sonify detected beat events
 # 定义加载语音文件并去掉两端静音的函数
@@ -135,7 +136,7 @@ if __name__ == "__main__":
     plt, total_score,onset_score, note_scroe = draw_plt(filename,rhythm_code,pitch_code)
     plt.show()
     plt.clf()
-
+    total_score, onset_score, note_scroe = get_melody_score(filename, rhythm_code, pitch_code)
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
