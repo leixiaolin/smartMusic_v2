@@ -130,6 +130,8 @@ if __name__ == "__main__":
     type_index = get_onsets_index_by_filename_rhythm(filename)
     rhythm_code = get_code(type_index, 2)
     pitch_code = get_code(type_index, 3)
+    print("rhythm_code is {}".format(rhythm_code))
+    print("pitch_code is {}".format(pitch_code))
     plt, total_score,onset_score, note_scroe = draw_plt(filename,rhythm_code,pitch_code)
     plt.show()
     plt.clf()

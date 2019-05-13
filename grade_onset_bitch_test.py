@@ -114,6 +114,7 @@ if __name__ == "__main__":
     plt.close()
     type_index = get_onsets_index_by_filename(filename)
     onset_code = get_code(type_index, 1)
+    print("onset_code is {}".format(onset_code))
     score, lost_score, ex_score, min_d = get_score_jz(filename,onset_code)
     print("score, lost_score, ex_score, min_d is {},{},{},{}".format(score, lost_score, ex_score, min_d))
 
@@ -129,7 +130,7 @@ if __name__ == "__main__":
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/A/']
-    #dir_list = []
+    dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/n/'
