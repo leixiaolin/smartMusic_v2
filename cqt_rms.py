@@ -412,7 +412,7 @@ def get_onsets_by_cqt_rms_optimised(filename,onset_code):
         base_frames = onsets_base_frames(onset_code, total_frames_number - onsets_frames[0])
         base_frames = [x + (onsets_frames[0] - base_frames[0]) for x in base_frames]
         min_d, best_y, modify_onsets_frames = get_dtw_min(onsets_frames.copy(), base_frames, 65)
-        print("min_d is {}".format(min_d))
+        #print("min_d is {}".format(min_d))
         if min_d < 4:
             rms = librosa.feature.rmse(y=y)[0]
             rms = [x / np.std(rms) for x in rms]

@@ -19,7 +19,7 @@ def get_score1(standard_y,recognize_y,onsets_total,onsets_strength,min_d):
     lost_score = 0
     ex_score = 0
     if lost_num:
-        print('漏唱了' + str(lost_num) + '句')
+        #print('漏唱了' + str(lost_num) + '句')
         if min_d <= 10:
             lost_score = 100 / onsets_total * lost_num * (min_d/10)
         else:
@@ -29,7 +29,8 @@ def get_score1(standard_y,recognize_y,onsets_total,onsets_strength,min_d):
             strength = onsets_strength[int(x)]
             ex_score += int(100 / onsets_total * strength)
     else:
-        print('节拍数一致')
+        #print('节拍数一致')
+        pass
     # 计算分数
     score = score-int(lost_score)-int(ex_score)-int(min_d)
     if score <0:

@@ -447,7 +447,7 @@ def get_score_jz_by_onsets_frames_rhythm(filename,onset_code):
         min_width = 5
         # print("min_width is {}".format(min_width))
         onsets_frames = del_overcrowding(onsets_frames, min_width)
-        print("0. onset_frames_cqt is {}".format(onsets_frames))
+        #print("0. onset_frames_cqt is {}".format(onsets_frames))
     #print("onsets_frames len is {}".format(len(onsets_frames)))
     onsets_frames_strength = librosa.onset.onset_strength(y=y, sr=sr)
     onsets_frames_strength = [x/np.max(onsets_frames_strength) for x in onsets_frames_strength]

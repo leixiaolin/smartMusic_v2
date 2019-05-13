@@ -14,7 +14,7 @@ def get_dtw_min(x,y,move_range,move=True):
 
     d, cost_matrix, acc_cost_matrix, path = dtw(x, y, dist=euclidean_norm)
 
-    print(d)
+    #print(d)
 
     ds = []
     #test1 = [1,4,6,19]
@@ -90,10 +90,42 @@ def cal_dtw_distance(ts_a, ts_b):
     # Return DTW distance given window
     return cost[-1, -1]
 
+# 找出多唱或漏唱的线的帧
+def get_mismatch_line(standard_y,recognize_y):
+    # standard_y标准线的帧列表 recognize_y识别线的帧列表
+    ls = len(standard_y)
+    lr = len(recognize_y)
+
+    # 若标准线和识别线数量相同
+    if ls == lr:
+        return [],[]
+    # 若漏唱，即标准线大于识别线数量
+    elif ls > lr:
+        return [ls-lr],[]
+    # 多唱的情况
+    elif ls!=0:
+        min = 10000
+        min_i = 0
+        min_j = 0
+        for i in standard_y:
+            for j in recognize_y:
+                if abs(i-j) < min:
+                    min = abs(i-j)
+                    min_i = i
+                    min_j = j
+        standard_y.remove(min_i)
+        recognize_y.remove(min_j)
+        get_mismatch_line(standard_y,recognize_y)
+    return standard_y,recognize_y
+
 if __name__ == '__main__':
     #x = np.array([24, 24, 26, 26, 26, 26, 23, 26, 20, 26, 24, 24, 25])
-    x = np.array([34, 52, 72, 113, 132, 151, 189, 208, 225, 251, 262])
-    y = np.array([0, 17, 34, 68, 85, 102, 135, 152, 169, 195, 203])
+    # x = np.array([1,5,10,13])
+    # y = np.array([1,4,13])
+    x = [1,5,10,13]
+    y = [1,4,13]
+    a,b = get_mismatch_line(y.copy(),x.copy())
+    print("a,b is {},{}".format(a,b))
     print(np.mean(x))
     print(np.mean(y))
     print(np.std(x))
@@ -101,7 +133,7 @@ if __name__ == '__main__':
     off = int(np.mean(y) - np.mean(x))
     print(off)
     #y = [x - int(np.mean(y) - np.mean(x)) for x in y]
-    y = [x - off for x in y]
+    #y = [x - off for x in y]
     min_d,best_y,_ = get_dtw_min(x,y,65)
     print("min_d,best_y is {},{}".format(min_d,best_y))
 
