@@ -101,6 +101,15 @@ def get_onsets_index_by_filename_rhythm(filename):
     else:
         return -1
 
+def write_txt(content, filename, mode='w'):
+    """保存txt数据
+    :param content:需要保存的数据,type->list
+    :param filename:文件名
+    :param mode:读写模式:'w' or 'a'
+    :return: void
+    """
+    with open(filename, mode) as f:
+        f.write(content)
 
 if __name__ == "__main__":
     #y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
@@ -123,11 +132,12 @@ if __name__ == "__main__":
 
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律8录音3(95).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋5录音4(5).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/Archive/dada1.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
 
 
 
+    result_path = 'e:/test_image/n/'
     plt.close()
     type_index = get_onsets_index_by_filename_rhythm(filename)
     rhythm_code = get_code(type_index, 2)
@@ -136,10 +146,19 @@ if __name__ == "__main__":
     melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
-    plt, total_score,onset_score, note_scroe = draw_plt(filename,rhythm_code,pitch_code)
+    plt, total_score,onset_score, note_scroe,detail_content = draw_plt(filename,rhythm_code,pitch_code)
     plt.show()
     plt.clf()
-    #total_score, onset_score, note_scroe = get_melody_score(filename, rhythm_code, pitch_code)
+    total_score, onset_score, note_scroe,detail_content = get_melody_score(filename, rhythm_code, pitch_code)
+    filepath, fullflname = os.path.split(filename)
+    output_file = fullflname.split('.wav')[0] + '-out.txt'
+    content = 'total_score,onset_score, note_scroe is ' + str(total_score) + ' ' + str(onset_score) + ' ' + str(
+        note_scroe)
+    content += "\n"
+    save_path = os.path.join(result_path, output_file)
+    write_txt(content, save_path, mode='w')
+
+    write_txt(detail_content, save_path, mode='a')
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
@@ -147,7 +166,6 @@ if __name__ == "__main__":
     dir_list = []
     total_accuracy = 0
     total_num = 0
-    result_path = 'e:/test_image/n/'
     # clear_dir(result_path)
     # 要测试的数量
     test_num = 100
@@ -162,6 +180,8 @@ if __name__ == "__main__":
         # file_list = ['视唱1-01（95）.wav']
         file_total = len(file_list)
         for filename in file_list:
+            if filename.find(".txt") > 0:
+                continue
             # clear_dir(image_dir)
             # wavname = re.findall(pattern,filename)[0]
             print(dir + filename)
@@ -170,8 +190,10 @@ if __name__ == "__main__":
             type_index = get_onsets_index_by_filename_rhythm(dir + filename)
             rhythm_code = get_code(type_index, 2)
             pitch_code = get_code(type_index, 3)
-            plt, total_score, onset_score, note_scroe = draw_plt(dir + filename, rhythm_code, pitch_code)
-            total_score, onset_score, note_scroe = get_melody_score(dir + filename, rhythm_code, pitch_code)
+            plt, total_score, onset_score, note_scroe,detail_content = draw_plt(dir + filename, rhythm_code, pitch_code)
+            total_score, onset_score, note_scroe,detail_content = get_melody_score(dir + filename, rhythm_code, pitch_code)
+
+
             # tmp = os.listdir(result_path)
 
             if filename.find("tune") > 0 or filename.find("add") > 0 or filename.find("shift") > 0:
@@ -213,5 +235,13 @@ if __name__ == "__main__":
                 total_15 += 1
             if np.abs(total_score - int(score)) <= 20:
                 total_20 += 1
+
+            output_file = filename.split('.wav')[0] + '-out.txt'
+            content = 'total_score,onset_score, note_scroe is ' + str(total_score) + ' ' + str(onset_score) + ' ' + str(
+                note_scroe)
+            content += "\n"
+            save_path = os.path.join(result_path + grade, output_file)
+            write_txt(content, save_path, mode='w')
+            write_txt(detail_content, save_path, mode='a')
     print("file_total,yes_total is {},{},{},{},{}".format(file_total, total_10, total_15, total_20,
                                                           total_10 / file_total))

@@ -33,7 +33,7 @@ else:
     print("melody_code is {}".format(melody_code))
     #file_path = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4欧(95).wav'
     #file_code = '[19,60,92,128,161,178,197,230,263]'
-    total_score, onset_score, note_scroe = get_melody_score(file_path,rhythm_code,melody_code)
+    total_score, onset_score, note_scroe,detail_content = get_melody_score(file_path,rhythm_code,melody_code)
     print("total_score,onset_score, note_scroe is {},{},{}".format(total_score,onset_score, note_scroe))
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
@@ -41,6 +41,7 @@ else:
     content += "\n"
     save_path = os.path.join(filepath,output_file)
     write_txt(content, save_path, mode='w')
-    detail = '整体节奏偏离较大，未能误别部分节拍，流畅平稳性有待加强'
+    #detail = '整体节奏偏离较大，未能误别部分节拍，流畅平稳性有待加强'
+    detail = detail_content
     write_txt(detail, save_path, mode='a')
     #python grade_xl_util.py F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav [1000,1000;500,500,1000;500,250,250,500,500;2000] [5,5,3,2,1,2,2,3,2,6-,5-]

@@ -85,17 +85,24 @@ def get_deviation_for_note(standard_y,recognize_y,codes,each_onset_score):
     score = 0
     total = 0
     length = len(standard_y) if len(standard_y) < len(recognize_y) else len(recognize_y)
+    a = 0
+    b = 0
+    c = 0
     for i in range(length-1):
         offset =np.abs((recognize_y[i+1]-recognize_y[i]) /(standard_y[i+1] - standard_y[i]) -1)
         standard_offset = get_code_offset(codes[i])
         if offset <= standard_offset:
             score = 0
+            a += 1
         elif offset >= 1:
             score = each_onset_score
+            b += 1
         else:
             score = each_onset_score * offset
+            c += 1
         total +=score
-    return total
+    detail_content = '节奏时长较大偏差的有' + str(b) + '个，较小偏差的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个'
+    return total,detail_content
 
 def get_code_offset(code):
     offset = 0
@@ -415,16 +422,21 @@ def get_score_for_note_v2(onsets_frames,base_frames,rhythm_code):
 
     xc,yc = get_matched_onset_frames_by_path_v3(standard_y, recognize_y)
 
+    detail_content = ''
     if len(xc)<1 or len(yc) <1:
-        return 0,0,0,0
+        detail_content = '未能识别出匹配的节拍点'
+        return 0,0,0,0,detail_content
     std_number = len(standard_y) - len(xc) + len(recognize_y) - len(yc)
     #print("std_number is {}".format(std_number))
 
-    min_d = get_deviation_for_note(xc,yc, rhythm_code, each_onset_score)
+    min_d,onset_detail_content = get_deviation_for_note(xc,yc, rhythm_code, each_onset_score)
+
+    detail_content += onset_detail_content
 
     if (len(standard_y) - len(xc))/len(standard_y) > 0.45:
+        detail_content = '与标准节奏相比，存在过多未匹配的节拍'
         score = 30-min_d if 30-min_d > 0 else 10
-        return score, 0, 0, 0
+        return score, 0, 0, 0,detail_content
     # # 计算成绩测试
     #print('偏移分值为：{}'.format(min_d))
     onsets_frames_strength = np.ones(len(recognize_y))
@@ -434,8 +446,9 @@ def get_score_for_note_v2(onsets_frames,base_frames,rhythm_code):
     if std_number >= 4:
         #print(len(base_frames))
         score = int(score - each_onset_score*std_number*0.5)
+        detail_content = '与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
 
-    return int(score),int(lost_score),int(ex_score),int(min_d)
+    return int(score),int(lost_score),int(ex_score),int(min_d),detail_content
 
 '''
 计算节奏型音频的分数

@@ -914,9 +914,10 @@ def check_notes_trend(longest_note,base_notes):
 
 def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times,rhythm_code):
     #type_index = get_onsets_index_by_filename_rhythm(filename)
-    onset_score, lost_score, ex_score, min_d = get_score_for_note_v2(onsets_frames.copy(), base_frames.copy(), rhythm_code)
+    onset_score, lost_score, ex_score, min_d,detail_content = get_score_for_note_v2(onsets_frames.copy(), base_frames.copy(), rhythm_code)
     #print("score, lost_score, ex_score, min_d is {},{},{},{}".format(onset_score, lost_score, ex_score, min_d))
     # onset_score = cal_dtw_distance(onsets_frames.copy(), base_frames.copy())
+
     if onset_score == 0:
         return 0, 0, 0
     note_score = cal_note_score(note_lines, base_notes)
@@ -929,7 +930,7 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
         note_score = int(60 * onset_score / 40)
 
     if note_score > 50 and onset_score < 25:
-        print("changed 1")
+        detail_content = '音高得分较好，节奏方面需要进一步加强'
         if onset_score<20:
             onset_score = onset_score + int(20 / 60 * note_score)
         else:
@@ -942,6 +943,7 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
 
     # # 漏唱数过多
     if onset_score < 10:
+        detail_content = '识别的节奏与标准节奏偏差较大，节奏得分过低，整体得分计为不合格'
         note_score = int(60 * onset_score / 40)
         score = onset_score + note_score
 
@@ -949,7 +951,7 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
     if note_score < 5:
         note_score = int(60 * onset_score / 40)
         score = onset_score + note_score
-        print("changed 4")
+        detail_content = '识别的音高与标准音高偏差较大，旋律得分过低，整体得分以节奏为准'
 
     #判断每个节拍的时长
     total_offset = 0
@@ -959,7 +961,7 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
     if total_offset >= 2 and score >= 90:
         tmp_score = int(5 * total_offset)
         score, onset_score, note_score = score - tmp_score, onset_score - int(tmp_score/2), note_score - int(tmp_score/2)
-        print("changed 5")
+        detail_content = '存在节奏时长不够的情况，整体得分减扣相应的分值'
     #如果节拍完全吻合数较多
     length = len(onsets_frames) if len(onsets_frames) < len(base_frames) else len(base_frames)
     base_frames = [x - (base_frames[0] - onsets_frames[0]) for x in base_frames]
@@ -973,7 +975,7 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
     #     if np.sum(onset_diff)>=5 and score<80:
     #         score, onset_score, note_score = 80,35,45
     #         print("changed 7")
-    return score,onset_score, note_score
+    return score,onset_score, note_score,detail_content
 
 def del_middle_by_cqt(onset_frames,indexMap,cqt,rms):
     result = []
@@ -1211,7 +1213,7 @@ def draw_plt(filename,rhythm_code,pitch_code):
     print("final onsets_frames is {}".format(onsets_frames))
     print("final note_lines is {}".format(note_lines))
     print("final times is {}".format(times))
-    score1, onset_score1, note_score1 = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes,times, rhythm_code)
+    score1, onset_score1, note_score1,detail_content = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes,times, rhythm_code)
 
     print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
 
@@ -1272,7 +1274,7 @@ def draw_plt(filename,rhythm_code,pitch_code):
     plt.axhline(mean_rms_on_frames, color='r')
     plt.vlines(onstm, 0, np.max(rms), color='y', linestyle='dashed')
     plt.xlim(0, np.max(times))
-    return plt,score,onset_score, note_score
+    return plt,score,onset_score, note_score,detail_content
 
 def get_melody_score(filename,rhythm_code,pitch_code):
     y, sr = load_and_trim(filename)
@@ -1330,10 +1332,10 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     #print("final onsets_frames is {}".format(onsets_frames))
     #print("final note_lines is {}".format(note_lines))
     #print("final times is {}".format(times))
-    score1, onset_score1, note_score1 = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes,times, rhythm_code)
+    score1, onset_score1, note_score1,detail_content = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes,times, rhythm_code)
 
     #print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
 
     score, onset_score, note_score = score1, onset_score1, note_score1
 
-    return score,onset_score, note_score
+    return score,onset_score, note_score,detail_content
