@@ -917,28 +917,33 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
     onset_score, lost_score, ex_score, min_d = get_score_for_note_v2(onsets_frames.copy(), base_frames.copy(), rhythm_code)
     #print("score, lost_score, ex_score, min_d is {},{},{},{}".format(onset_score, lost_score, ex_score, min_d))
     # onset_score = cal_dtw_distance(onsets_frames.copy(), base_frames.copy())
+    if onset_score == 0:
+        return 0, 0, 0
     note_score = cal_note_score(note_lines, base_notes)
     onset_score = int(onset_score * 0.4)
     score = onset_score + note_score
 
-    # if onset_score >= 36 and score < 90:
-    #     note_score = int(60 * onset_score / 40)
-    # elif onset_score > 30 and note_score < 36:
-    #     note_score = int(60 * onset_score / 40)
-    #
-    if note_score > 56:
-        onset_score = int(40 / 60 * note_score)
+    if onset_score >= 36 and score < 90:
+        note_score = int(60 * onset_score / 40)
+    elif onset_score > 30 and note_score < 36:
+        note_score = int(60 * onset_score / 40)
+
+    if note_score > 50 and onset_score < 25:
         print("changed 1")
-    elif note_score> 50 and score <= 80 and score > 70:
-        onset_score = int(40 / 60 * note_score)
-        print("changed 2")
+        if onset_score<20:
+            onset_score = onset_score + int(20 / 60 * note_score)
+        else:
+            onset_score = onset_score + int(15 / 60 * note_score)
+    # elif note_score> 50 and score <= 8 and score > 70:
+    #     onset_score = int(40 / 60 * note_score)
+    #     print("changed 2")
 
     score = onset_score + note_score
 
-    # 漏唱数过多
-    if len(base_frames) - len(onsets_frames) >= 5:
-        score,onset_score,note_score = 40,15,25
-        print("changed 3")
+    # # 漏唱数过多
+    if onset_score < 10:
+        note_score = int(60 * onset_score / 40)
+        score = onset_score + note_score
 
     #旋律分小于0
     if note_score < 5:
@@ -1114,6 +1119,40 @@ def get_local_min_before(frame,rms):
             break
     return before_frame
 
+def split_long_note_line(onsets_frames, note_lines, times,pitch_code):
+    flag = False
+    pitch_code = pitch_code.replace(":", ',')
+    pitch_code = pitch_code.replace("[", '')
+    pitch_code = pitch_code.replace("]", '')
+    pitch_code = [x for x in pitch_code.split(',')]
+    select_onsets_frames, select_note_lines, select_times = [],[],[]
+    for i in range(1,len(pitch_code)-1):
+        if pitch_code[i-1] ==  pitch_code[i] and pitch_code[i] ==  pitch_code[i+1]:
+            flag = True
+            break
+    if flag is True:
+        for i in range(len(onsets_frames)):
+            if times[i]>60:
+                split_length = int(times[i]/3)
+                select_onsets_frames.append(onsets_frames[i])
+                select_note_lines.append(note_lines[i])
+                select_times.append(split_length)
+
+                select_onsets_frames.append(onsets_frames[i] + split_length)
+                select_note_lines.append(note_lines[i])
+                select_times.append(split_length)
+
+                select_onsets_frames.append(onsets_frames[i] + split_length*2)
+                select_note_lines.append(note_lines[i])
+                select_times.append(split_length)
+            else:
+                select_onsets_frames.append(onsets_frames[i])
+                select_note_lines.append(note_lines[i])
+                select_times.append(times[i])
+    else:
+        return onsets_frames, note_lines, times
+
+    return select_onsets_frames, select_note_lines, select_times
 def draw_plt(filename,rhythm_code,pitch_code):
     y, sr = load_and_trim(filename)
     y, sr = librosa.load(filename)
@@ -1155,7 +1194,7 @@ def draw_plt(filename,rhythm_code,pitch_code):
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
     print("get_note_lines====08 onsets_frames is {}".format(onsets_frames))
-
+    #onsets_frames, note_lines, times = split_long_note_line(onsets_frames, note_lines, times, pitch_code)
     print("0 onsets_frames is {},size is {}".format(onsets_frames,len(onsets_frames)))
     print("0 end_result is {},size is {}".format(end_result,len(end_result)))
     print("0 times is {},size is {}".format(times,len(times)))
@@ -1164,7 +1203,9 @@ def draw_plt(filename,rhythm_code,pitch_code):
     # print("list_intersect_before,list_intersect,list_intersect_after is {},{},{}".format(list_intersect_before,
     #                                                                                      list_intersect,
     #                                                                                      list_intersect_after))
-    maybe_onset_frames = find_maybe_position_rhythm_code(onsets_frames[0], end_result[-1] - onsets_frames[0], rhythm_code)
+    if len(times) == len(onsets_frames):
+        frames_total = onsets_frames[-1] + times[-1] - onsets_frames[0]
+    maybe_onset_frames = find_maybe_position_rhythm_code(onsets_frames[0], frames_total, rhythm_code)
     base_frames = maybe_onset_frames[:-1]
     print("maybe_onset_frames  is {}".format(maybe_onset_frames))
     print("final onsets_frames is {}".format(onsets_frames))
@@ -1204,11 +1245,13 @@ def draw_plt(filename,rhythm_code,pitch_code):
     #min_d, best_y, _ = get_dtw_min(onsets_frames, base_frames, 100)
     #base_times = librosa.frames_to_time(best_y, sr=sr)
     base_times = librosa.frames_to_time(base_frames, sr=sr)
+    the_end_time = librosa.frames_to_time(maybe_onset_frames[-1], sr=sr)
     # rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
     # min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
     # rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
     plt.vlines(onstm, 0, np.max(rms), color='y', linestyle='dashed')
     plt.vlines(base_times, 0, np.max(rms), color='r', linestyle='dashed')
+    plt.vlines(the_end_time, 0, np.max(rms), color='black', linestyle='dashed')
     rms_on_frames = [rms[x] for x in onsets_frames]
     mean_rms_on_frames = np.mean(rms_on_frames)
     plt.plot(times, rms)

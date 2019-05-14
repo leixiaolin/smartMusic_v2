@@ -123,7 +123,8 @@ if __name__ == "__main__":
 
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律8录音3(95).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋5录音4(5).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/Archive/dada1.wav'
 
 
 
@@ -131,12 +132,14 @@ if __name__ == "__main__":
     type_index = get_onsets_index_by_filename_rhythm(filename)
     rhythm_code = get_code(type_index, 2)
     pitch_code = get_code(type_index, 3)
+    rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
+    melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
     plt, total_score,onset_score, note_scroe = draw_plt(filename,rhythm_code,pitch_code)
     plt.show()
     plt.clf()
-    total_score, onset_score, note_scroe = get_melody_score(filename, rhythm_code, pitch_code)
+    #total_score, onset_score, note_scroe = get_melody_score(filename, rhythm_code, pitch_code)
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
@@ -168,6 +171,7 @@ if __name__ == "__main__":
             rhythm_code = get_code(type_index, 2)
             pitch_code = get_code(type_index, 3)
             plt, total_score, onset_score, note_scroe = draw_plt(dir + filename, rhythm_code, pitch_code)
+            total_score, onset_score, note_scroe = get_melody_score(dir + filename, rhythm_code, pitch_code)
             # tmp = os.listdir(result_path)
 
             if filename.find("tune") > 0 or filename.find("add") > 0 or filename.find("shift") > 0:

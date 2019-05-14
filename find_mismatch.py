@@ -413,11 +413,18 @@ def get_score_for_note_v2(onsets_frames,base_frames,rhythm_code):
     #rhythm_code = get_code(type_index, 2)
     each_onset_score = 100 / len(standard_y)
 
-    xc,yc = get_matched_onset_frames_by_path_v2(standard_y, recognize_y)
+    xc,yc = get_matched_onset_frames_by_path_v3(standard_y, recognize_y)
+
+    if len(xc)<1 or len(yc) <1:
+        return 0,0,0,0
     std_number = len(standard_y) - len(xc) + len(recognize_y) - len(yc)
     #print("std_number is {}".format(std_number))
 
     min_d = get_deviation_for_note(xc,yc, rhythm_code, each_onset_score)
+
+    if (len(standard_y) - len(xc))/len(standard_y) > 0.45:
+        score = 30-min_d if 30-min_d > 0 else 10
+        return score, 0, 0, 0
     # # 计算成绩测试
     #print('偏移分值为：{}'.format(min_d))
     onsets_frames_strength = np.ones(len(recognize_y))

@@ -142,15 +142,16 @@ def get_matched_onset_frames_by_path_v2(x,y):
     gap = x[x_end] - x[x_start]
     y_gap = np.sum(yd[y_start:y_end])
     check_gap = np.abs(gap - y_gap)/y_gap
+    cal_number = 0
     while x_end < length:
         while check_gap > 0.45:
-            print("checking ============{}========{}".format(x_start,x_end))
+            #print("checking ============{}========{}".format(x_start,x_end))
             #如果下一条是多窄
             if gap < np.sum(yd[x_start:y_end]):
                 x_end += 1
                 if x_end >= length:
                     break
-                print("x_start,x_end is {},{}".format(x_start,x_end))
+                #print("x_start,x_end is {},{}".format(x_start,x_end))
                 gap = x[x_end] - x[x_start]
                 y_gap = np.sum(yd[y_start:y_end])
                 check_gap = np.abs(gap - y_gap) / y_gap
@@ -158,6 +159,9 @@ def get_matched_onset_frames_by_path_v2(x,y):
                 y_end += 1
                 y_gap = np.sum(yd[y_start:y_end])
                 check_gap = np.abs(gap - y_gap) / y_gap
+            cal_number += 1
+            if cal_number > 30:
+                return [], []
         if x_end < len(x):
             xc.append(x[x_end])
         if y_end < len(y):
@@ -174,6 +178,61 @@ def get_matched_onset_frames_by_path_v2(x,y):
         y_gap = np.sum(yd[y_start:y_end])
         check_gap = np.abs(gap - y_gap) / y_gap
     return xc,yc
+
+def get_matched_onset_frames_by_path_v3(x,y):
+    euclidean_norm = lambda x, y: np.abs(x - y)
+    d, cost_matrix, acc_cost_matrix, path = dtw(x, y, dist=euclidean_norm)
+    # print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
+    # print("acc_cost_matrix is :")
+    # print(acc_cost_matrix)
+    # print("path is :")
+    # print(path[0])
+    # print(path[1])
+    xc = []
+    yc = []
+    i = 0
+    while i < len(path[0]):
+        p1 = path[0][i]
+        p2 = path[1][i]
+        p1_indexs = get_indexs(path[0],p1)
+        p2_indexs = get_indexs(path[1], p2)
+        if len(p1_indexs)== 1 and len(p2_indexs) == 1:
+            xc.append(x[p1])
+            yc.append(y[p2])
+            i += 1
+        elif len(p1_indexs) >1:
+            x_tmp = x[p1]
+            y_tmp = [y[path[1][i]] for i in p1_indexs]
+            gap = [np.abs(x_tmp - t) for t in y_tmp]
+            min_index = get_indexs(gap, np.min(gap))
+            xc.append(x_tmp)
+            yc.append(y_tmp[min_index[0]])
+            i += len(p1_indexs)
+        elif len(p2_indexs) >1:
+            y_tmp = y[p2]
+            x_tmp = [x[path[0][i]] for i in p2_indexs]
+            gap = [np.abs(y_tmp - t) for t in x_tmp]
+            min_index = get_indexs(gap, np.min(gap))
+            xc.append(x_tmp[min_index[0]])
+            yc.append(y_tmp)
+            i += len(p2_indexs)
+    return xc,yc
+
+
+# 获取相同元素出现位置的下标
+def get_indexs(a,b):
+    from collections import defaultdict
+    result = []
+    d = defaultdict(list)
+    for i, v in enumerate(a):
+        d[v].append(i)
+    #print(d.items() )
+    for (d,x) in d.items():
+        #print(d,x)
+        if d == b:
+            result = x
+    return result
+
 # 找出多唱或漏唱的线的帧
 def get_mismatch_line(standard_y,recognize_y):
     # standard_y标准线的帧列表 recognize_y识别线的帧列表
@@ -206,8 +265,10 @@ if __name__ == '__main__':
     #x = np.array([24, 24, 26, 26, 26, 26, 23, 26, 20, 26, 24, 24, 25])
     # x = np.array([1,5,10,13])
     # y = np.array([1,4,13])
-    x = [1,5,10,13]
-    y = [1,4,13]
+    x = [25, 30, 32, 33, 35, 33, 32, 30, 25]
+    y = [31, 34, 35, 33, 31, 31, 24]
+    # x = [1,1,3,3,8,1]
+    # y = [2,0,0,8,7,2]
     a,b = get_mismatch_line(y.copy(),x.copy())
     print("a,b is {},{}".format(a,b))
     print(np.mean(x))
@@ -226,9 +287,19 @@ if __name__ == '__main__':
     print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d ,np.sum(acc_cost_matrix.shape)))
     notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
     print("notes_score is {}".format(notes_score))
+    print("acc_cost_matrix is :")
+    print(acc_cost_matrix)
+    print("path is :")
+    print(path[0])
+    print(path[1])
+    xc, yc = get_matched_onset_frames_by_path_v3(x, y)
+    print("xc is {}".format(xc))
+    print("yc is {}".format(yc))
+    d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
+    print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
 
-    x = np.array([0, 14, 28, 55, 68, 82, 109, 123, 136, 156, 163])
-    y = np.array([22, 53, 87, 124, 147, 170, 194, 214])
+    x = np.array([1,0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1])
+    y = np.array([0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2])
     # x = np.array([42, 49, 65])
     # y = np.array([0, 19, 38])
     # y = [i - (y[0] - x[0]) for i in y]
