@@ -1197,10 +1197,10 @@ def draw_plt(filename,rhythm_code,pitch_code):
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
     print("get_note_lines====08 onsets_frames is {}".format(onsets_frames))
     #onsets_frames, note_lines, times = split_long_note_line(onsets_frames, note_lines, times, pitch_code)
-    print("0 onsets_frames is {},size is {}".format(onsets_frames,len(onsets_frames)))
-    print("0 end_result is {},size is {}".format(end_result,len(end_result)))
-    print("0 times is {},size is {}".format(times,len(times)))
-    print("0 note_lines is {},size is {}".format(note_lines,len(note_lines)))
+    # print("0 onsets_frames is {},size is {}".format(onsets_frames,len(onsets_frames)))
+    # print("0 end_result is {},size is {}".format(end_result,len(end_result)))
+    # print("0 times is {},size is {}".format(times,len(times)))
+    # print("0 note_lines is {},size is {}".format(note_lines,len(note_lines)))
     # list_intersect_before, list_intersect, list_intersect_after = check_all_notes_trend(note_lines, base_notes)
     # print("list_intersect_before,list_intersect,list_intersect_after is {},{},{}".format(list_intersect_before,
     #                                                                                      list_intersect,
@@ -1209,10 +1209,10 @@ def draw_plt(filename,rhythm_code,pitch_code):
         frames_total = onsets_frames[-1] + times[-1] - onsets_frames[0]
     maybe_onset_frames = find_maybe_position_rhythm_code(onsets_frames[0], frames_total, rhythm_code)
     base_frames = maybe_onset_frames[:-1]
-    print("maybe_onset_frames  is {}".format(maybe_onset_frames))
-    print("final onsets_frames is {}".format(onsets_frames))
-    print("final note_lines is {}".format(note_lines))
-    print("final times is {}".format(times))
+    # print("maybe_onset_frames  is {}".format(maybe_onset_frames))
+    # print("final onsets_frames is {}".format(onsets_frames))
+    # print("final note_lines is {}".format(note_lines))
+    # print("final times is {}".format(times))
     score1, onset_score1, note_score1,detail_content = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes,times, rhythm_code)
 
     print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
@@ -1326,12 +1326,14 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     # print("list_intersect_before,list_intersect,list_intersect_after is {},{},{}".format(list_intersect_before,
     #                                                                                      list_intersect,
     #                                                                                      list_intersect_after))
-    maybe_onset_frames = find_maybe_position_rhythm_code(onsets_frames[0], end_result[-1] - onsets_frames[0], rhythm_code)
+    if len(times) == len(onsets_frames):
+        frames_total = onsets_frames[-1] + times[-1] - onsets_frames[0]
+    maybe_onset_frames = find_maybe_position_rhythm_code(onsets_frames[0], frames_total, rhythm_code)
     base_frames = maybe_onset_frames[:-1]
-    #print("maybe_onset_frames  is {}".format(maybe_onset_frames))
-    #print("final onsets_frames is {}".format(onsets_frames))
-    #print("final note_lines is {}".format(note_lines))
-    #print("final times is {}".format(times))
+    # print("maybe_onset_frames  is {}".format(maybe_onset_frames))
+    # print("final onsets_frames is {}".format(onsets_frames))
+    # print("final note_lines is {}".format(note_lines))
+    # print("final times is {}".format(times))
     score1, onset_score1, note_score1,detail_content = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes,times, rhythm_code)
 
     #print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))

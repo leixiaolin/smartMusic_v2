@@ -133,7 +133,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律8录音3(95).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/Archive/dada1.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
 
 
 
@@ -142,8 +142,8 @@ if __name__ == "__main__":
     type_index = get_onsets_index_by_filename_rhythm(filename)
     rhythm_code = get_code(type_index, 2)
     pitch_code = get_code(type_index, 3)
-    rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
-    melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
+    #rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
+    #melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
     plt, total_score,onset_score, note_scroe,detail_content = draw_plt(filename,rhythm_code,pitch_code)
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/A/']
-    dir_list = []
+    #dir_list = []
     total_accuracy = 0
     total_num = 0
     # clear_dir(result_path)
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     for dir in dir_list:
         file_list = os.listdir(dir)
         # shuffle(file_list)  # 将语音文件随机排列
-        # file_list = ['视唱1-01（95）.wav']
+        #file_list = ['旋1王（98）.wav']
         file_total = len(file_list)
         for filename in file_list:
             if filename.find(".txt") > 0:
