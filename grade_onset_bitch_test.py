@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40210（30）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1卢(100).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4欧(95).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节6录音2(75).wav'
 
 
 
@@ -130,10 +130,10 @@ if __name__ == "__main__":
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/A/']
-    dir_list = []
+    #dir_list = []
     total_accuracy = 0
     total_num = 0
-    result_path = 'e:/test_image/n/'
+    result_path = 'e:/test_image/o/'
     # clear_dir(result_path)
     # 要测试的数量
     test_num = 100
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     for dir in dir_list:
         file_list = os.listdir(dir)
         # shuffle(file_list)  # 将语音文件随机排列
-        # file_list = ['视唱1-01（95）.wav']
+        #file_list = ['节2罗（75）.wav']
         file_total = len(file_list)
         for filename in file_list:
             print(filename)
@@ -153,25 +153,43 @@ if __name__ == "__main__":
                 continue
             elif filename.find('shift') > 0:
                 continue
+
+            if filename.find("tune") > 0 or filename.find("add") > 0 or filename.find("shift") > 0:
+                score = re.sub("\D", "", filename.split("-")[0])  # 筛选数字
+            else:
+                score = re.sub("\D", "", filename)  # 筛选数字
+
+            if str(score).find("100") > 0:
+                score = 100
+            else:
+                score = int(score) % 100
+
             type_index = get_onsets_index_by_filename(dir + filename)
             onset_code = get_code(type_index, 1)
-            score, lost_score, ex_score, min_d = get_score_jz(dir + filename,onset_code)
-            print("score, lost_score, ex_score, min_d is {},{},{},{}".format(score, lost_score, ex_score, min_d))
+            total_score, lost_score, ex_score, min_d = get_score_jz(dir + filename,onset_code)
+            print("score, lost_score, ex_score, min_d is {},{},{},{}".format(total_score, lost_score, ex_score, min_d))
 
-            if int(score) >= 90:
-                grade = 'A'
-                files_list_a.append([filename + ' - ' + grade, score, lost_score, ex_score, min_d])
-            elif int(score) >= 75:
-                grade = 'B'
-                files_list_b.append([filename + ' - ' + grade, score, lost_score, ex_score, min_d])
-            elif int(score) >= 60:
-                grade = 'C'
-                files_list_c.append([filename + ' - ' + grade, score, lost_score, ex_score, min_d])
-            elif int(score) >= 1:
-                grade = 'D'
-                files_list_d.append([filename + ' - ' + grade, score, lost_score, ex_score, min_d])
+            if int(score) < 60:
+                if total_score > 70:
+                    files_list_d.append([filename, total_score, lost_score, ex_score, min_d])
             else:
-                grade = 'E'
+                if np.abs(total_score - int(score)) > 15:
+                    files_list_a.append([filename, total_score, lost_score, ex_score, min_d])
+
+            # if int(score) >= 90:
+            #     grade = 'A'
+            #     files_list_a.append([filename + ' - ' + grade, score, lost_score, ex_score, min_d])
+            # elif int(score) >= 75:
+            #     grade = 'B'
+            #     files_list_b.append([filename + ' - ' + grade, score, lost_score, ex_score, min_d])
+            # elif int(score) >= 60:
+            #     grade = 'C'
+            #     files_list_c.append([filename + ' - ' + grade, score, lost_score, ex_score, min_d])
+            # elif int(score) >= 1:
+            #     grade = 'D'
+            #     files_list_d.append([filename + ' - ' + grade, score, lost_score, ex_score, min_d])
+            # else:
+            #     grade = 'E'
 
         t1 = np.append(files_list_a, files_list_b).reshape(len(files_list_a) + len(files_list_b), 5)
         t2 = np.append(files_list_c, files_list_d).reshape(len(files_list_c) + len(files_list_d), 5)
