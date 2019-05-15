@@ -136,7 +136,7 @@ def draw_plt(filename,base_frames,onsets_frames):
 if __name__ == "__main__":
 
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40210（30）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1卢(100).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1卢(100).wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10.1(97).wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1录音1(75).wav'
 

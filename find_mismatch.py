@@ -406,8 +406,12 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
 
     if std_number >= 3:
         # print(len(base_frames))
-        min_d = int(min_d + each_onset_score * std_number * 0.5)
-        detail_content += '。与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
+        if std_number/len(standard_y) < 0.45:
+            min_d = int(min_d + each_onset_score * std_number * 0.5)
+            detail_content += '。与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
+        else:
+            detail_content = '与标准节奏相比，存在过多未匹配的节拍，得分计为不合格'
+            return 20, 0, 0, 0, standard_y, recognize_y, detail_content
     ex_recognize_y = []
     # #多唱的情况
     # if len(standard_y) < len(recognize_y):
@@ -603,8 +607,12 @@ def get_score_jz_by_onsets_frames_rhythm(filename,onset_code):
 
     if std_number >= 3:
         # print(len(base_frames))
-        min_d = int(min_d + each_onset_score * std_number * 0.5)
-        detail_content += '。与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
+        if std_number/len(standard_y) < 0.45:
+            min_d = int(min_d + each_onset_score * std_number * 0.5)
+            detail_content += '。与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
+        else:
+            detail_content = '与标准节奏相比，存在过多未匹配的节拍，得分计为不合格'
+            return 20, 0, 0, 0, standard_y, recognize_y, detail_content
     # ex_recognize_y = []
     # #多唱的情况
     # if len(standard_y) < len(recognize_y):
