@@ -290,8 +290,8 @@ def find_loss_by_rms_for_onsets(onsets_frames,rms,onset_code):
     keyMap = {}
     indexMap = {}
     # select_onset_frames = onsets_frames.copy()
-    select_onset_frames = onsets_frames.copy()
-    #select_onset_frames = []
+    #select_onset_frames = onsets_frames.copy()
+    select_onset_frames = []
     #select_onset_frames.append(onsets_frames[0])
     # print("all onsets_frames is {}".format(onsets_frames))
     new_added = []
@@ -301,7 +301,7 @@ def find_loss_by_rms_for_onsets(onsets_frames,rms,onset_code):
     if len(small_code_indexs) > 0:
         threshold = 3
     for i in range(5,len(rms)-20):
-        if (i==1 and rms[2] > rms [1]) or (rms[i+1] > rms[i] and rms[i-1] > rms[i]):
+        if (i==1 and rms[2] > rms [1]) or (rms[i+1] > rms [i] and rms[i] == rms[i-1]) or (rms[i+1] > rms[i] and rms[i-1] > rms[i]):
             hightest_point_after = find_hightest_after(i, rms)
             if i == onsets_frames[0]:
                 rms_theshold = 0.5
@@ -311,11 +311,17 @@ def find_loss_by_rms_for_onsets(onsets_frames,rms,onset_code):
             if rms[hightest_point_after] - rms[i] > rms_theshold:
                 #print("rms[hightest_point_after] - rms[i],i is {}=={}".format(rms[hightest_point_after] - rms[i],i))
                 value = rms[hightest_point_after] - rms[i]
-                result.append(value)
+                result.append(value)  #保存振幅增值
                 keyMap[value] = i
                 indexMap[i] = value
     topN_index = find_n_largest(result,topN)
-    topN_key = [result[i] for i in topN_index]
+    topN_key = [result[i] for i in topN_index] #topN的振幅增值
+    for x in onsets_frames:
+        hightest_point_after = find_hightest_after(x, rms)
+        value = rms[hightest_point_after] - rms[i]
+        if value > np.min(topN_key):
+            select_onset_frames.append(x)
+
     for key in topN_key:
         index = keyMap.get(key)
         if len(select_onset_frames) == 0:
@@ -323,11 +329,21 @@ def find_loss_by_rms_for_onsets(onsets_frames,rms,onset_code):
         else:
             offset = [np.abs(index - x) for x in select_onset_frames]
             offset_min = np.min(offset)
-        if index > onsets_frames[0] and offset_min > threshold:
+        if offset_min > threshold:
             select_onset_frames.append(index)
             new_added.append(index)
     select_onset_frames.sort()
     return select_onset_frames
+
+def del_same_onsets_by(onsets_frames,CQT,base_frames):
+    select_onsets_frames = []
+    select_onsets_frames.append(onsets_frames[0])
+    cqt_max = np.max(CQT)
+    base_frames_min = np.min(np.diff(base_frames))
+    for i in range(1, len(onsets_frames)):
+        if onsets_frames[i] - onsets_frames[i - 1] > base_frames_min * 0.6:
+            select_onsets_frames.append(onsets_frames[i])
+    return select_onsets_frames
 
 '''
 计算节奏型音频的分数
@@ -357,16 +373,17 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
     CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     onsets_frames = [onsets_frames[i] for i in range(len(times)) if times[i] > 3]
-    recognize_y = onsets_frames
 
     # 标准节拍时间点
     if len(onsets_frames) > 0:
         base_frames = onsets_base_frames(onset_code, total_frames_number - onsets_frames[0])
         base_frames = [x + (onsets_frames[0] - base_frames[0]) for x in base_frames]
-        min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
+        min_d, best_y, _ = get_dtw_min(onsets_frames.copy(), base_frames, 65)
     else:
         base_frames = onsets_base_frames(onset_code, total_frames_number)
 
+    onsets_frames = del_same_onsets_by(onsets_frames,CQT,base_frames)
+    recognize_y = onsets_frames
     #print("base_frames is {}".format(base_frames))
     #print("base_frames len is {}".format(len(base_frames)))
 
@@ -404,13 +421,16 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
     code = [code[i] for i in range(len(code)) if i not in loss_indexs]
     min_d,detail_content = get_deviation(xc, yc, code, each_onset_score)
 
-    if std_number >= 3:
+    if std_number >= 1:
         # print(len(base_frames))
-        if std_number/len(standard_y) < 0.45:
+        if std_number<=3:
+            min_d = int(min_d + each_onset_score * std_number * 0.5)
+            detail_content += '。与标准节奏相比，存在少量未匹配的节拍，整体得分扣减相关的分值'
+        elif std_number/len(standard_y) < 0.45:
             min_d = int(min_d + each_onset_score * std_number * 0.5)
             detail_content += '。与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
         else:
-            detail_content = '与标准节奏相比，存在过多未匹配的节拍，得分计为不合格'
+            detail_content = '与标准节奏相比，存在过多未能匹配对齐的节拍，得分计为不合格'
             return 20, 0, 0, 0, standard_y, recognize_y, detail_content
     ex_recognize_y = []
     # #多唱的情况
@@ -559,16 +579,17 @@ def get_score_jz_by_onsets_frames_rhythm(filename,onset_code):
     CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     onsets_frames = [onsets_frames[i] for i in range(len(times)) if times[i] > 3]
-    recognize_y = onsets_frames
 
     # 标准节拍时间点
     if len(onsets_frames) > 0:
         base_frames = onsets_base_frames(onset_code, total_frames_number - onsets_frames[0])
         base_frames = [x + (onsets_frames[0] - base_frames[0]) for x in base_frames]
-        min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
+        min_d, best_y, _ = get_dtw_min(onsets_frames.copy(), base_frames, 65)
     else:
         base_frames = onsets_base_frames(onset_code, total_frames_number)
 
+    onsets_frames = del_same_onsets_by(onsets_frames,CQT,base_frames)
+    recognize_y = onsets_frames
     #print("base_frames is {}".format(base_frames))
     #print("base_frames len is {}".format(len(base_frames)))
 
@@ -605,13 +626,16 @@ def get_score_jz_by_onsets_frames_rhythm(filename,onset_code):
     code = [code[i] for i in range(len(code)) if i not in loss_indexs]
     min_d,detail_content = get_deviation(xc, yc, code, each_onset_score)
 
-    if std_number >= 3:
+    if std_number >= 1:
         # print(len(base_frames))
-        if std_number/len(standard_y) < 0.45:
+        if std_number <= 3:
+            min_d = int(min_d + each_onset_score * std_number * 0.5)
+            detail_content += '。与标准节奏相比，存在少量未匹配的节拍，整体得分扣减相关的分值'
+        elif std_number/len(standard_y) < 0.45:
             min_d = int(min_d + each_onset_score * std_number * 0.5)
             detail_content += '。与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
         else:
-            detail_content = '与标准节奏相比，存在过多未匹配的节拍，得分计为不合格'
+            detail_content = '与标准节奏相比，存在过多未能匹配对齐的节拍，得分计为不合格'
             return 20, 0, 0, 0, standard_y, recognize_y, detail_content
     # ex_recognize_y = []
     # #多唱的情况

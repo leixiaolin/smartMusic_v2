@@ -266,8 +266,8 @@ if __name__ == '__main__':
     #x = np.array([24, 24, 26, 26, 26, 26, 23, 26, 20, 26, 24, 24, 25])
     # x = np.array([1,5,10,13])
     # y = np.array([1,4,13])
-    x = [25, 30, 32, 33, 35, 33, 32, 30, 25]
-    y = [31, 34, 35, 33, 31, 31, 24]
+    x = [37, 127, 216, 239, 250, 261, 351]
+    y = [27, 114, 199, 216, 227, 239, 283, 328]
     # x = [1,1,3,3,8,1]
     # y = [2,0,0,8,7,2]
     a,b = get_mismatch_line(y.copy(),x.copy())
@@ -294,8 +294,10 @@ if __name__ == '__main__':
     print(path[0])
     print(path[1])
     xc, yc = get_matched_onset_frames_by_path_v3(x, y)
-    print("xc is {}".format(xc))
-    print("yc is {}".format(yc))
+    print("xc is {},size is {}".format(xc,len(xc)))
+    print("x  is {},size is {}".format(x, len(x)))
+    print("yc is {},size is {}".format(yc,len(yc)))
+    print("y  is {},size is {}".format(y, len(y)))
     d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
     print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
 
