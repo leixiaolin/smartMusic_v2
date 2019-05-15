@@ -191,9 +191,10 @@ def get_matched_onset_frames_by_path_v3(x,y):
     xc = []
     yc = []
     i = 0
+
     while i < len(path[0]):
-        p1 = path[0][i]
-        p2 = path[1][i]
+        p1 = int(path[0][i])
+        p2 = int(path[1][i])
         p1_indexs = get_indexs(path[0],p1)
         p2_indexs = get_indexs(path[1], p2)
         if len(p1_indexs)== 1 and len(p2_indexs) == 1:
@@ -202,7 +203,7 @@ def get_matched_onset_frames_by_path_v3(x,y):
             i += 1
         elif len(p1_indexs) >1:
             x_tmp = x[p1]
-            y_tmp = [y[path[1][i]] for i in p1_indexs]
+            y_tmp = [y[int(path[1][i])] for i in p1_indexs]
             gap = [np.abs(x_tmp - t) for t in y_tmp]
             min_index = get_indexs(gap, np.min(gap))
             xc.append(x_tmp)
@@ -210,7 +211,7 @@ def get_matched_onset_frames_by_path_v3(x,y):
             i += len(p1_indexs)
         elif len(p2_indexs) >1:
             y_tmp = y[p2]
-            x_tmp = [x[path[0][i]] for i in p2_indexs]
+            x_tmp = [x[int(path[0][i])] for i in p2_indexs]
             gap = [np.abs(y_tmp - t) for t in x_tmp]
             min_index = get_indexs(gap, np.min(gap))
             xc.append(x_tmp[min_index[0]])

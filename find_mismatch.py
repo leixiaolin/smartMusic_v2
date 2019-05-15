@@ -68,17 +68,24 @@ def get_deviation(standard_y,recognize_y,codes,each_onset_score):
     #each_onset_score = 100/len(standard_y)
     score = 0
     total = 0
+    a = 0
+    b = 0
+    c = 0
     for i in range(len(standard_y)-1):
         offset =np.abs((recognize_y[i+1]-recognize_y[i]) /(standard_y[i+1] - standard_y[i]) -1)
         standard_offset = get_code_offset(codes[i])
         if offset <= standard_offset:
             score = 0
+            a += 1
         elif offset >= 1:
             score = each_onset_score
+            b += 1
         else:
             score = each_onset_score * offset
+            c += 1
         total +=score
-    return total
+    detail_content = '节奏时长偏差较大的有' + str(b) + '个，偏差较小的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个'
+    return total,detail_content
 
 def get_deviation_for_note(standard_y,recognize_y,codes,each_onset_score):
     #each_onset_score = 100/len(standard_y)
@@ -101,7 +108,7 @@ def get_deviation_for_note(standard_y,recognize_y,codes,each_onset_score):
             score = each_onset_score * offset
             c += 1
         total +=score
-    detail_content = '节奏时长较大偏差的有' + str(b) + '个，较小偏差的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个'
+    detail_content = '节奏时长偏差较大的有' + str(b) + '个，偏差较小的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个'
     return total,detail_content
 
 def get_code_offset(code):
@@ -263,15 +270,64 @@ def get_score_jz(filename,onset_code):
     # onset_code = onset_code.replace("]", '')
     # onset_code = [x for x in onset_code.split(',')]
 
-    score,lost_score,ex_score,min_d = get_score_jz_by_cqt_rms_optimised(filename,onset_code)
+    score,lost_score,ex_score,min_d,standard_y, recognize_y,detail_content = get_score_jz_by_cqt_rms_optimised(filename,onset_code)
     #print('最终得分为：{}'.format(score))
 
     if int(score) < 90:
-        score2, lost_score2, ex_score2, min_d2 = get_score_jz_by_onsets_frames_rhythm(filename,onset_code)
+        score2, lost_score2, ex_score2, min_d2,standard_y, recognize_y,detail_content = get_score_jz_by_onsets_frames_rhythm(filename,onset_code)
         if score2 > score:
-            return int(score2), int(lost_score2), int(ex_score2), int(min_d2)
+            return int(score2), int(lost_score2), int(ex_score2), int(min_d2),standard_y, recognize_y,detail_content
 
-    return int(score),int(lost_score),int(ex_score),int(min_d)
+    return int(score),int(lost_score),int(ex_score),int(min_d),standard_y, recognize_y,detail_content
+
+
+def find_loss_by_rms_for_onsets(onsets_frames,rms,onset_code):
+    onset_code = onset_code.replace(";", ',')
+    onset_code = onset_code.replace("[", '')
+    onset_code = onset_code.replace("]", '')
+    onset_code = [x for x in onset_code.split(',')]
+    result = []
+    keyMap = {}
+    indexMap = {}
+    # select_onset_frames = onsets_frames.copy()
+    select_onset_frames = onsets_frames.copy()
+    #select_onset_frames = []
+    #select_onset_frames.append(onsets_frames[0])
+    # print("all onsets_frames is {}".format(onsets_frames))
+    new_added = []
+    small_code_indexs = [i for i in range(len(onset_code)) if onset_code[i] == '250']
+    topN = len(onset_code)
+    threshold = 9
+    if len(small_code_indexs) > 0:
+        threshold = 3
+    for i in range(5,len(rms)-20):
+        if (i==1 and rms[2] > rms [1]) or (rms[i+1] > rms[i] and rms[i-1] > rms[i]):
+            hightest_point_after = find_hightest_after(i, rms)
+            if i == onsets_frames[0]:
+                rms_theshold = 0.5
+            else:
+                rms_theshold = 0.15
+
+            if rms[hightest_point_after] - rms[i] > rms_theshold:
+                #print("rms[hightest_point_after] - rms[i],i is {}=={}".format(rms[hightest_point_after] - rms[i],i))
+                value = rms[hightest_point_after] - rms[i]
+                result.append(value)
+                keyMap[value] = i
+                indexMap[i] = value
+    topN_index = find_n_largest(result,topN)
+    topN_key = [result[i] for i in topN_index]
+    for key in topN_key:
+        index = keyMap.get(key)
+        if len(select_onset_frames) == 0:
+            offset_min = threshold + 1
+        else:
+            offset = [np.abs(index - x) for x in select_onset_frames]
+            offset_min = np.min(offset)
+        if index > onsets_frames[0] and offset_min > threshold:
+            select_onset_frames.append(index)
+            new_added.append(index)
+    select_onset_frames.sort()
+    return select_onset_frames
 
 '''
 计算节奏型音频的分数
@@ -294,6 +350,13 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
     # 在此处赋值防止后面实线被移动找不到强度
     onsets_frames = list(set(onsets_frames))
     onsets_frames.sort()
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    onsets_frames = find_loss_by_rms_for_onsets(onsets_frames, rms, onset_code)
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
+    onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
+    onsets_frames = [onsets_frames[i] for i in range(len(times)) if times[i] > 3]
     recognize_y = onsets_frames
 
     # 标准节拍时间点
@@ -334,29 +397,40 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
         code[index - 1] += code[index]
         del code[index]
     each_onset_score = 100 / len(standard_y)
+    xc, yc = get_matched_onset_frames_by_path_v3(standard_y, recognize_y)
+    std_number = len(standard_y) - len(xc) + len(recognize_y) - len(yc)
+    #去掉未匹配的节拍
+    loss_indexs = [i for i in range(len(standard_y)) if standard_y[i] not in xc]
+    code = [code[i] for i in range(len(code)) if i not in loss_indexs]
+    min_d,detail_content = get_deviation(xc, yc, code, each_onset_score)
+
+    if std_number >= 3:
+        # print(len(base_frames))
+        min_d = int(min_d + each_onset_score * std_number * 0.5)
+        detail_content += '。与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
     ex_recognize_y = []
-    #多唱的情况
-    if len(standard_y) < len(recognize_y):
-        _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
-        # 剥离多唱节拍，便于计算整体偏差分
-        modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
-        min_d = get_deviation(standard_y,modify_recognize_y,code,each_onset_score)
-    #漏唱的情况
-    if len(standard_y) > len(recognize_y):
-        _, lost_standard_y = get_mismatch_line(recognize_y.copy(),standard_y.copy())
-        # 剥离漏唱节拍，便于计算整体偏差分
-        modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
-        min_d = get_deviation(modify_standard_y, recognize_y, code,each_onset_score)
-    if len(standard_y) == len(recognize_y):
-        min_d = get_deviation(standard_y, recognize_y, code, each_onset_score)
+    # #多唱的情况
+    # if len(standard_y) < len(recognize_y):
+    #     _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
+    #     # 剥离多唱节拍，便于计算整体偏差分
+    #     modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
+    #     min_d = get_deviation(standard_y,modify_recognize_y,code,each_onset_score)
+    # #漏唱的情况
+    # if len(standard_y) > len(recognize_y):
+    #     _, lost_standard_y = get_mismatch_line(recognize_y.copy(),standard_y.copy())
+    #     # 剥离漏唱节拍，便于计算整体偏差分
+    #     modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
+    #     min_d = get_deviation(modify_standard_y, recognize_y, code,each_onset_score)
+    # if len(standard_y) == len(recognize_y):
+    #     min_d = get_deviation(standard_y, recognize_y, code, each_onset_score)
     #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
 
     # # 计算成绩测试
     #print('偏移分值为：{}'.format(min_d))
-    score,lost_score,ex_score,min_d = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+    score,lost_score,ex_score,min_d = get_score1(standard_y.copy(), recognize_y.copy(), len(base_frames), onsets_frames_strength, min_d)
     #print('最终得分为：{}'.format(score))
 
-    return int(score),int(lost_score),int(ex_score),int(min_d)
+    return int(score),int(lost_score),int(ex_score),int(min_d),standard_y, recognize_y,detail_content
 
 
 '''
@@ -474,6 +548,13 @@ def get_score_jz_by_onsets_frames_rhythm(filename,onset_code):
     # 在此处赋值防止后面实线被移动找不到强度
     onsets_frames = list(set(onsets_frames))
     onsets_frames.sort()
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    onsets_frames = find_loss_by_rms_for_onsets(onsets_frames, rms, onset_code)
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
+    onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
+    onsets_frames = [onsets_frames[i] for i in range(len(times)) if times[i] > 3]
     recognize_y = onsets_frames
 
     # 标准节拍时间点
@@ -513,29 +594,40 @@ def get_score_jz_by_onsets_frames_rhythm(filename,onset_code):
         code[index - 1] += code[index]
         del code[index]
     each_onset_score = 100 / len(standard_y)
-    ex_recognize_y = []
-    #多唱的情况
-    if len(standard_y) < len(recognize_y):
-        _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
-        # 剥离多唱节拍，便于计算整体偏差分
-        modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
-        min_d = get_deviation(standard_y,modify_recognize_y,code,each_onset_score)
-    #漏唱的情况
-    if len(standard_y) > len(recognize_y):
-        _, lost_standard_y = get_mismatch_line(recognize_y.copy(),standard_y.copy())
-        # 剥离漏唱节拍，便于计算整体偏差分
-        modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
-        min_d = get_deviation(modify_standard_y, recognize_y, code,each_onset_score)
-    if len(standard_y) == len(recognize_y):
-        min_d = get_deviation(standard_y, recognize_y, code, each_onset_score)
+    xc, yc = get_matched_onset_frames_by_path_v3(standard_y, recognize_y)
+    std_number = len(standard_y) - len(xc) + len(recognize_y) - len(yc)
+    # 去掉未匹配的节拍
+    loss_indexs = [i for i in range(len(standard_y)) if standard_y[i] not in xc]
+    code = [code[i] for i in range(len(code)) if i not in loss_indexs]
+    min_d,detail_content = get_deviation(xc, yc, code, each_onset_score)
+
+    if std_number >= 3:
+        # print(len(base_frames))
+        min_d = int(min_d + each_onset_score * std_number * 0.5)
+        detail_content += '。与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
+    # ex_recognize_y = []
+    # #多唱的情况
+    # if len(standard_y) < len(recognize_y):
+    #     _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
+    #     # 剥离多唱节拍，便于计算整体偏差分
+    #     modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
+    #     min_d = get_deviation(standard_y,modify_recognize_y,code,each_onset_score)
+    # #漏唱的情况
+    # if len(standard_y) > len(recognize_y):
+    #     _, lost_standard_y = get_mismatch_line(recognize_y.copy(),standard_y.copy())
+    #     # 剥离漏唱节拍，便于计算整体偏差分
+    #     modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
+    #     min_d = get_deviation(modify_standard_y, recognize_y, code,each_onset_score)
+    # if len(standard_y) == len(recognize_y):
+    #     min_d = get_deviation(standard_y, recognize_y, code, each_onset_score)
     #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
 
     # # 计算成绩测试
     #print('偏移分值为：{}'.format(min_d))
-    score,lost_score,ex_score,min_d = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
+    score,lost_score,ex_score,min_d = get_score1(standard_y.copy(), recognize_y.copy(), len(base_frames), onsets_frames_strength, min_d)
     #print('最终得分为：{}'.format(score))
 
-    return int(score),int(lost_score),int(ex_score),int(min_d)
+    return int(score),int(lost_score),int(ex_score),int(min_d),standard_y, recognize_y,detail_content
 
 def check_gap(b,c):
     print("b is {}".format(b))
