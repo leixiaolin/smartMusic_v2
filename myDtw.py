@@ -288,8 +288,8 @@ if __name__ == '__main__':
     x = [64, 97, 134, 207, 244, 278]
     y = [67, 101, 134, 201, 234, 251, 268]
     y = [i -(y[0]-x[0]) for i in y]
-    x = np.diff(x)
-    y = np.diff(y)
+    #x = np.diff(x)
+    #y = np.diff(y)
     # x = [1,1,3,3,8,1]
     # y = [2,0,0,8,7,2]
     a,b = get_mismatch_line(y.copy(),x.copy())
@@ -345,5 +345,9 @@ if __name__ == '__main__':
 
     xc, yc = get_matched_onset_frames_compared(x, y)
     print("===========================compared")
+    print(xc)
+    print(yc)
+    xc = [i+x[0]-xc[0] for i in xc]
+    yc = [i+y[0]-yc[0] for i in yc]
     print(xc)
     print(yc)

@@ -78,10 +78,10 @@ def get_deviation(standard_y,recognize_y,codes,each_onset_score):
             score = 0
             a += 1
         elif offset >= 1:
-            score = each_onset_score * 0.5
+            score = each_onset_score
             b += 1
         else:
-            score = each_onset_score * offset * 0.5
+            score = each_onset_score * offset
             c += 1
         total +=score
     if b == 1:
@@ -300,8 +300,22 @@ def find_loss_by_rms_for_onsets(onsets_frames,rms,onset_code):
     small_code_indexs = [i for i in range(len(onset_code)) if onset_code[i] == '250']
     topN = len(onset_code)
     threshold = 9
-    if len(small_code_indexs) > 0:
-        threshold = 3
+    maybe_number = 0
+    threshold_length_before = 4
+    threshold_length_midle = 4
+    threshold_length_after = 4
+    if len(small_code_indexs) < 1:
+        threshold_length = 9
+    else:
+        before_half = [i for i in range(len(small_code_indexs)) if small_code_indexs[i] <= int(len(onset_code) / 3)]
+        middle_half = [i for i in range(len(small_code_indexs)) if small_code_indexs[i] > int(len(onset_code) / 3) and small_code_indexs[i] <= int( len(onset_code) * 2 / 3)]
+        after_half = [i for i in range(len(small_code_indexs)) if small_code_indexs[i] > int(len(onset_code) * 2 / 3)]
+        if len(before_half) < 1:
+            threshold_length_before = 10
+        if len(middle_half) < 1:
+            threshold_length_midle = 10
+        if len(after_half) < 1:
+            threshold_length_after = 10
     for i in range(5,len(rms)-20):
         if (i==1 and rms[2] > rms [1]) or (rms[i+1] > rms [i] and rms[i] == rms[i-1]) or (rms[i+1] > rms[i] and rms[i-1] > rms[i]):
             hightest_point_after = find_hightest_after(i, rms)
@@ -316,6 +330,10 @@ def find_loss_by_rms_for_onsets(onsets_frames,rms,onset_code):
                 result.append(value)  #保存振幅增值
                 keyMap[value] = i
                 indexMap[i] = value
+                if rms[hightest_point_after] - rms[i] > 1.0:
+                    maybe_number += 1
+    if maybe_number > topN:
+        topN = maybe_number
     topN_index = find_n_largest(result,topN)
     topN_key = [result[i] for i in topN_index] #topN的振幅增值
     for x in onsets_frames:
@@ -326,12 +344,18 @@ def find_loss_by_rms_for_onsets(onsets_frames,rms,onset_code):
 
     for key in topN_key:
         index = keyMap.get(key)
+        if index <= int(len(rms) / 3):
+            threshold_length = threshold_length_before
+        elif index > int(len(rms) / 3) and index <= int(len(rms) * 2 / 3):
+            threshold_length = threshold_length_midle
+        else:
+            threshold_length = threshold_length_after
         if len(select_onset_frames) == 0:
-            offset_min = threshold + 1
+            offset_min = threshold_length + 1
         else:
             offset = [np.abs(index - x) for x in select_onset_frames]
             offset_min = np.min(offset)
-        if offset_min > threshold:
+        if offset_min > threshold_length:
             select_onset_frames.append(index)
             new_added.append(index)
     select_onset_frames.sort()
@@ -415,6 +439,31 @@ def get_highest_point(CQT,start,end):
             if highest_index > first_longest_number:
                 first_longest_number = highest_index
     return first_longest_number
+
+def get_same_number_in_two_cqt(cqt1,cqt2):
+    cqt_max = np.max(cqt1)
+    w1,h1 = cqt1.shape
+    w2,h2 = cqt2.shape
+    if h1>5 and h2>5:
+        h = 5
+    else:
+        h = np.min(h1,h2)
+    c1 = cqt1[:,0:h]
+    c2 = cqt2[:,0:h]
+    sum_max = 0
+    sum_max1 = 0
+    sum_max2 = 0
+    for i in range(w1):
+        for j in range(h):
+            if c1[i,j] == c2[i,j] and c1[i,j] == cqt_max:
+                sum_max += 1
+            if c1[i,j] == cqt_max:
+                sum_max1 += 1
+
+            if c2[i,j] == cqt_max:
+                sum_max2 += 1
+    return sum_max,sum_max1,sum_max2
+
 '''
 计算节奏型音频的分数
 '''
@@ -455,8 +504,15 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
     #         start_index += 1
     first_highest_point = get_highest_point(CQT,onsets_frames[0],int(onsets_frames[1]-(onsets_frames[1] - onsets_frames[0])/2))
     second_highest_point = get_highest_point(CQT, onsets_frames[1], int(onsets_frames[2]-(onsets_frames[2] - onsets_frames[1])/2))
-    if first_highest_point < second_highest_point - 8:  # 处理这一个节拍为噪声的情况
+    if first_highest_point < second_highest_point - 18 and first_highest_point < 40:  # 处理这一个节拍为噪声的情况
         onsets_frames.remove(onsets_frames[0])
+    elif first_highest_point < 40:
+        cqt1 = CQT[10:,onsets_frames[0]:onsets_frames[1]]
+        cqt2 = CQT[10:, onsets_frames[1]:onsets_frames[2]]
+        same_sum,sum_max1,sum_max2 = get_same_number_in_two_cqt(cqt1, cqt2)
+        print("same_sum is {}".format(same_sum))
+        if same_sum < 30 and sum_max1<40:
+            onsets_frames.remove(onsets_frames[0])
     # note_lines_median = np.median(note_lines)
     # onsets_frames = [onsets_frames[i] for i in range(len(note_lines)) if np.abs(note_lines[i]  - note_lines_median) < 25]
     # note_lines = [note_lines[i] for i in range(len(note_lines)) if np.abs(note_lines[i]  - note_lines_median) < 25]
