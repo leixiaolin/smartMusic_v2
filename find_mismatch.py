@@ -325,7 +325,7 @@ def find_loss_by_rms_for_onsets(onsets_frames,rms,onset_code):
                 rms_theshold = 0.15
 
             if rms[hightest_point_after] - rms[i] > rms_theshold:
-                print("rms[hightest_point_after] - rms[i],i is {}=={}".format(rms[hightest_point_after] - rms[i],i))
+                #print("rms[hightest_point_after] - rms[i],i is {}=={}".format(rms[hightest_point_after] - rms[i],i))
                 value = rms[hightest_point_after] - rms[i]
                 result.append(value)  #保存振幅增值
                 keyMap[value] = i

@@ -30,7 +30,7 @@ else:
     print("rhythm_code is {}".format(rhythm_code))
     #file_path = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4欧(95).wav'
     #file_code = '[19,60,92,128,161,178,197,230,263]'
-    score, lost_score, ex_score, min_d = get_score_jz(file_path,rhythm_code)
+    score, lost_score, ex_score, min_d,standard_y, recognize_y,detail_content = get_score_jz(file_path,rhythm_code)
     print("score, lost_score, ex_score, min_d is {},{},{},{}".format(score, lost_score, ex_score, min_d))
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
@@ -38,6 +38,6 @@ else:
     content +=  "\n"
     save_path = os.path.join(filepath,output_file)
     write_txt(content, save_path, mode='w')
-    detail = '整体节奏偏离较大，流畅平稳性有待加强'
+    detail = detail_content
     write_txt(detail, save_path, mode='a')
     #python grade_jz_util.py F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav [1000,1000;2000;1000,500,500;2000]
