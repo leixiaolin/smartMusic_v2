@@ -138,7 +138,11 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏8_40210（30）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1卢(100).wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10.1(97).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4.2(100).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏2录音1(100).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏二（3）（90）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏二（4）（100）.wav'
+
+
 
 
 
@@ -149,8 +153,8 @@ if __name__ == "__main__":
     onset_code = get_code(type_index, 1)
     print("onset_code is {}".format(onset_code))
     score, lost_score, ex_score, min_d,standard_y, recognize_y,detail_content  = get_score_jz(filename,onset_code)
-    print("standard_y is {}".format(standard_y))
     print("recognize_y is {}".format(recognize_y))
+    print("standard_y is {}".format(standard_y))
     print("score, lost_score, ex_score, min_d is {},{},{},{}".format(score, lost_score, ex_score, min_d))
     print("detail_content is {}".format(detail_content))
     plt, onsets_frames, base_frames = draw_plt(filename, standard_y, recognize_y)

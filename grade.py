@@ -20,8 +20,8 @@ def get_score1(standard_y,recognize_y,onsets_total,onsets_strength,min_d):
     ex_score = 0
     if lost_num:
         #print('漏唱了' + str(lost_num) + '句')
-        if min_d <= 10:
-            lost_score = 100 / onsets_total * lost_num * (min_d/10)
+        if lost_num <= 3:
+            lost_score = 100 / onsets_total * lost_num * 0.5
         else:
             lost_score = 100 / onsets_total * lost_num
     elif len(ex_frames) >= 1:

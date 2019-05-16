@@ -219,8 +219,27 @@ def get_matched_onset_frames_by_path_v3(x,y):
             i += len(p2_indexs)
     return xc,yc
 
+def get_matched_onset_frames_compared(x,y):
 
-# 获取相同元素出现位置的下标
+    y = [i - (y[0] - x[0]) for i in y]
+
+    xc1, yc1 = get_matched_onset_frames_by_path_v3(x, y)
+    euclidean_norm = lambda x, y: np.abs(x - y)
+    d1, cost_matrix, acc_cost_matrix, path = dtw(xc1, yc1, dist=euclidean_norm)
+    #print("=======================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d1, np.sum(acc_cost_matrix.shape)))
+
+
+    xc2, yc2 = get_matched_onset_frames_by_path_v2(x, y)
+    if len(xc2)<1 or len(yc2)<1:
+        return xc1, yc1
+    else:
+        d2, cost_matrix, acc_cost_matrix, path = dtw(xc2, yc2, dist=euclidean_norm)
+        #print("===========================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
+        if d1 < d2:
+            return xc1, yc1
+        else:
+            return xc2, yc2
+    # 获取相同元素出现位置的下标
 def get_indexs(a,b):
     from collections import defaultdict
     result = []
@@ -266,8 +285,11 @@ if __name__ == '__main__':
     #x = np.array([24, 24, 26, 26, 26, 26, 23, 26, 20, 26, 24, 24, 25])
     # x = np.array([1,5,10,13])
     # y = np.array([1,4,13])
-    x = [37, 127, 216, 239, 250, 261, 351]
-    y = [27, 114, 199, 216, 227, 239, 283, 328]
+    x = [64, 97, 134, 207, 244, 278]
+    y = [67, 101, 134, 201, 234, 251, 268]
+    y = [i -(y[0]-x[0]) for i in y]
+    x = np.diff(x)
+    y = np.diff(y)
     # x = [1,1,3,3,8,1]
     # y = [2,0,0,8,7,2]
     a,b = get_mismatch_line(y.copy(),x.copy())
@@ -283,6 +305,8 @@ if __name__ == '__main__':
     min_d,best_y,_ = get_dtw_min(x,y,65)
     print("min_d,best_y is {},{}".format(min_d,best_y))
 
+    #xd = np.diff(x)
+    #yd = np.diff(y)
     euclidean_norm = lambda x, y: np.abs(x - y)
     d, cost_matrix, acc_cost_matrix, path = dtw(x, y, dist=euclidean_norm)
     print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d ,np.sum(acc_cost_matrix.shape)))
@@ -294,15 +318,15 @@ if __name__ == '__main__':
     print(path[0])
     print(path[1])
     xc, yc = get_matched_onset_frames_by_path_v3(x, y)
-    print("xc is {},size is {}".format(xc,len(xc)))
     print("x  is {},size is {}".format(x, len(x)))
-    print("yc is {},size is {}".format(yc,len(yc)))
     print("y  is {},size is {}".format(y, len(y)))
+    print("xc is {},size is {}".format(xc,len(xc)))
+    print("yc is {},size is {}".format(yc,len(yc)))
     d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
-    print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
+    print("=======================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
 
-    x = np.array([1,0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1])
-    y = np.array([0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2])
+    #x = np.array([1,0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1])
+    #y = np.array([0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2])
     # x = np.array([42, 49, 65])
     # y = np.array([0, 19, 38])
     # y = [i - (y[0] - x[0]) for i in y]
@@ -316,3 +340,10 @@ if __name__ == '__main__':
     print(yc)
     print(np.diff(xc))
     print(np.diff(yc))
+    d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
+    print("===========================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
+
+    xc, yc = get_matched_onset_frames_compared(x, y)
+    print("===========================compared")
+    print(xc)
+    print(yc)
