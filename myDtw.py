@@ -122,6 +122,8 @@ def get_matched_onset_frames_by_path(x,y):
     return xc,yc
 
 def get_matched_onset_frames_by_path_v2(x,y):
+    x = np.diff(x)
+    y = np.diff(y)
     #print("x is {},size is {}".format(x,len(x)))
     #print("y is {},size is {}".format(y,len(y)))
     xd = np.diff(x)
@@ -180,6 +182,8 @@ def get_matched_onset_frames_by_path_v2(x,y):
     return xc,yc
 
 def get_matched_onset_frames_by_path_v3(x,y):
+    x = np.diff(x)
+    y = np.diff(y)
     euclidean_norm = lambda x, y: np.abs(x - y)
     d, cost_matrix, acc_cost_matrix, path = dtw(x, y, dist=euclidean_norm)
     # print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
@@ -220,26 +224,59 @@ def get_matched_onset_frames_by_path_v3(x,y):
     return xc,yc
 
 def get_matched_onset_frames_compared(x,y):
-
+    flag = False
+    if len(x) > len(y):
+        t = x
+        x = y
+        y = t
+        flag = True
+    y_raw = y
     y = [i - (y[0] - x[0]) for i in y]
 
     xc1, yc1 = get_matched_onset_frames_by_path_v3(x, y)
-    euclidean_norm = lambda x, y: np.abs(x - y)
-    d1, cost_matrix, acc_cost_matrix, path = dtw(xc1, yc1, dist=euclidean_norm)
-    #print("=======================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d1, np.sum(acc_cost_matrix.shape)))
-
-
-    xc2, yc2 = get_matched_onset_frames_by_path_v2(x, y)
-    if len(xc2)<1 or len(yc2)<1:
-        return xc1, yc1
-    else:
-        d2, cost_matrix, acc_cost_matrix, path = dtw(xc2, yc2, dist=euclidean_norm)
-        #print("===========================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
-        if d1 < d2:
-            return xc1, yc1
-        else:
-            return xc2, yc2
+    xc1 = get_raw_data_from_diff(x, xc1)
+    yc1 = get_raw_data_from_diff(y_raw, yc1)
+    if flag:
+        t = xc1
+        xc1 = yc1
+        yc1 = t
+    return xc1, yc1
+    # euclidean_norm = lambda x, y: np.abs(x - y)
+    # d1, cost_matrix, acc_cost_matrix, path = dtw(xc1, yc1, dist=euclidean_norm)
+    # #print("=======================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d1, np.sum(acc_cost_matrix.shape)))
+    #
+    #
+    # xc2, yc2 = get_matched_onset_frames_by_path_v2(x, y)
+    # xc2 = get_raw_data_from_diff(x, xc2)
+    # yc2 = get_raw_data_from_diff(y, yc2)
+    # if len(xc2)<1 or len(yc2)<1:
+    #     return xc1, yc1
+    # else:
+    #     d2, cost_matrix, acc_cost_matrix, path = dtw(xc2, yc2, dist=euclidean_norm)
+    #     #print("===========================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
+    #     if d1 < d2:
+    #         return xc1, yc1
+    #     else:
+    #         return xc2, yc2
     # 获取相同元素出现位置的下标
+def get_raw_data_from_diff(x,xc):
+    result = []
+    result.append(x[0])
+    xd = np.diff(x)
+    start = 0
+    for i in xc:
+        if i in xd:
+            tmp = list(xd[start:])
+            index = tmp.index(i)
+            x1 = x[start + index]
+            x2 = x[start + index+1]
+            # if x1 not in result:
+            #     result.append(x1)
+            if x2 not in result:
+                result.append(x2)
+            start += (index + 1)
+    return result
+
 def get_indexs(a,b):
     from collections import defaultdict
     result = []
@@ -285,11 +322,11 @@ if __name__ == '__main__':
     #x = np.array([24, 24, 26, 26, 26, 26, 23, 26, 20, 26, 24, 24, 25])
     # x = np.array([1,5,10,13])
     # y = np.array([1,4,13])
-    x = [64, 97, 134, 207, 244, 278]
-    y = [67, 101, 134, 201, 234, 251, 268]
+    x = [38, 55, 73, 88, 88, 109, 128, 142, 155, 175, 225, 256, 271, 286, 338, 353, 384]
+    y = [48, 66, 83, 100, 134, 151, 168, 185, 202, 253, 271, 288, 305, 339, 356, 373, 407]
     y = [i -(y[0]-x[0]) for i in y]
-    #x = np.diff(x)
-    #y = np.diff(y)
+    # x = np.diff(x)
+    # y = np.diff(y)
     # x = [1,1,3,3,8,1]
     # y = [2,0,0,8,7,2]
     a,b = get_mismatch_line(y.copy(),x.copy())
@@ -318,12 +355,12 @@ if __name__ == '__main__':
     print(path[0])
     print(path[1])
     xc, yc = get_matched_onset_frames_by_path_v3(x, y)
+    d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
+    print("get_matched_onset_frames_by_path_v3=======================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
     print("x  is {},size is {}".format(x, len(x)))
     print("y  is {},size is {}".format(y, len(y)))
     print("xc is {},size is {}".format(xc,len(xc)))
     print("yc is {},size is {}".format(yc,len(yc)))
-    d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
-    print("=======================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
 
     #x = np.array([1,0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1])
     #y = np.array([0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2])
@@ -335,19 +372,17 @@ if __name__ == '__main__':
     print(xd)
     print(yd)
 
-    xc, yc = get_matched_onset_frames_by_path_v2(x, y)
-    print(xc)
-    print(yc)
-    print(np.diff(xc))
-    print(np.diff(yc))
-    d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
-    print("===========================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
+    # xc, yc = get_matched_onset_frames_by_path_v2(x, y)
+    # d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
+    # print("get_matched_onset_frames_by_path_v2===========================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
+    # print(xc)
+    # print(yc)
+    # print(np.diff(xc))
+    # print(np.diff(yc))
 
     xc, yc = get_matched_onset_frames_compared(x, y)
-    print("===========================compared")
+    print("get_matched_onset_frames_compared===========================compared")
+    print(x)
     print(xc)
-    print(yc)
-    xc = [i+x[0]-xc[0] for i in xc]
-    yc = [i+y[0]-yc[0] for i in yc]
-    print(xc)
+    print(y)
     print(yc)

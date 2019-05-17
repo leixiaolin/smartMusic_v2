@@ -140,7 +140,10 @@ if __name__ == "__main__":
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10.1(97).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏2录音1(100).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏二（3）（90）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节2.2(96).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节2.2(96).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10录音1(92).wav'  # 噪声
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10谭（100）.wav' # 噪声
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏十（4）（100）.wav'
 
 
 
@@ -152,7 +155,7 @@ if __name__ == "__main__":
     type_index = get_onsets_index_by_filename(filename)
     onset_code = get_code(type_index, 1)
     print("onset_code is {}".format(onset_code))
-    score, lost_score, ex_score, min_d,standard_y, recognize_y,detail_content  = get_score_jz(filename,onset_code)
+    score, lost_score, ex_score, min_d,standard_y, recognize_y,onsets_frames_strength,detail_content  = get_score_jz(filename,onset_code)
     print("recognize_y is {}".format(recognize_y))
     print("standard_y is {}".format(standard_y))
     print("score, lost_score, ex_score, min_d is {},{},{},{}".format(score, lost_score, ex_score, min_d))
@@ -208,16 +211,22 @@ if __name__ == "__main__":
 
             type_index = get_onsets_index_by_filename(dir + filename)
             onset_code = get_code(type_index, 1)
-            total_score, lost_score, ex_score, min_d,standard_y, recognize_y,detail_content = get_score_jz(dir + filename,onset_code)
+            total_score, lost_score, ex_score, min_d,standard_y, recognize_y,onsets_frames_strength,detail_content = get_score_jz(dir + filename,onset_code)
             print("score, lost_score, ex_score, min_d is {},{},{},{}".format(total_score, lost_score, ex_score, min_d))
             print("detail_content is {}".format(detail_content))
 
             if int(score) < 60:
                 if total_score > 70:
                     files_list_d.append([filename, total_score, lost_score, ex_score, min_d])
+                    plt, onsets_frames, base_frames = draw_plt(dir + filename, standard_y, recognize_y)
+                    plt.savefig(result_path + "/" + filename + '-' + str(total_score) + '-' + str(lost_score) + '-' + str(ex_score) + '-' + str(min_d) + '.jpg', bbox_inches='tight', pad_inches=0)
+                    plt.clf()
             else:
                 if np.abs(total_score - int(score)) > 15:
                     files_list_a.append([filename, total_score, lost_score, ex_score, min_d])
+                    plt, onsets_frames, base_frames = draw_plt(dir + filename, standard_y, recognize_y)
+                    plt.savefig(result_path + "/" + filename + '-' + str(total_score) + '-' + str(lost_score) + '-' + str(ex_score) + '-' + str(min_d) + '.jpg', bbox_inches='tight', pad_inches=0)
+                    plt.clf()
 
             # if int(score) >= 90:
             #     grade = 'A'
