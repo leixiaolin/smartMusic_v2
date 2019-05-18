@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import argparse
 import sys
 from note_lines_helper import *

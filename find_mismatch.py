@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import numpy as np
 from create_base import *
 from myDtw import *
@@ -64,29 +65,49 @@ def get_scores(standard_y,recognize_y,onsets_total,onsets_strength):
         print('节拍数一致')
     return lost_score,ex_score
 
-def get_deviation(standard_y,recognize_y,codes,each_onset_score):
+def get_deviation(standard_y,recognize_y,codes,each_onset_score,total_frames_number):
     #each_onset_score = 100/len(standard_y)
     score = 0
     total = 0
     a = 0
     b = 0
     c = 0
-    for i in range(len(standard_y)-1):
-        offset =np.abs((recognize_y[i+1]-recognize_y[i]) /(standard_y[i+1] - standard_y[i]) -1)
+    detail_list = []
+    continue_right = []
+    for i in range(len(standard_y)):
+        if i < len(standard_y)-1:
+            offset =np.abs((recognize_y[i+1]-recognize_y[i]) /(standard_y[i+1] - standard_y[i]) -1)
+        else:
+            offset = np.abs((total_frames_number - recognize_y[i]) / (total_frames_number - standard_y[i]) - 1)
         standard_offset = get_code_offset(codes[i])
         if offset <= standard_offset:
             score = 0
             a += 1
+            detail_list.append("1")
+            continue_right.append(1)
         elif offset >= 1:
             score = each_onset_score
             b += 1
+            detail_list.append("0")
+            continue_right.append(0)
         else:
             score = each_onset_score * offset
             c += 1
+            detail_list.append("-")
+            continue_right.append(0)
         total +=score
     # if b == 1:
     #     total -= int(each_onset_score*0.5)
-    detail_content = '节奏时长偏差较大的有' + str(b) + '个，偏差较小的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个'
+    str_detail_list = '识别的结果是：' + str(detail_list)
+    str_detail_list = str_detail_list.replace("1","√")
+    total_continue = continueOne(continue_right)
+    if total_continue >= 4 and total > 20:
+        total -= 15
+        str_continue = '连续唱对的节拍数为' + str(total_continue) + '个。'
+        str_detail_list = str_continue + str_detail_list
+
+    print(total_continue)
+    detail_content = '节奏时长偏差较大的有' + str(b) + '个，偏差较小的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个，' + str_detail_list
     return total,detail_content,a
 
 def get_deviation_for_note(standard_y,recognize_y,codes,each_onset_score):
@@ -766,7 +787,7 @@ def get_score_for_onset_by_frames(onsets_frames,total_frames_number,onsets_frame
     xc.sort()
     yc.sort()
     # code = [code[i] for i in range(len(code)) if i not in loss_indexs]
-    min_d, detail_content,a = get_deviation(xc, yc, code, each_onset_score)
+    min_d, detail_content,a = get_deviation(xc, yc, code, each_onset_score,total_frames_number)
 
     # print("std_number is {}".format(std_number))
     # if std_number >= 1:

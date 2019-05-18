@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import librosa
 import matplotlib.pyplot as plt
 import librosa.display
@@ -143,7 +144,7 @@ if __name__ == "__main__":
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节2.2(96).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10录音1(92).wav'  # 噪声
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10谭（100）.wav' # 噪声
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏十（4）（100）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节2熙(80).wav'
 
 
 
