@@ -222,7 +222,7 @@ def get_matched_onset_frames_by_path_v3(x,y):
             xc.append(x_tmp[min_index[0]])
             yc.append(y_tmp)
             i += len(p2_indexs)
-    return xc,yc
+    return xc,yc,path[0],path[1]
 
 def get_matched_onset_frames_compared(x,y):
     flag = False
@@ -234,7 +234,7 @@ def get_matched_onset_frames_compared(x,y):
     y_raw = y
     y = [i - (y[0] - x[0]) for i in y]
 
-    xc1, yc1 = get_matched_onset_frames_by_path_v3(x, y)
+    xc1, yc1,path1,path2 = get_matched_onset_frames_by_path_v3(x, y)
     xc1 = get_raw_data_from_diff(x, xc1)
     yc1 = get_raw_data_from_diff(y_raw, yc1)
     if flag:
@@ -323,45 +323,52 @@ if __name__ == '__main__':
     #x = np.array([24, 24, 26, 26, 26, 26, 23, 26, 20, 26, 24, 24, 25])
     # x = np.array([1,5,10,13])
     # y = np.array([1,4,13])
-    x = [38, 55, 73, 88, 88, 109, 128, 142, 155, 175, 225, 256, 271, 286, 338, 353, 384]
-    y = [48, 66, 83, 100, 134, 151, 168, 185, 202, 253, 271, 288, 305, 339, 356, 373, 407]
+    x = [4, 26, 55, 101, 127, 150, 197, 203, 231, 243, 251, 267, 280, 291, 312, 338]
+    y = [16, 39, 62, 107, 130, 152, 197, 214, 220, 231, 243, 260, 265, 277, 288, 311, 333]
+    # x = [38, 55, 73, 88]
+    # y = [48, 66, 83, 100]
     y = [i -(y[0]-x[0]) for i in y]
     # x = np.diff(x)
     # y = np.diff(y)
     # x = [1,1,3,3,8,1]
     # y = [2,0,0,8,7,2]
-    a,b = get_mismatch_line(y.copy(),x.copy())
-    print("a,b is {},{}".format(a,b))
-    print(np.mean(x))
-    print(np.mean(y))
-    print(np.std(x))
-    print(np.std(y))
-    off = int(np.mean(y) - np.mean(x))
-    print(off)
-    #y = [x - int(np.mean(y) - np.mean(x)) for x in y]
-    #y = [x - off for x in y]
-    min_d,best_y,_ = get_dtw_min(x,y,65)
-    print("min_d,best_y is {},{}".format(min_d,best_y))
+    # a,b = get_mismatch_line(y.copy(),x.copy())
+    # print("a,b is {},{}".format(a,b))
+    # print(np.mean(x))
+    # print(np.mean(y))
+    # print(np.std(x))
+    # print(np.std(y))
+    # off = int(np.mean(y) - np.mean(x))
+    # print(off)
+    # #y = [x - int(np.mean(y) - np.mean(x)) for x in y]
+    # #y = [x - off for x in y]
+    # min_d,best_y,_ = get_dtw_min(x,y,65)
+    # print("min_d,best_y is {},{}".format(min_d,best_y))
 
     #xd = np.diff(x)
     #yd = np.diff(y)
     euclidean_norm = lambda x, y: np.abs(x - y)
-    d, cost_matrix, acc_cost_matrix, path = dtw(x, y, dist=euclidean_norm)
-    print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d ,np.sum(acc_cost_matrix.shape)))
-    notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
-    print("notes_score is {}".format(notes_score))
-    print("acc_cost_matrix is :")
-    print(acc_cost_matrix)
-    print("path is :")
-    print(path[0])
-    print(path[1])
-    xc, yc = get_matched_onset_frames_by_path_v3(x, y)
-    d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
-    print("get_matched_onset_frames_by_path_v3=======================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
+    # d, cost_matrix, acc_cost_matrix, path = dtw(x, y, dist=euclidean_norm)
+    # print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d ,np.sum(acc_cost_matrix.shape)))
+    # notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
+    # print("notes_score is {}".format(notes_score))
+    # print("acc_cost_matrix is :")
+    # print(acc_cost_matrix)
+    # print("path is :")
+    # print(path[0])
+    # print(path[1])
+    xc, yc,path1,path2 = get_matched_onset_frames_by_path_v3(x, y)
+    xc = get_raw_data_from_diff(x, xc)
+    yc = get_raw_data_from_diff(y, yc)
+    #d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
+    #print("get_matched_onset_frames_by_path_v3=======================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
     print("x  is {},size is {}".format(x, len(x)))
     print("y  is {},size is {}".format(y, len(y)))
     print("xc is {},size is {}".format(xc,len(xc)))
     print("yc is {},size is {}".format(yc,len(yc)))
+    print("path is :")
+    print(path1)
+    print(path2)
 
     #x = np.array([1,0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1])
     #y = np.array([0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2])
@@ -387,3 +394,12 @@ if __name__ == '__main__':
     print(xc)
     print(y)
     print(yc)
+    plt.subplot(4,1,1)
+    plt.vlines(x, 0, 1, color='y', linestyle='dashed')
+    plt.subplot(4, 1, 2)
+    plt.vlines(y, 0, 1, color='b', linestyle='dashed')
+    plt.subplot(4, 1, 3)
+    plt.vlines(xc, 0, 1, color='y', linestyle='dashed')
+    plt.subplot(4, 1, 4)
+    plt.vlines(yc, 0, 1, color='b', linestyle='dashed')
+    plt.show()
