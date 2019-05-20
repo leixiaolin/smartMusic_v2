@@ -442,12 +442,13 @@ def find_loss_by_rms_for_onsets_in_range(onsets_frames,rms,start,end,loss_number
 
 def del_same_onsets_by(onsets_frames,CQT,base_frames):
     select_onsets_frames = []
-    select_onsets_frames.append(onsets_frames[0])
-    cqt_max = np.max(CQT)
-    base_frames_min = np.min(np.diff(base_frames))
-    for i in range(1, len(onsets_frames)):
-        if onsets_frames[i] - onsets_frames[i - 1] > base_frames_min * 0.6:
-            select_onsets_frames.append(onsets_frames[i])
+    if len(onsets_frames) > 0:
+        select_onsets_frames.append(onsets_frames[0])
+        cqt_max = np.max(CQT)
+        base_frames_min = np.min(np.diff(base_frames))
+        for i in range(1, len(onsets_frames)):
+            if onsets_frames[i] - onsets_frames[i - 1] > base_frames_min * 0.6:
+                select_onsets_frames.append(onsets_frames[i])
     return select_onsets_frames
 
 
@@ -493,6 +494,45 @@ def get_same_number_in_two_cqt(cqt1,cqt2):
                 sum_max2 += 1
     return sum_max,sum_max1,sum_max2
 
+def check_middle_for_col_cqt(col_cqt,cqt,onset_frame):
+    cqt_min = np.min(cqt)
+    cqt_max = np.max(cqt)
+    start_points = [i for i in range(len(col_cqt)-1) if col_cqt[i]== cqt_min and col_cqt[i+1] == cqt_max]
+    end_points = [i for i in range(len(col_cqt)-1) if col_cqt[i]== cqt_max and col_cqt[i+1] == cqt_min]
+    flag = True
+    check_sum = 0
+    if len(start_points) > 1 and len(end_points) > 1:
+        for i in range(len(start_points)):
+            sp = start_points[i]
+            if sp < 81:
+                if np.min(cqt[sp,onset_frame-2:onset_frame+1]) == cqt_max \
+                        or np.min(cqt[sp+1,onset_frame-2:onset_frame+1]) == cqt_max \
+                        or np.min(cqt[sp+2,onset_frame-2:onset_frame+1]) == cqt_max \
+                        or np.min(cqt[sp+3,onset_frame-2:onset_frame+1]) == cqt_max:
+                    check_sum += 1
+            else:
+                if np.min(cqt[sp,onset_frame-2:onset_frame+1]) == cqt_max \
+                        or np.min(cqt[sp+1,onset_frame-2:onset_frame+1]) == cqt_max \
+                        or np.min(cqt[sp+2,onset_frame-2:onset_frame+1]) == cqt_max :
+                    check_sum += 1
+            if check_sum == 3:
+                break
+    if check_sum > 2 :
+         flag = False
+    return flag,check_sum
+
+def del_middle_false_onset_frames(cqt,onset_frames):
+    result = []
+    result2 = []
+    for x in onset_frames:
+        onset_frame = x
+        col_cqt = cqt[:,onset_frame]
+        flag,check_sum = check_middle_for_col_cqt(col_cqt,cqt,onset_frame)
+        if flag:
+            result.append(onset_frame)
+            if check_sum < 1:
+                result2.append(onset_frame)
+    return result,result2
 '''
 计算节奏型音频的分数
 '''
@@ -524,7 +564,8 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
     note_lines = [note_lines[i] for i in range(len(times)) if times[i] > 3]
     times = [times[i] for i in range(len(times)) if times[i] > 3]
 
-
+    #判断每个节拍是不是中间的伪节拍,onsets_frames可能包含中间伪节拍，onsets_frames2一定不包含
+    onsets_frames,onsets_frames2 = del_middle_false_onset_frames(CQT, onsets_frames)
     # 删除节拍中间的伪节拍
     # tmp = []
     # tmp.append(onsets_frames[0])
@@ -559,116 +600,7 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
         deleted_frame = onsets_frames[0]
         onsets_frames.remove(onsets_frames[0])
 
-    # elif first_highest_point < 40:
-    #     print("same_sum is {}".format(same_sum))
-    #     if same_sum < 30 and sum_max1<40:
-    #         onsets_frames.remove(onsets_frames[0])
-    # note_lines_median = np.median(note_lines)
-    # onsets_frames = [onsets_frames[i] for i in range(len(note_lines)) if np.abs(note_lines[i]  - note_lines_median) < 25]
-    # note_lines = [note_lines[i] for i in range(len(note_lines)) if np.abs(note_lines[i]  - note_lines_median) < 25]
-    # times = [times[i] for i in range(len(note_lines)) if np.abs(note_lines[i]  - note_lines_median) < 25]
 
-
-    # recognize_y = onsets_frames
-    # #print("base_frames is {}".format(base_frames))
-    # #print("base_frames len is {}".format(len(base_frames)))
-    #
-    #
-    # min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
-    #
-    #
-    # standard_y = best_y.copy()
-    #
-    # code = onset_code
-    # index = 0
-    # code = code.replace(";", ',')
-    # code = code.replace("[", '')
-    # code = code.replace("]", '')
-    # if code.find("(") >= 0:
-    #     tmp = [x for x in code.split(',')]
-    #     for i in range(len(tmp)):
-    #         if tmp[i].find("(") >= 0:
-    #             index = i
-    #             break
-    #     code = code.replace("(", '')
-    #     code = code.replace(")", '')
-    #     code = code.replace("-", '')
-    #     code = code.replace("--", '')
-    # code = [x for x in code.split(',')]
-    # #code = [int(x) for x in code]
-    # if index > 0:
-    #     code[index - 1] += code[index]
-    #     del code[index]
-    # each_onset_score = 100 / len(standard_y)
-    # xc, yc = get_matched_onset_frames_compared(standard_y, recognize_y)
-    # std_number = len(standard_y) - len(xc) + len(recognize_y) - len(yc)
-    # #未匹配节拍的序号
-    # loss_indexs = [i for i in range(len(standard_y)) if standard_y[i] not in xc]
-    #
-    # if len(loss_indexs) > 0:
-    #     for i in loss_indexs:
-    #         xc.append(standard_y[i]) #补齐便为比较
-    #         yc.append(standard_y[i])
-    #     # yc.append(standard_y[i])
-    #     # xc.sort()
-    #     # loss_indexs_min = np.min(loss_indexs)
-    #     # loss_indexs_max = np.max(loss_indexs)
-    #     #
-    #     # if loss_indexs_min > len(standard_y): #后半程
-    #     #     c_point = xc.index(standard_y[i])
-    #     #     start = yc[c_point]
-    #     #     end = yc[-1]
-    #     #     loss_onset_frames,loss_rms_values = find_loss_by_rms_for_onsets_in_range(onsets_frames, rms, start, end, len(loss_indexs) ,onset_code)
-    #     #     if len(loss_onset_frames) > 0:
-    #     #         for loss in loss_onset_frames:
-    #     #             yc.append(loss)
-    #     # if  loss_indexs_max < len(standard_y): #前半程
-    #     #     c_point = xc.index(standard_y[i])
-    #     #     start = yc[c_point]
-    #     #     end = yc[0]
-    #     #     loss_onset_frames, loss_rms_values = find_loss_by_rms_for_onsets_in_range(onsets_frames, rms, start, end, 1,onset_code)
-    #     #     if len(loss_onset_frames) > 0:
-    #     #         for loss in loss_onset_frames:
-    #     #             yc.append(loss)
-    #     #yc.append(standard_y[i])
-    #     #补上缺失的节拍
-    # xc.sort()
-    # yc.sort()
-    # #code = [code[i] for i in range(len(code)) if i not in loss_indexs]
-    # min_d,detail_content = get_deviation(xc, yc, code, each_onset_score)
-    #
-    # if std_number >= 1:
-    #     # print(len(base_frames))
-    #     if std_number<=3:
-    #         min_d = int(min_d + each_onset_score * std_number * 0.5)
-    #         detail_content += '。与标准节奏相比，存在少量未匹配的节拍，整体得分扣减相关的分值'
-    #     elif std_number/len(standard_y) < 0.75:
-    #         min_d = int(min_d + each_onset_score * std_number * 0.5)
-    #         detail_content += '。与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
-    #     else:
-    #         detail_content = '与标准节奏相比，存在过多未能匹配对齐的节拍，得分计为不合格'
-    #         return 20, 0, 0, 0, standard_y, recognize_y, detail_content
-    # ex_recognize_y = []
-    # # #多唱的情况
-    # # if len(standard_y) < len(recognize_y):
-    # #     _, ex_recognize_y = get_mismatch_line(standard_y.copy(), recognize_y.copy())
-    # #     # 剥离多唱节拍，便于计算整体偏差分
-    # #     modify_recognize_y = [x for x in recognize_y if x not in ex_recognize_y]
-    # #     min_d = get_deviation(standard_y,modify_recognize_y,code,each_onset_score)
-    # # #漏唱的情况
-    # # if len(standard_y) > len(recognize_y):
-    # #     _, lost_standard_y = get_mismatch_line(recognize_y.copy(),standard_y.copy())
-    # #     # 剥离漏唱节拍，便于计算整体偏差分
-    # #     modify_standard_y = [x for x in standard_y if x not in lost_standard_y]
-    # #     min_d = get_deviation(modify_standard_y, recognize_y, code,each_onset_score)
-    # # if len(standard_y) == len(recognize_y):
-    # #     min_d = get_deviation(standard_y, recognize_y, code, each_onset_score)
-    # #score = get_score1(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
-    #
-    # # # 计算成绩测试
-    # #print('偏移分值为：{}'.format(min_d))
-    # score,lost_score,ex_score,min_d = get_score1(standard_y.copy(), recognize_y.copy(), len(base_frames), onsets_frames_strength, min_d)
-    # #print('最终得分为：{}'.format(score))
     score, lost_score, ex_score, min_d, standard_y, recognize_y, detail_content = get_score_for_onset_by_frames(onsets_frames, total_frames_number, onsets_frames_strength, onset_code,rms,CQT)
     if deleted_frame > 0:
         onsets_frames.append(deleted_frame)
@@ -679,7 +611,19 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
         else:
             return int(score2), int(lost_score2), int(ex_score2), int(min_d2), standard_y2, recognize_y2, onsets_frames_strength, detail_content2
     else:
-        return int(score), int(lost_score), int(ex_score), int(min_d), standard_y, recognize_y, onsets_frames_strength, detail_content
+        if len(onsets_frames2)>0:
+            score3, lost_score3, ex_score3, min_d3, standard_y3, recognize_y3, detail_content3 = get_score_for_onset_by_frames(
+                onsets_frames2, total_frames_number, onsets_frames_strength, onset_code, rms, CQT)
+            if score >= score3:
+                return int(score), int(lost_score), int(ex_score), int(
+                    min_d), standard_y, recognize_y, onsets_frames_strength, detail_content
+            else:
+                return int(score3), int(lost_score3), int(ex_score3), int(
+                    min_d3), standard_y3, recognize_y3, onsets_frames_strength, detail_content3
+            return int(score), int(lost_score), int(ex_score), int(min_d), standard_y, recognize_y, onsets_frames_strength, detail_content
+        else:
+            return int(score), int(lost_score), int(ex_score), int(
+                min_d), standard_y, recognize_y, onsets_frames_strength, detail_content
 def find_loss_by_compare_with_base(onsets_frames,base_frames,rms,onset_code):
     result = []
     gap = 0
@@ -733,7 +677,11 @@ def get_score_for_onset_by_frames(onsets_frames,total_frames_number,onsets_frame
         code[index - 1] += code[index]
         del code[index]
     each_onset_score = 100 / len(standard_y)
-    xc, yc = get_matched_onset_frames_compared(standard_y, recognize_y)
+    try:
+        xc, yc = get_matched_onset_frames_compared(standard_y, recognize_y)
+    except AssertionError as e:
+        lenght = len(standard_y) if len(standard_y) <= len(recognize_y) else len(recognize_y)
+        xc, yc = standard_y[:lenght], recognize_y[:lenght]
     std_number = len(standard_y) - len(xc) + len(recognize_y) - len(yc)
     # 未匹配节拍的序号
     loss_indexs = [i for i in range(len(standard_y)) if standard_y[i] not in xc]
