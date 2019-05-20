@@ -106,7 +106,7 @@ def get_deviation(standard_y,recognize_y,codes,each_onset_score,total_frames_num
         str_continue = '连续唱对的节拍数为' + str(total_continue) + '个。'
         str_detail_list = str_continue + str_detail_list
 
-    print(total_continue)
+    #print(total_continue)
     detail_content = '节奏时长偏差较大的有' + str(b) + '个，偏差较小的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个，' + str_detail_list
     return total,detail_content,a
 
@@ -440,14 +440,18 @@ def find_loss_by_rms_for_onsets_in_range(onsets_frames,rms,start,end,loss_number
     loss_onset_frames.sort()
     return loss_onset_frames,loss_rms_values
 
-def del_same_onsets_by(onsets_frames,CQT,base_frames):
+def del_same_onsets_by(onsets_frames,CQT,rms,base_frames):
     select_onsets_frames = []
     if len(onsets_frames) > 0:
         select_onsets_frames.append(onsets_frames[0])
         cqt_max = np.max(CQT)
         base_frames_min = np.min(np.diff(base_frames))
         for i in range(1, len(onsets_frames)):
+            hightest_point_after = find_hightest_after(onsets_frames[i], rms)
             if onsets_frames[i] - onsets_frames[i - 1] > base_frames_min * 0.6:
+                select_onsets_frames.append(onsets_frames[i])
+            elif rms[hightest_point_after] - rms[onsets_frames[i]] > 1.2:
+                #print("========= {}".format(rms[hightest_point_after] - rms[onsets_frames[i]]))
                 select_onsets_frames.append(onsets_frames[i])
     return select_onsets_frames
 
@@ -593,16 +597,17 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
     cqt1 = CQT[10:, onsets_frames[0]:onsets_frames[1]]
     cqt2 = CQT[10:, onsets_frames[1]:onsets_frames[2]]
     same_sum, sum_max1, sum_max2 = get_same_number_in_two_cqt(cqt1, cqt2)
-    print("same_sum, sum_max1, sum_max2 is {},{},{}".format(same_sum, sum_max1, sum_max2))
+    #print("same_sum, sum_max1, sum_max2 is {},{},{}".format(same_sum, sum_max1, sum_max2))
     deleted_frame = 0
     same_min = 40 if 40 < sum_max2/4 else sum_max2/4
     if same_sum < same_min:  # 处理这一个节拍为噪声的情况
         deleted_frame = onsets_frames[0]
-        onsets_frames.remove(onsets_frames[0])
+        onsets_frames.remove(deleted_frame)
+        onsets_frames2.remove(deleted_frame)
 
 
     score, lost_score, ex_score, min_d, standard_y, recognize_y, detail_content = get_score_for_onset_by_frames(onsets_frames, total_frames_number, onsets_frames_strength, onset_code,rms,CQT)
-    if deleted_frame > 0:
+    if deleted_frame > 0 and same_sum > sum_max2/10:
         onsets_frames.append(deleted_frame)
         onsets_frames.sort()
         score2, lost_score2, ex_score2, min_d2, standard_y2, recognize_y2, detail_content2 = get_score_for_onset_by_frames( onsets_frames, total_frames_number, onsets_frames_strength, onset_code, rms, CQT)
@@ -649,7 +654,7 @@ def get_score_for_onset_by_frames(onsets_frames,total_frames_number,onsets_frame
     else:
         base_frames = onsets_base_frames(onset_code, total_frames_number)
 
-    onsets_frames = del_same_onsets_by(onsets_frames, CQT, base_frames)
+    onsets_frames = del_same_onsets_by(onsets_frames, CQT,rms, base_frames)
 
     recognize_y = onsets_frames
     min_d, best_y, onsets_frames = get_dtw_min(onsets_frames, base_frames, 65)
