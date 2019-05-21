@@ -1156,25 +1156,23 @@ def split_long_note_line(onsets_frames, note_lines, times,pitch_code):
 
     return select_onsets_frames, select_note_lines, select_times
 
-def find_loss_by_rms_and_rhythm_code(onset_frames,base_frames,rms):
-    select_onset_frames = onset_frames.copy()
-    rms, all_indexs = filter_hold_local_max(rms, base_frames, 6, 12)
-    gap = 0
-    length = len(onset_frames)
-    start = 0
-    for x in range(length):
-        for i in range(start,len(onset_frames)-1):
-            if onset_frames[i+1] - onset_frames[i] > (base_frames[gap + i+1] - base_frames[gap + i])*1.4:
-                want_indexs = [j for j in all_indexs if j > onset_frames[i] and j < onset_frames[i+1] ]
-                if len(want_indexs) > 0 :
-                    for x in want_indexs:
-                        if np.abs((x -onset_frames[i])/(base_frames[i+1] - base_frames[i]) - 1) < 0.2:
-                            onset_frames.append(x)
-                            onset_frames.sort()
-                            gap += 1
-                            start = i + 1
-                            break
-    return onset_frames
+def find_loss_by_rms_and_rhythm_code(onset_frames,base_frames,rms,rhythm_code):
+
+    rms, all_indexs = filter_hold_local_max(rms, base_frames)
+    # print("********onset_frames is {}".format(onset_frames))
+    # print("********base_frames is {}".format(base_frames))
+    # print("********all_indexs is {}".format(all_indexs))
+    min_gap = np.min(np.diff(base_frames))
+    for x in all_indexs:
+        offset = [np.abs(x - y ) for y in onset_frames]
+        min_gap_offset = np.min(offset)
+        if min_gap_offset > min_gap * 0.6 and x > base_frames[0] and x < base_frames[-1]:
+            tmp = onset_frames.copy()
+            tmp.append(x)
+            tmp.sort()
+            onset_score,lost_score, ex_score, min_d,detail_content = get_score_for_note_v2(tmp,base_frames.copy(),rhythm_code)
+            print(" x,onset_score {}===={}".format(x,onset_score))
+
 
 
 
@@ -1216,7 +1214,6 @@ def draw_plt(filename,rhythm_code,pitch_code):
     print("del_end_range====06 onsets_frames is {}".format(onsets_frames))
     onsets_frames, times, note_lines = merge_note_line_by_distance(onsets_frames, times, note_lines,rhythm_code,end_result[-1] - onsets_frames[0])
     print("merge_note_line_by_distance====07 onsets_frames is {}".format(onsets_frames))
-    #onsets_frames = find_loss_by_rms_and_rhythm_code(onsets_frames, base_frames, rms)
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
     print("get_note_lines====08 onsets_frames is {}".format(onsets_frames))
@@ -1233,6 +1230,7 @@ def draw_plt(filename,rhythm_code,pitch_code):
         frames_total = onsets_frames[-1] + times[-1] - onsets_frames[0]
     maybe_onset_frames = find_maybe_position_rhythm_code(onsets_frames[0], frames_total, rhythm_code)
     base_frames = maybe_onset_frames[:-1]
+
     # print("maybe_onset_frames  is {}".format(maybe_onset_frames))
     # print("final onsets_frames is {}".format(onsets_frames))
     # print("final note_lines is {}".format(note_lines))
@@ -1286,10 +1284,10 @@ def draw_plt(filename,rhythm_code,pitch_code):
 
     plt.subplot(3, 1, 3)
     rms = np.diff(rms,2)
-
-    rms,max_indexs = filter_hold_local_max(rms, base_frames, 6, 12)
+    find_loss_by_rms_and_rhythm_code(onsets_frames, base_frames, rms, rhythm_code)
+    rms,max_indexs = filter_hold_local_max(rms, base_frames)
     times = librosa.frames_to_time(np.arange(len(rms)))
-    print("max_indexs is {}".format(max_indexs))
+
     # rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
     # min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
     # rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
@@ -1339,6 +1337,9 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     #print("del_end_range====06 onsets_frames is {}".format(onsets_frames))
     onsets_frames, times, note_lines = merge_note_line_by_distance(onsets_frames, times, note_lines,rhythm_code,end_result[-1] - onsets_frames[0])
     #print("merge_note_line_by_distance====07 onsets_frames is {}".format(onsets_frames))
+    # onsets_frames.append(107)
+    # onsets_frames.append(161)
+    # onsets_frames.sort()
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
     #print("get_note_lines====08 onsets_frames is {}".format(onsets_frames))
@@ -1359,6 +1360,9 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     # print("final onsets_frames is {}".format(onsets_frames))
     # print("final note_lines is {}".format(note_lines))
     # print("final times is {}".format(times))
+    base_frames = [x - (base_frames[0] - onsets_frames[0]) for x in base_frames]
+    rms = np.diff(rms, 2)
+    find_loss_by_rms_and_rhythm_code(onsets_frames, base_frames, rms, rhythm_code)
     score1, onset_score1, note_score1,detail_content = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes,times, rhythm_code)
 
     #print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
@@ -1367,10 +1371,12 @@ def get_melody_score(filename,rhythm_code,pitch_code):
 
     return score,onset_score, note_score,detail_content
 
-def filter_hold_local_max(rms,base_frames,step,window_width):
+def filter_hold_local_max(rms,base_frames):
     lenght = len(rms)
     base_frames_diff = list(np.diff(base_frames))
     min_gap = np.min(base_frames_diff)
+    tmp = [x for x in base_frames_diff if x>min_gap]
+    second_min_gap = np.min(tmp)
     min_gap_first_index = base_frames[base_frames_diff.index(min_gap)+1]
     base_frames_reverse = base_frames_diff.copy()
     base_frames_reverse.reverse()
@@ -1378,10 +1384,11 @@ def filter_hold_local_max(rms,base_frames,step,window_width):
     first_rms = rms[:min_gap_first_index]
     second_rms = rms[min_gap_first_index:min_gap_last_index]
     last_rms = rms[min_gap_last_index:]
-    f_rms, f_max_indexs = hold_local_max(first_rms, 0, step,window_width)
-    s_rms, s_max_indexs = hold_local_max(second_rms, 0, int(min_gap*0.8 / 2), int(min_gap*0.8))
+    rate = 0.70
+    f_rms, f_max_indexs = hold_local_max(first_rms, 0, int(second_min_gap*rate/2),int(second_min_gap*rate))
+    s_rms, s_max_indexs = hold_local_max(second_rms, 0, int(min_gap*rate/ 2), int(min_gap*rate))
     s_max_indexs = [x + min_gap_first_index for x in s_max_indexs]
-    l_rms, l_max_indexs = hold_local_max(last_rms, 0, step,window_width)
+    l_rms, l_max_indexs = hold_local_max(last_rms, 0, int(second_min_gap*0.8/2),int(second_min_gap*rate))
     l_max_indexs = [x + min_gap_last_index for x in l_max_indexs]
     # if len(f_max_indexs)>0:
     #     f_max_indexs.extend(s_max_indexs).extend(l_max_indexs)
@@ -1394,11 +1401,13 @@ def filter_hold_local_max(rms,base_frames,step,window_width):
     all_indexs = f_max_indexs + s_max_indexs + l_max_indexs
     result = np.zeros(lenght)
     for x in f_max_indexs:
-        result[x] = rms[x]
+        result[x] = rms[x] if rms[x] > 0 else 0
     for x in s_max_indexs:
-        result[x] = rms[x]
+        result[x] = rms[x] if rms[x] > 0 else 0
     for x in l_max_indexs:
-        result[x] = rms[x]
+        result[x] = rms[x] if rms[x] > 0 else 0
+    print("======all_indexs is {}".format(all_indexs))
+    print("======base_frames is {}".format(base_frames))
     return result,all_indexs
 
 def hold_local_max(rms,start,step,window_width):

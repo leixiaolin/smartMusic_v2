@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
     filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律8.100分.mp3'
     #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律7.100分.mp3'
-    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律5.100分.mp3'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律5.100分.mp3'
     #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律六.5（100）.mp3'
 
 
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     # 要测试的数量
     test_num = 100
     score = 0
-    file_total = 0
+    file_total = 1
     total_10 = 0
     total_15 = 0
     total_20 = 0
