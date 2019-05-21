@@ -136,6 +136,10 @@ if __name__ == "__main__":
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
     #filename =  'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
 
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律8.100分.mp3'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律7.100分.mp3'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律5.100分.mp3'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律六.5（100）.mp3'
 
 
     result_path = 'e:/test_image/n/'
@@ -162,9 +166,10 @@ if __name__ == "__main__":
     write_txt(detail_content, save_path, mode='a')
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/A/']
-    #dir_list = []
+    dir_list = []
     total_accuracy = 0
     total_num = 0
     # clear_dir(result_path)

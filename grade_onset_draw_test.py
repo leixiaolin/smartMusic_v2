@@ -186,7 +186,7 @@ if __name__ == "__main__":
     #dir_list = ['F:/项目/花城音乐项目/样式数据/1-2/节奏/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/A/']
-    dir_list = []
+    #dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/o/'
