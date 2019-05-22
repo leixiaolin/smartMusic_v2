@@ -842,7 +842,10 @@ def get_score_for_note_v2(onsets_frames,base_frames,rhythm_code):
     #rhythm_code = get_code(type_index, 2)
     each_onset_score = 100 / len(standard_y)
 
-    xc,yc = get_matched_onset_frames_compared(standard_y, recognize_y)
+    if len(standard_y) == len(recognize_y):
+        xc, yc = standard_y, recognize_y
+    else:
+        xc,yc = get_matched_onset_frames_compared(standard_y, recognize_y)
 
     detail_content = ''
     if len(xc)<1 or len(yc) <1:

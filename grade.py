@@ -63,7 +63,7 @@ def get_score_detail_for_note(standard_y, recognize_y, onsets_total, onsets_stre
         #print('漏唱了' + str(lost_num) + '句')
         if lost_num/total_length > 0.1:
             lost_score = 100 / onsets_total * lost_num * 0.5
-    elif len(ex_frames) >= 1:
+    elif len(ex_frames) >= 0:
         for x in ex_frames:
             strength = 0.5
             ex_score += int(100 / onsets_total * strength)

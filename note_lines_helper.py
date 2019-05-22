@@ -488,7 +488,8 @@ def continueUp(rms):
             res = sum1
     return res
 
-def del_end_range(onset_frames,all_note_lines,times,rms,frames_total):
+def del_end_range(onset_frames,all_note_lines,times,rms,frames_total,base_frames):
+    base_frames = [ x - (base_frames[0]-onset_frames[0]) for x in base_frames]
     length = len(rms)
     select_onset_frames = []
     select_all_note_lines = []
@@ -505,6 +506,8 @@ def del_end_range(onset_frames,all_note_lines,times,rms,frames_total):
         # if rms[onset_frame -1] < rms[onset_frame] and rms[onset_frame +1]  < rms[onset_frame]:
         #     flag = False
         if onset_frame < end_frame and onset_frame < length - threshold:
+            if onset_frame > base_frames[-1] + 20 and note_line == all_note_lines[i-1]:
+                continue
             select_onset_frames.append(onset_frame)
             select_all_note_lines.append(note_line)
             select_times.append(t)
@@ -1156,25 +1159,61 @@ def split_long_note_line(onsets_frames, note_lines, times,pitch_code):
 
     return select_onsets_frames, select_note_lines, select_times
 
-def find_loss_by_rms_and_rhythm_code(onset_frames,base_frames,rms,rhythm_code):
-
+def find_loss_by_rms_and_rhythm_code(onset_frames,note_lines, times,base_frames,CQT,rms,rhythm_code):
+    rms = np.diff(rms, 2)
     rms, all_indexs = filter_hold_local_max(rms, base_frames)
     # print("********onset_frames is {}".format(onset_frames))
     # print("********base_frames is {}".format(base_frames))
     # print("********all_indexs is {}".format(all_indexs))
+    selected_indexs = []
     min_gap = np.min(np.diff(base_frames))
+    end = onset_frames[-1] if onset_frames[-1] > base_frames[-1] else base_frames[-1]
     for x in all_indexs:
         offset = [np.abs(x - y ) for y in onset_frames]
         min_gap_offset = np.min(offset)
-        if min_gap_offset > min_gap * 0.6 and x > base_frames[0] and x < base_frames[-1]:
+        if min_gap_offset > min_gap * 0.6 and x > base_frames[0] and x < end:
+            selected_indexs.append(x)
+    number = len(base_frames) - len(onset_frames)
+    if number < 1:
+        return onset_frames,note_lines, times
+    combinations = get_combinations(selected_indexs, number)
+    if len(combinations) < 1:
+        return onset_frames, note_lines, times
+    best_score = 0
+    best_frames = []
+    for cb in combinations:
+        for n in range(len(cb)):
             tmp = onset_frames.copy()
-            tmp.append(x)
+            for i in range(number):
+                tmp.append(cb[n][i])
             tmp.sort()
             onset_score,lost_score, ex_score, min_d,detail_content = get_score_for_note_v2(tmp,base_frames.copy(),rhythm_code)
-            print(" x,onset_score {}===={}".format(x,onset_score))
+            if onset_score > best_score:
+                best_score = onset_score
+                best_frames = tmp
+            #print(" cb[n],onset_score {}===={}".format(cb[n],onset_score))
+    onsets_frames, note_lines, times = get_note_lines(CQT, best_frames)
+    return onsets_frames, note_lines, times
 
-
-
+def del_too_small_frames_by_rms(onsets_frames, note_lines,times,rms,base_frames):
+    rms = np.diff(rms, 2)
+    rms, all_indexs = filter_hold_local_max(rms, base_frames)
+    rms_max = np.max(rms)
+    select_onset_frames = []
+    select_note_lines = []
+    select_times = []
+    for i in range(len(onsets_frames)):
+        frame = onsets_frames[i]
+        offset = [np.abs(frame - x) for x in all_indexs]
+        min_index = np.min(offset)
+        nearly_index = offset.index(min_index)
+        nearly_frame = all_indexs[nearly_index]
+        if rms[nearly_frame] < rms_max*0.1:
+            continue
+        select_onset_frames.append(frame)
+        select_note_lines.append(note_lines[i])
+        select_times.append(times[i])
+    return select_onset_frames,select_note_lines,select_times
 
 def draw_plt(filename,rhythm_code,pitch_code):
     y, sr = load_and_trim(filename)
@@ -1210,7 +1249,7 @@ def draw_plt(filename,rhythm_code,pitch_code):
     print("before check_all_note_lines is {}".format(note_lines))
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
     print("after check_all_note_lines is {}".format(note_lines))
-    onsets_frames, note_lines,times = del_end_range(onsets_frames, note_lines,times, rms,frames_total)
+    onsets_frames, note_lines,times = del_end_range(onsets_frames, note_lines,times, rms,frames_total,base_frames)
     print("del_end_range====06 onsets_frames is {}".format(onsets_frames))
     onsets_frames, times, note_lines = merge_note_line_by_distance(onsets_frames, times, note_lines,rhythm_code,end_result[-1] - onsets_frames[0])
     print("merge_note_line_by_distance====07 onsets_frames is {}".format(onsets_frames))
@@ -1231,6 +1270,12 @@ def draw_plt(filename,rhythm_code,pitch_code):
     maybe_onset_frames = find_maybe_position_rhythm_code(onsets_frames[0], frames_total, rhythm_code)
     base_frames = maybe_onset_frames[:-1]
 
+    onsets_frames, note_lines, times = find_loss_by_rms_and_rhythm_code(onsets_frames, note_lines, times, base_frames,
+                                                                        CQT, rms, rhythm_code)
+    onsets_frames, note_lines, times = del_too_small_frames_by_rms(onsets_frames, note_lines, times, rms,base_frames)
+    onsets_frames = [onsets_frames[i] for i in range(len(times)) if times[i] > 3]
+    note_lines = [note_lines[i] for i in range(len(times)) if times[i] > 3]
+    times = [times[i] for i in range(len(times)) if times[i] > 3]
     # print("maybe_onset_frames  is {}".format(maybe_onset_frames))
     # print("final onsets_frames is {}".format(onsets_frames))
     # print("final note_lines is {}".format(note_lines))
@@ -1284,7 +1329,7 @@ def draw_plt(filename,rhythm_code,pitch_code):
 
     plt.subplot(3, 1, 3)
     rms = np.diff(rms,2)
-    find_loss_by_rms_and_rhythm_code(onsets_frames, base_frames, rms, rhythm_code)
+
     rms,max_indexs = filter_hold_local_max(rms, base_frames)
     times = librosa.frames_to_time(np.arange(len(rms)))
 
@@ -1333,7 +1378,7 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     #print("before check_all_note_lines is {}".format(note_lines))
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
     #print("after check_all_note_lines is {}".format(note_lines))
-    onsets_frames, note_lines,times = del_end_range(onsets_frames, note_lines,times, rms,frames_total)
+    onsets_frames, note_lines,times = del_end_range(onsets_frames, note_lines,times, rms,frames_total,base_frames)
     #print("del_end_range====06 onsets_frames is {}".format(onsets_frames))
     onsets_frames, times, note_lines = merge_note_line_by_distance(onsets_frames, times, note_lines,rhythm_code,end_result[-1] - onsets_frames[0])
     #print("merge_note_line_by_distance====07 onsets_frames is {}".format(onsets_frames))
@@ -1342,6 +1387,9 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     # onsets_frames.sort()
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
     note_lines = check_all_note_lines(onsets_frames, note_lines, CQT)
+    onsets_frames = [onsets_frames[i] for i in range(len(times)) if times[i] > 3]
+    note_lines = [note_lines[i] for i in range(len(times)) if times[i] > 3]
+    times = [times[i] for i in range(len(times)) if times[i] > 3]
     #print("get_note_lines====08 onsets_frames is {}".format(onsets_frames))
 
     #print("0 onsets_frames is {},size is {}".format(onsets_frames,len(onsets_frames)))
@@ -1361,8 +1409,10 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     # print("final note_lines is {}".format(note_lines))
     # print("final times is {}".format(times))
     base_frames = [x - (base_frames[0] - onsets_frames[0]) for x in base_frames]
-    rms = np.diff(rms, 2)
-    find_loss_by_rms_and_rhythm_code(onsets_frames, base_frames, rms, rhythm_code)
+
+    onsets_frames, note_lines, times = find_loss_by_rms_and_rhythm_code(onsets_frames, note_lines, times, base_frames,
+                                                                        CQT, rms, rhythm_code)
+    onsets_frames, note_lines, times = del_too_small_frames_by_rms(onsets_frames, note_lines, times, rms,base_frames)
     score1, onset_score1, note_score1,detail_content = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes,times, rhythm_code)
 
     #print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
@@ -1406,8 +1456,8 @@ def filter_hold_local_max(rms,base_frames):
         result[x] = rms[x] if rms[x] > 0 else 0
     for x in l_max_indexs:
         result[x] = rms[x] if rms[x] > 0 else 0
-    print("======all_indexs is {}".format(all_indexs))
-    print("======base_frames is {}".format(base_frames))
+    #print("======all_indexs is {}".format(all_indexs))
+    #print("======base_frames is {}".format(base_frames))
     return result,all_indexs
 
 def hold_local_max(rms,start,step,window_width):
@@ -1437,3 +1487,20 @@ def hold_local_max(rms,start,step,window_width):
     for x in max_indexs:
         result[x] = rms[x]
     return result,max_indexs
+'''
+数组元素组合
+https://blog.csdn.net/suibianshen2012/article/details/80772905
+'''
+def get_combinations(list1,number):
+    import itertools
+    list2 = []
+    for i in range(1, len(list1) + 1):
+        iter = itertools.combinations(list1, i)
+        tmp = list(iter)
+        # print(len(tmp))
+        # print(tmp[0])
+        # print(len(tmp[0]))
+        if len(tmp[0]) == number:
+            list2.append(tmp)
+    #print(list2)
+    return list2
