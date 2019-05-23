@@ -224,6 +224,25 @@ def get_matched_onset_frames_by_path_v3(x,y):
             i += len(p2_indexs)
     return xc,yc,path[0],path[1]
 
+def get_matched_note_lines_compared(x,y):
+    flag = False
+    if len(x) > len(y):
+        t = x
+        x = y
+        y = t
+        flag = True
+    y_raw = y
+    y = [i - (y[0] - x[0]) for i in y]
+
+    xc1, yc1,path1,path2 = get_matched_onset_frames_by_path_v3(x, y)
+    xc1 = get_raw_note_lines_from_diff(x, xc1)
+    yc1 = get_raw_note_lines_from_diff(y_raw, yc1)
+    if flag:
+        t = xc1
+        xc1 = yc1
+        yc1 = t
+    return xc1, yc1
+
 def get_matched_onset_frames_compared(x,y):
     flag = False
     if len(x) > len(y):
@@ -275,6 +294,21 @@ def get_raw_data_from_diff(x,xc):
             #     result.append(x1)
             if x2 not in result:
                 result.append(x2)
+            start += (index + 1)
+    return result
+
+def get_raw_note_lines_from_diff(x,xc):
+    result = []
+    result.append(x[0])
+    xd = np.diff(x)
+    start = 0
+    for i in xc:
+        if i in xd:
+            tmp = list(xd[start:])
+            index = tmp.index(i)
+            x1 = x[start + index]
+            x2 = x[start + index+1]
+            result.append(x2)
             start += (index + 1)
     return result
 

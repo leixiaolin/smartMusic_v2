@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import librosa
 import matplotlib.pyplot as plt
 import librosa.display
@@ -152,6 +153,27 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8文(58).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4王（56）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4欧(25).wav'
+
+
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律八（9）(90).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律二（2）（90分）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律九（4）(95).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三（2）（90分）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律四.1（100）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律四.3（100）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律十（5）(50).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律七(5)（55）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律1.90分.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律四.10（100）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三（3）（80分）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三（8）(80).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律二（2）（90分）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三.10（100）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律一.6（100）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律九（6）(50).wav'
+
 
     result_path = 'e:/test_image/n/'
     plt.close()
@@ -165,11 +187,10 @@ if __name__ == "__main__":
     plt, total_score,onset_score, note_scroe,detail_content = draw_plt(filename,rhythm_code,pitch_code)
     plt.show()
     plt.clf()
-    total_score, onset_score, note_scroe,detail_content = get_melody_score(filename, rhythm_code, pitch_code)
+    total_score, onset_score, note_scroe,detail_content,onsets_frames,maybe_onset_frames = get_melody_score(filename, rhythm_code, pitch_code)
     filepath, fullflname = os.path.split(filename)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
-    content = 'total_score,onset_score, note_scroe is ' + str(total_score) + ' ' + str(onset_score) + ' ' + str(
-        note_scroe)
+    content = 'total_score,onset_score, note_scroe is ' + str(total_score) + ' ' + str(onset_score) + ' ' + str(note_scroe)
     content += "\n"
     save_path = os.path.join(result_path, output_file)
     write_txt(content, save_path, mode='w')
@@ -177,7 +198,7 @@ if __name__ == "__main__":
     write_txt(detail_content, save_path, mode='a')
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
-    #dir_list = ['F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/1-2/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/A/']
     #dir_list = []
@@ -208,8 +229,8 @@ if __name__ == "__main__":
             rhythm_code = get_code(type_index, 2)
             pitch_code = get_code(type_index, 3)
             plt, total_score, onset_score, note_scroe,detail_content = draw_plt(dir + filename, rhythm_code, pitch_code)
-            total_score, onset_score, note_scroe,detail_content = get_melody_score(dir + filename, rhythm_code, pitch_code)
-
+            total_score, onset_score, note_scroe,detail_content,onsets_frames,maybe_onset_frames = get_melody_score(dir + filename, rhythm_code, pitch_code)
+            print("score, onset_score, note_scroe is {},{},{}".format(total_score, onset_score, note_scroe))
 
             # tmp = os.listdir(result_path)
 
