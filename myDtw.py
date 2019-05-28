@@ -326,32 +326,94 @@ def get_indexs(a,b):
     return result
 
 # 找出多唱或漏唱的线的帧
-def get_mismatch_line(standard_y,recognize_y):
+def get_match_lines(standard_y,recognize_y):
     # standard_y标准线的帧列表 recognize_y识别线的帧列表
     ls = len(standard_y)
     lr = len(recognize_y)
 
-    # 若标准线和识别线数量相同
-    if ls == lr:
-        return [],[]
-    # 若漏唱，即标准线大于识别线数量
-    elif ls > lr:
-        return [ls-lr],[]
-    # 多唱的情况
-    elif ls!=0:
-        min = 10000
-        min_i = 0
-        min_j = 0
-        for i in standard_y:
-            for j in recognize_y:
-                if abs(i-j) < min:
-                    min = abs(i-j)
-                    min_i = i
-                    min_j = j
-        standard_y.remove(min_i)
-        recognize_y.remove(min_j)
-        get_mismatch_line(standard_y,recognize_y)
-    return standard_y,recognize_y
+    standard_y_diff = np.diff(standard_y)
+    recognize_y_diif = np.diff(recognize_y)
+
+    select_standard_y = []
+    select_standard_y.append(standard_y[0])
+    select_recognize_y = []
+    select_recognize_y.append(recognize_y[0])
+    lenght = len(recognize_y) if len(recognize_y)<len(standard_y) else len(standard_y)
+    recognize_i,standard_i = 1,1
+    for i in range(1,lenght):
+        if recognize_i > len(recognize_y)-1 or standard_i > len(standard_y)-1:
+            #print('1')
+            break
+        if recognize_y[recognize_i] > select_recognize_y[-1]:
+            real_diff = recognize_y_diif[recognize_i-1]
+            standard_diff = standard_y_diff[standard_i-1]
+            diff_gap = np.abs(real_diff - standard_diff)/standard_diff
+            #匹配
+            if diff_gap < 0.35:
+                select_standard_y.append(standard_y[standard_i])
+                select_recognize_y.append(recognize_y[recognize_i])
+                standard_i += 1
+                recognize_i += 1
+            #多唱
+            elif real_diff < standard_diff:
+                tmp = recognize_y[recognize_i:] #之后的节拍点
+                offset = [np.abs(x - recognize_y[recognize_i-1]) for x in tmp] #之后的节拍点到当前节拍的距离
+
+                tmp_gap_indexs = [i for i in range(len(tmp)) if np.abs(offset[i] - standard_diff)/standard_diff < 0.4]
+                if len(tmp_gap_indexs) > 0:
+                    tmp_gaps = [np.abs(offset[i] - standard_diff)/standard_diff < 0.4 for i in range(len(tmp)) if np.abs(offset[i] - standard_diff)/standard_diff < 0.4]
+                    tmp_gaps_min = np.min(tmp_gaps)
+                    tmp_gaps_min_index = tmp_gaps.index(tmp_gaps_min)
+                    match_index = recognize_i  + tmp_gap_indexs[tmp_gaps_min_index]
+                    select_standard_y.append(standard_y[standard_i])
+                    select_recognize_y.append(recognize_y[match_index])
+                    standard_i += 1
+                    recognize_i = match_index + 1
+                else:
+                    #print('2')
+                    #break
+                    standard_i += 1
+                    recognize_i += 1
+            #漏唱
+            elif real_diff > standard_diff:
+                tmp = standard_y[standard_i:]  # 之后的标准节拍点
+                offset = [np.abs(x - standard_y[standard_i-1]) for x in tmp]  # 之后的标准节拍点到当前节拍的距离
+                tmp_gap_indexs = [i for i in range(len(tmp)) if np.abs(real_diff - offset[i]) / offset[i] < 0.4]
+                if len(tmp_gap_indexs) > 0:
+                    tmp_gaps = [np.abs(real_diff - offset[i]) / offset[i] for i in range(len(tmp)) if np.abs(real_diff - offset[i]) / offset[i] < 0.4]
+                    tmp_gaps_min = np.min(tmp_gaps)
+                    tmp_gaps_min_index = tmp_gaps.index(tmp_gaps_min)
+                    match_index = standard_i  + tmp_gap_indexs[tmp_gaps_min_index]
+                    select_standard_y.append(standard_y[match_index])
+                    select_recognize_y.append(recognize_y[recognize_i])
+                    standard_i = match_index + 1
+                    recognize_i += 1
+                else:
+                    standard_i += 1
+                    recognize_i += 1
+                    #print('3')
+                    #break
+    return select_standard_y,select_recognize_y
+# 找出多唱或漏唱的线的帧
+def get_match_lines_v2(standard_y,recognize_y):
+    select_standard_y = []
+    select_standard_y.append(standard_y[0])
+    select_recognize_y = recognize_y.copy()
+    recognize_i,standard_i = 0,0
+    for i in range(0,len(recognize_y)-1):
+        tmp_x = recognize_y[i:i+2]
+        tmp_y = standard_y[standard_i:]
+        if len(tmp_x) > 1 and len(tmp_y) > 1:
+            min_d,best_y,x = get_dtw_min(tmp_y,tmp_x,65,move=False)
+            offset = [np.abs(i - tmp_x[-1]) for i in best_y]
+            offset_min = np.min(offset)
+            offset_min_index = offset.index(offset_min)
+            yc = standard_y[standard_i + offset_min_index]
+            #xc,yc = get_matched_onset_frames_compared(tmp_x, tmp_y)
+            select_recognize_y.append(yc)
+            next_start = standard_y.index(yc)
+            standard_i = next_start
+    return select_standard_y,select_recognize_y
 
 if __name__ == '__main__':
     #x = np.array([24, 24, 26, 26, 26, 26, 23, 26, 20, 26, 24, 24, 25])
@@ -428,12 +490,48 @@ if __name__ == '__main__':
     print(xc)
     print(y)
     print(yc)
+
+    x = [34, 59, 82, 125, 168, 209, 226, 241, 251, 281, 295, 316, 339]
+    y = [46, 69, 92, 137, 160, 182, 227, 244, 250, 261, 273, 290, 295, 307, 318, 341, 363]
+    # x = [26, 62, 92, 125, 156, 178, 196, 227, 260]
+    # y = [26, 96, 165, 182, 191, 200, 269]
+    x = [60, 79, 101, 147, 166, 188, 231, 250, 262, 272, 288, 295, 306, 319, 339, 362]
+    y = [61, 83, 105, 149, 171, 193, 236, 253, 258, 269, 280, 297, 302, 313, 324, 346, 368]
+    xd = np.diff(x)
+    print(xd)
+    xr = [xd[i]/xd[i+1] for i in range(len(xd)-1)]
+    print(xr)
+    #x = [59, 82]
+    yd = np.diff(y)
+    print(yd)
+    yr = [yd[i] / yd[i + 1] for i in range(len(yd) - 1)]
+    print(yr)
+    standard_y = y
+    recognize_y = x
+    yc,xc = get_match_lines(standard_y,recognize_y)
+    #xc, yc = get_match_lines_v2(standard_y,recognize_y)
+    print(x,len(x))
+    print(xc,len(xc))
+    print(y,len(y))
+    print(yc,len(yc))
+
+
+    x_max = np.max(x) if np.max(x) > np.max(y) else np.max(y)
+    x_max += 5
     plt.subplot(4,1,1)
     plt.vlines(x, 0, 1, color='y', linestyle='dashed')
+    plt.title('x')
+    plt.xlim(0,x_max)
     plt.subplot(4, 1, 2)
     plt.vlines(y, 0, 1, color='b', linestyle='dashed')
+    plt.title('y')
+    plt.xlim(0, x_max)
     plt.subplot(4, 1, 3)
     plt.vlines(xc, 0, 1, color='y', linestyle='dashed')
+    plt.title('xc')
+    plt.xlim(0, x_max)
     plt.subplot(4, 1, 4)
     plt.vlines(yc, 0, 1, color='b', linestyle='dashed')
+    plt.title('yc')
+    plt.xlim(0, x_max)
     plt.show()

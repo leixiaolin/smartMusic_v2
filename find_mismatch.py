@@ -65,7 +65,7 @@ def get_scores(standard_y,recognize_y,onsets_total,onsets_strength):
         print('节拍数一致')
     return lost_score,ex_score
 
-def get_deviation(standard_y,recognize_y,codes,each_onset_score,total_frames_number):
+def get_deviation(standard_y,recognize_y,codes,each_onset_score,total_frames_number,loss_indexs):
     #each_onset_score = 100/len(standard_y)
     score = 0
     total = 0
@@ -82,19 +82,28 @@ def get_deviation(standard_y,recognize_y,codes,each_onset_score,total_frames_num
         standard_offset = get_code_offset(codes[i])
         if offset <= standard_offset:
             score = 0
-            a += 1
-            detail_list.append("1")
-            continue_right.append(1)
+            if i in loss_indexs:
+                detail_list.append("?")
+            else:
+                a += 1
+                detail_list.append("1")
+                continue_right.append(1)
         elif offset >= 1:
             score = each_onset_score
-            b += 1
-            detail_list.append("0")
-            continue_right.append(0)
+            if i in loss_indexs:
+                detail_list.append("?")
+            else:
+                b += 1
+                detail_list.append("0")
+                continue_right.append(0)
         else:
             score = each_onset_score * offset
-            c += 1
-            detail_list.append("-")
-            continue_right.append(0)
+            if i in loss_indexs:
+                detail_list.append("?")
+            else:
+                c += 1
+                detail_list.append("-")
+                continue_right.append(0)
         total +=score
     # if b == 1:
     #     total -= int(each_onset_score*0.5)
@@ -107,7 +116,7 @@ def get_deviation(standard_y,recognize_y,codes,each_onset_score,total_frames_num
         str_detail_list = str_continue + str_detail_list
 
     #print(total_continue)
-    detail_content = '节奏时长偏差较大的有' + str(b) + '个，偏差较小的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个，' + str_detail_list
+    detail_content = '未能匹配的节奏有'+ str(len(loss_indexs)) + '，节奏时长偏差较大的有' + str(b) + '个，偏差较小的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个，' + str_detail_list
     return total,detail_content,a
 
 def get_deviation_for_note(standard_y,recognize_y,codes,each_onset_score):
@@ -596,18 +605,22 @@ def get_score_jz_by_cqt_rms_optimised(filename,onset_code):
 
     cqt1 = CQT[10:, onsets_frames[0]:onsets_frames[1]]
     cqt2 = CQT[10:, onsets_frames[1]:onsets_frames[2]]
-    same_sum, sum_max1, sum_max2 = get_same_number_in_two_cqt(cqt1, cqt2)
+    cqt3 = CQT[10:, onsets_frames[2]:onsets_frames[3]]
+    same_sum1_2, sum_max1, sum_max2 = get_same_number_in_two_cqt(cqt1, cqt2)
+    same_sum1_3, sum_max2_, sum_max3 = get_same_number_in_two_cqt(cqt1, cqt3)
     #print("same_sum, sum_max1, sum_max2 is {},{},{}".format(same_sum, sum_max1, sum_max2))
     deleted_frame = 0
-    same_min = 40 if 40 < sum_max2/4 else sum_max2/4
-    if same_sum < same_min:  # 处理这一个节拍为噪声的情况
+    same_min1 = 40 if 40 < sum_max2/4 else sum_max2/4
+    same_min2 = 40 if 40 < sum_max3/4 else sum_max3/4
+    if same_sum1_2 < same_min1 and same_sum1_3 < same_min2:  # 处理这一个节拍为噪声的情况
         deleted_frame = onsets_frames[0]
         onsets_frames.remove(deleted_frame)
-        onsets_frames2.remove(deleted_frame)
+        if deleted_frame in onsets_frames2:
+            onsets_frames2.remove(deleted_frame)
 
 
     score, lost_score, ex_score, min_d, standard_y, recognize_y, detail_content = get_score_for_onset_by_frames(onsets_frames, total_frames_number, onsets_frames_strength, onset_code,rms,CQT)
-    if deleted_frame > 0 and same_sum > sum_max2/10:
+    if deleted_frame > 0 and same_sum1_2 > sum_max2/10 and same_sum1_3 > sum_max3/10:
         onsets_frames.append(deleted_frame)
         onsets_frames.sort()
         score2, lost_score2, ex_score2, min_d2, standard_y2, recognize_y2, detail_content2 = get_score_for_onset_by_frames( onsets_frames, total_frames_number, onsets_frames_strength, onset_code, rms, CQT)
@@ -683,7 +696,11 @@ def get_score_for_onset_by_frames(onsets_frames,total_frames_number,onsets_frame
         del code[index]
     each_onset_score = 100 / len(standard_y)
     try:
-        xc, yc = get_matched_onset_frames_compared(standard_y, recognize_y)
+        #xc, yc = get_matched_onset_frames_compared(standard_y, recognize_y)
+        if len(standard_y) != len(recognize_y):
+            xc,yc = get_match_lines(standard_y,recognize_y)
+        else:
+            xc, yc = standard_y, recognize_y
     except AssertionError as e:
         lenght = len(standard_y) if len(standard_y) <= len(recognize_y) else len(recognize_y)
         xc, yc = standard_y[:lenght], recognize_y[:lenght]
@@ -692,28 +709,10 @@ def get_score_for_onset_by_frames(onsets_frames,total_frames_number,onsets_frame
     loss_indexs = [i for i in range(len(standard_y)) if standard_y[i] not in xc]
 
     if len(loss_indexs) > 0:
-        if len(loss_indexs) == 1:
-            for i in loss_indexs:
-                xc.append(standard_y[i])  # 补齐便为比较
-                #yc.append(standard_y[i])
-            loss_frame = find_loss_by_compare_with_base(onsets_frames, base_frames, rms, onset_code)
-            if len(loss_frame)>0:
-                if loss_frame[0] not in yc:
-                    yc.append(loss_frame[0])
-                    yc.sort()
-                else:
-                    yc.append(standard_y[i])
-                    yc.sort()
-                if loss_frame[0] not in recognize_y and len(recognize_y) < len(base_frames):
-                    recognize_y.append(loss_frame[0])
-                    recognize_y.sort()
-            else:
-                yc.append(standard_y[i])
-
-        else:
-            for i in loss_indexs:
-                xc.append(standard_y[i])  # 补齐便为比较
-                yc.append(standard_y[i])
+        for i in loss_indexs:
+            xc.append(standard_y[i])  # 补齐便为比较
+            yc.append(yc[i-1]+(standard_y[i] - standard_y[i-1]))
+            yc.sort()
         # yc.append(standard_y[i])
         # xc.sort()
         # loss_indexs_min = np.min(loss_indexs)
@@ -740,7 +739,7 @@ def get_score_for_onset_by_frames(onsets_frames,total_frames_number,onsets_frame
     xc.sort()
     yc.sort()
     # code = [code[i] for i in range(len(code)) if i not in loss_indexs]
-    min_d, detail_content,a = get_deviation(xc, yc, code, each_onset_score,total_frames_number)
+    min_d, detail_content,a = get_deviation(xc, yc, code, each_onset_score,total_frames_number,loss_indexs)
 
     # print("std_number is {}".format(std_number))
     # if std_number >= 1:
@@ -780,6 +779,9 @@ def get_score_for_onset_by_frames(onsets_frames,total_frames_number,onsets_frame
 
     return int(score), int(lost_score), int(ex_score), int(min_d), standard_y, recognize_y, detail_content
 
+def modify_detail_content(detail_content,loss_indexs):
+    detail_content = detail_content.split('[')
+    detail_content_list = detail_content.split('[')
 
 '''
 计算节奏型音频的分数
