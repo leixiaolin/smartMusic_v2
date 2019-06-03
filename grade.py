@@ -20,13 +20,15 @@ def get_score1(standard_y,recognize_y,onsets_total,onsets_strength,min_d):
     ex_score = 0
     if lost_num:
         #print('漏唱了' + str(lost_num) + '句')
-        if lost_num <= 3:
-            lost_score = 100 / onsets_total * lost_num * 0.5
-        else:
-            lost_score = 100 / onsets_total * lost_num
+        # if lost_num <= 3:
+        #     lost_score = 100 / onsets_total * lost_num * 0.5
+        # else:
+        #     lost_score = 100 / onsets_total * lost_num
+        lost_score = 100 / onsets_total * lost_num
     elif len(ex_frames) >= 1:
         for x in ex_frames:
             strength = onsets_strength[int(x)]
+            strength = 1
             ex_score += int(100 / onsets_total * strength)
     else:
         #print('节拍数一致')
