@@ -419,8 +419,11 @@ if __name__ == '__main__':
     #x = np.array([24, 24, 26, 26, 26, 26, 23, 26, 20, 26, 24, 24, 25])
     # x = np.array([1,5,10,13])
     # y = np.array([1,4,13])
-    x = [35, 66, 97, 155, 184, 199, 215, 244]
-    y = [35, 67, 99, 163, 195, 211, 227]
+    x = [-1 ,-3, -2, -1,  1,  2 ,-2 ,-6, -1  ,0]
+    y = [ 0 ,-3 ,-2 ,-2,  2 , 0 , 2 ,-2 ,-5 ,-2]
+    longest_note, base_notes = get_matched_note_lines_compared(x, y)
+    print(longest_note)
+    print(base_notes)
     # x = [38, 55, 73, 88]
     # y = [48, 66, 83, 100]
     y = [i -(y[0]-x[0]) for i in y]

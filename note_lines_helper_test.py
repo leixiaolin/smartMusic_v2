@@ -168,18 +168,34 @@ if __name__ == "__main__":
     #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律1.90分.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律四.10（100）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三（3）（80分）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三（8）(80).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三（8）(80).wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律二（2）（90分）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三.10（100）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律一.6（100）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律九（6）(50).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三.10（100）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律一.6（100）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律九（6）(50).wav'
 
+    filename = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/两只老虎20190621-7278.wav' #只是节奏基本对，旋律全错 score, onset_score, note_scroe is 57,37,20
+    #filename = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/两只老虎20190621-6314.wav' #唱的不是同一首歌，旋律也相差较大 score, onset_score, note_scroe is 50,32,18
+    #filename = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/20190621-3533.wav' #节奏对，旋律全错  score, onset_score, note_scroe is 45,32,13
+    #filename = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/两只老虎20190621-9983.wav' #节奏对，旋律错 score, onset_score, note_scroe is 60,37,23
+    #filename = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/20190621-3858.wav'# 速度偏快，节奏旋律基本正确 score, onset_score, note_scroe is 61,36,25
+    #filename = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/两只老虎20190621-6264.wav' #唱速不稳定，旋律正确，节奏错误 score, onset_score, note_scroe is 44,33,11
+    #filename = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/20190621-3192.wav' #只是节奏基本对，旋律全错 score, onset_score, note_scroe is 50,32,18
+    #filename = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/两只老虎20190621-6143.wav' #速度偏快，节奏旋律基本正确 score, onset_score, note_scroe is 10,4,6
+    #filename = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/两只老虎20190621-9805.wav' #节奏对，旋律错，score, onset_score, note_scroe is 52,32,20
+
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1谭（98）.wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1.1(96).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋7卉(55).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3谭（98）.wav'
 
     result_path = 'e:/test_image/n/'
     plt.close()
-    type_index = get_onsets_index_by_filename_rhythm(filename)
-    rhythm_code = get_code(type_index, 2)
-    pitch_code = get_code(type_index, 3)
+    # type_index = get_onsets_index_by_filename_rhythm(filename)
+    # rhythm_code = get_code(type_index, 2)
+    # pitch_code = get_code(type_index, 3)
+    rhythm_code = '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]'
+    pitch_code = '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'
     #rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
     #melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
@@ -198,7 +214,8 @@ if __name__ == "__main__":
     write_txt(detail_content, save_path, mode='a')
 
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
-    dir_list = ['F:/项目/花城音乐项目/样式数据/1-2/旋律/']
+    #dir_list = ['F:/项目/花城音乐项目/样式数据/1-2/旋律/']
+    #dir_list = ['F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/A/']
     #dir_list = []
@@ -228,6 +245,8 @@ if __name__ == "__main__":
             type_index = get_onsets_index_by_filename_rhythm(dir + filename)
             rhythm_code = get_code(type_index, 2)
             pitch_code = get_code(type_index, 3)
+            # rhythm_code = '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]'
+            # pitch_code = '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'
             plt, total_score, onset_score, note_scroe,detail_content = draw_plt(dir + filename, rhythm_code, pitch_code)
             total_score, onset_score, note_scroe,detail_content,onsets_frames,maybe_onset_frames = get_melody_score(dir + filename, rhythm_code, pitch_code)
             print("score, onset_score, note_scroe is {},{},{}".format(total_score, onset_score, note_scroe))

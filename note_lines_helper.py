@@ -824,6 +824,59 @@ def cal_note_score(longest_note,base_notes):
         notes_score = int(notes_score)
     detail_content += '音高偏差较大的有' + str(c) + '个，偏差较小的有' + str(b) + '个，偏差在合理区间的有' + str(a) + '个'
     return notes_score,detail_content
+
+def cal_note_score_by_diff(longest_note,base_notes):
+    detail_content = ''
+    a = 0
+    b = 0
+    c = 0
+    longest_note = np.diff(longest_note)
+    # off = int((base_notes[0] - longest_note[0]))
+    base_notes = np.diff(base_notes)
+    #print("base_notes is {}".format(base_notes))
+    euclidean_norm = lambda x, y: np.abs(x - y)
+    if (len(longest_note) != len(base_notes)):
+        each_note_score = 60 / len(base_notes)
+        num_gap = len(base_notes)
+        longest_note, base_notes = get_matched_note_lines_compared(longest_note, base_notes)
+        notes_score = 0
+        for i in range(len(longest_note)):
+            if np.abs(longest_note[i] - base_notes[i]) == 0:
+                notes_score += each_note_score
+                a += 1
+            elif np.abs(longest_note[i] - base_notes[i]) == 1:
+                notes_score += each_note_score * 0.5
+                b += 1
+            elif longest_note[i] * base_notes[i] > 0: # 相同趋势，即都为正，或都为负
+                notes_score += each_note_score * 0.5
+                b += 1
+            else:
+                c += 1
+        notes_score = int(notes_score)
+        #d, cost_matrix, acc_cost_matrix, path = dtw(longest_note, base_notes, dist=euclidean_norm)
+        #notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
+        num_gap = num_gap - len(base_notes)
+        detail_content += '识别的音高个数与标准不一致，未匹配的音高个数为' + str(num_gap) + '个。'
+    else:
+        each_note_score = 60 / len(longest_note)
+        notes_score = 0
+        longest_note, base_notes = get_matched_note_lines_compared(longest_note, base_notes)
+        for i in range(len(longest_note)):
+            if np.abs(longest_note[i] - base_notes[i]) == 0:
+                notes_score += each_note_score
+                a += 1
+            elif np.abs(longest_note[i] - base_notes[i]) == 1:
+                notes_score += each_note_score * 0.5
+                b += 1
+            elif longest_note[i] * base_notes[i] > 0: # 相同趋势，即都为正，或都为负
+                notes_score += each_note_score * 0.5
+                b += 1
+            else:
+                c += 1
+        notes_score = int(notes_score)
+    detail_content += '音高偏差较大的有' + str(c) + '个，偏差较小的有' + str(b) + '个，偏差在合理区间的有' + str(a) + '个'
+    return notes_score,detail_content
+
 def cal_score_v2(filename, result, longest_note, base_frames):
     total_score, onsets_score, notes_score, trend_number, base_notes_number = get_score(filename, result, longest_note, base_frames)
 
@@ -949,14 +1002,14 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
 
     if onset_score == 0:
         return 0, 0, 0
-    note_score,note_detail_content = cal_note_score(note_lines, base_notes)
+    note_score,note_detail_content = cal_note_score_by_diff(note_lines, base_notes)
     onset_score = int(onset_score * 0.4)
     score = onset_score + note_score
 
-    if onset_score >= 36 and score < 90:
-        note_score = int(60 * onset_score / 40)
-    elif onset_score > 30 and note_score < 36:
-        note_score = int(60 * onset_score / 40)
+    # if onset_score >= 36 and score < 90:
+    #     note_score = int(60 * onset_score / 40)
+    # elif onset_score > 30 and note_score < 36:
+    #     note_score = int(60 * onset_score / 40)
 
     # if note_score > 50 and onset_score < 25:
     #     detail_content = '音高得分较好，节奏方面需要进一步加强'
@@ -1288,6 +1341,7 @@ def draw_plt(filename,rhythm_code,pitch_code):
     #base_times = librosa.frames_to_time(best_y, sr=sr)
     base_times = librosa.frames_to_time(base_frames, sr=sr)
     the_end_time = librosa.frames_to_time(maybe_onset_frames[-1], sr=sr)
+    print("last is :{}".format(maybe_onset_frames[-1]))
     # rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
     # min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
     # rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
@@ -1301,9 +1355,11 @@ def draw_plt(filename,rhythm_code,pitch_code):
     plt.axhline(mean_rms_on_frames, color='r')
 
     plt.subplot(3, 1, 3)
-    rms = np.diff(rms,2)
+    rms = np.diff(rms,1)
+    rms = [x if x > 0 else 0 for x in rms]
 
     rms,max_indexs = filter_hold_local_max(rms, base_frames)
+    max_indexs_time = librosa.frames_to_time(max_indexs, sr=sr)
     times = librosa.frames_to_time(np.arange(len(rms)))
 
     # rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
@@ -1314,6 +1370,7 @@ def draw_plt(filename,rhythm_code,pitch_code):
     plt.plot(times, rms)
     plt.axhline(mean_rms_on_frames, color='r')
     plt.vlines(onstm, 0, np.max(rms), color='y', linestyle='dashed')
+    plt.vlines(max_indexs_time, 0, np.max(rms), color='r', linestyle='dashed')
     plt.xlim(0, np.max(times))
     return plt,score,onset_score, note_score,detail_content
 
@@ -1386,6 +1443,12 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     # print("final onsets_frames is {}".format(onsets_frames))
     # print("final note_lines is {}".format(note_lines))
     # print("final times is {}".format(times))
+
+    #如果节拍数还是少于标准数，则从疑似节拍中添加
+    if len(onsets_frames) < len(base_frames) :
+        #print('lossssssssss')
+        onsets_frames, note_lines, times = add_from_maybe_onset_frames(onsets_frames, maybe_onset_frames, CQT, rms, base_frames)
+
     score1, onset_score1, note_score1, detail_content = cal_score_v1(filename, onsets_frames, note_lines, base_frames,base_notes, times, rhythm_code)
 
     #print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
@@ -1393,6 +1456,43 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     score, onset_score, note_score = score1, onset_score1, note_score1
 
     return score,onset_score, note_score,detail_content,onsets_frames,maybe_onset_frames
+
+def add_from_maybe_onset_frames(onsets_frames,maybe_onset_frames,CQT,rms,base_frames):
+    rms = np.diff(rms, 1)
+    rms = [x if x > 0 else 0 for x in rms]
+
+    last_onset = maybe_onset_frames[-1]
+    print("== last is :{}".format(last_onset))
+    rms, max_indexs = filter_hold_local_max(rms, base_frames)
+
+    if len(max_indexs) < 1:
+        onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
+        return onsets_frames, note_lines, times
+
+    rms_onset =[i for i in range(1,len(rms)-1) if i < len(rms) -1 and rms[i] > rms[i-1] and rms[i] > rms[i+1] and i < last_onset]
+    loss_num = len(base_frames) - len(onsets_frames)
+
+    macth_onset = []
+    for x in onsets_frames:
+        min_offset = np.min([np.abs(x - o) for o in rms_onset])
+        for o in rms_onset:
+            if np.abs(x -o) == min_offset:
+                macth_onset.append(o)
+    select_rms_onset = [x for x in rms_onset if x not in macth_onset]
+    select_rms =  [rms[x] for x in select_rms_onset]
+
+    finded_index = find_n_largest(select_rms, loss_num)
+    finded_onset = [select_rms_onset[i] for i in finded_index]
+
+    for x in finded_onset:
+        onsets_frames.append(x)
+    onsets_frames.sort()
+    onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
+    onsets_frames = [onsets_frames[i] for i in range(len(times)) if times[i] > 3]
+    note_lines = [note_lines[i] for i in range(len(times)) if times[i] > 3]
+    times = [times[i] for i in range(len(times)) if times[i] > 3]
+    return onsets_frames, note_lines, times
+
 
 def filter_hold_local_max(rms,base_frames):
     lenght = len(rms)
@@ -1431,6 +1531,7 @@ def filter_hold_local_max(rms,base_frames):
         result[x] = rms[x] if rms[x] > 0 else 0
     #print("======all_indexs is {}".format(all_indexs))
     #print("======base_frames is {}".format(base_frames))
+    all_indexs = [all_indexs[i] for i in range(1,len(all_indexs)) if all_indexs[i]-all_indexs[i-1] > 10]
     return result,all_indexs
 
 def hold_local_max(rms,start,step,window_width):
