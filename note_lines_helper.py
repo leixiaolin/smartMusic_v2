@@ -335,6 +335,27 @@ def get_note_lines(cqt,result):
         selected_result.append(x)
     return selected_result,note_lines,longest_numbers
 
+
+def get_note_lines_v2(cqt,result):
+    note_lines = []
+    w,h = cqt.shape
+    cqt_max = np.max(cqt)
+    cqt_min = np.min(cqt)
+    selected_result = []
+    longest_numbers = []
+    for i in range(len(result)):
+        x = result[i]
+        if i < len(result)-1:
+            next = result[i+1]
+        else:
+            next = h -10
+        sub_cqt = cqt[:,x:next]
+        note_line, longest_num = get_longest_note_line_v2(sub_cqt)
+        note_lines.append(note_line)
+        longest_numbers.append(longest_num)
+        selected_result.append(x)
+    return selected_result,note_lines,longest_numbers
+
 def check_more_note_line(sub_cqt,note_line, longest_num):
     w, h = sub_cqt.shape
     # print("w,h is {},{}".format(w,h))
@@ -579,6 +600,26 @@ def get_longest_note_line(sub_cqt):
     return note_line,longest_num
 
 def get_longest_note_line_v2(sub_cqt):
+    w,h = sub_cqt.shape
+    #print("w,h is {},{}".format(w,h))
+
+    longest_num = 0
+    note_line = 0
+    if h > 0:
+        min_cqt = np.min(sub_cqt)
+        for row in range(10,w-10):
+            row_cqt = sub_cqt[row]
+            row_cqt = [1 if row_cqt[i] > min_cqt else 0 for i in range(len(row_cqt))]
+            total_continue = continueOne(row_cqt)
+            if total_continue > 0.3 * h:
+                return row, total_continue
+            else:
+                if total_continue > longest_num:
+                    longest_num = total_continue
+                    note_line = row
+    return note_line,longest_num
+
+def get_longest_note_line(sub_cqt):
     w,h = sub_cqt.shape
     #print("w,h is {},{}".format(w,h))
     rows = []
@@ -841,14 +882,14 @@ def cal_note_score_by_diff(longest_note,base_notes):
         longest_note, base_notes = get_matched_note_lines_compared(longest_note, base_notes)
         notes_score = 0
         for i in range(len(longest_note)):
-            if np.abs(longest_note[i] - base_notes[i]) == 0:
+            if np.abs(longest_note[i] - base_notes[i]) <=1:
                 notes_score += each_note_score
                 a += 1
-            elif np.abs(longest_note[i] - base_notes[i]) == 1:
-                notes_score += each_note_score * 0.5
+            elif np.abs(longest_note[i] - base_notes[i]) == 2:
+                notes_score += each_note_score * 0.8
                 b += 1
             elif longest_note[i] * base_notes[i] > 0: # 相同趋势，即都为正，或都为负
-                notes_score += each_note_score * 0.5
+                notes_score += each_note_score * 0.8
                 b += 1
             else:
                 c += 1
@@ -862,14 +903,14 @@ def cal_note_score_by_diff(longest_note,base_notes):
         notes_score = 0
         longest_note, base_notes = get_matched_note_lines_compared(longest_note, base_notes)
         for i in range(len(longest_note)):
-            if np.abs(longest_note[i] - base_notes[i]) == 0:
+            if np.abs(longest_note[i] - base_notes[i]) <= 1:
                 notes_score += each_note_score
                 a += 1
-            elif np.abs(longest_note[i] - base_notes[i]) == 1:
-                notes_score += each_note_score * 0.5
+            elif np.abs(longest_note[i] - base_notes[i]) == 2:
+                notes_score += each_note_score * 0.8
                 b += 1
             elif longest_note[i] * base_notes[i] > 0: # 相同趋势，即都为正，或都为负
-                notes_score += each_note_score * 0.5
+                notes_score += each_note_score * 0.8
                 b += 1
             else:
                 c += 1
@@ -1001,7 +1042,7 @@ def cal_score_v1(filename,onsets_frames,note_lines,base_frames, base_notes,times
     # onset_score = cal_dtw_distance(onsets_frames.copy(), base_frames.copy())
 
     if onset_score == 0:
-        return 0, 0, 0
+        return 0, 0, 0,''
     note_score,note_detail_content = cal_note_score_by_diff(note_lines, base_notes)
     onset_score = int(onset_score * 0.4)
     score = onset_score + note_score
@@ -1374,6 +1415,92 @@ def draw_plt(filename,rhythm_code,pitch_code):
     plt.xlim(0, np.max(times))
     return plt,score,onset_score, note_score,detail_content
 
+def draw_plt_v2(filename,rhythm_code,pitch_code):
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    time = librosa.get_duration(filename=filename)
+    print("time is {}".format(time))
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
+    score1, onset_score1, note_score1,detail_content, CQT, rms, result, onsets_frames, starts_index = get_melody_score_v2(filename,rhythm_code,pitch_code)
+
+    start, end, length = get_frame_length(result)
+    base_frames = onsets_base_frames_rhythm(rhythm_code, length)
+    base_frames = [x - (base_frames[0] - start) for x in base_frames]
+
+    print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
+
+    # score2, onset_score2, note_score2 = cal_score_v2(filename, onsets_frames, note_lines, base_frames)
+    #
+    # if max(score1,score2)>85:
+    #     if score1 >= score2:
+    #         score, onset_score, note_score = score1,onset_score1, note_score1
+    #     else:
+    #         score, onset_score, note_score = score2, onset_score2, note_score2
+    # else:
+    #     score, onset_score, note_score = score1, onset_score1, note_score1
+    score, onset_score, note_score = score1, onset_score1, note_score1
+    plt.subplot(3, 1, 1)
+    # librosa.display.specshow(CQT)
+    #librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
+    librosa.display.specshow(CQT, x_axis='time')
+    print(np.max(y))
+    onstm = librosa.frames_to_time(onsets_frames, sr=sr)
+    #end_time = librosa.frames_to_time(end_result, sr=sr)
+    # end_position_time = librosa.frames_to_time(end_position, sr=sr)
+    plt.vlines(onstm, 0, sr, color='y', linestyle='dashed')
+    #plt.vlines(end_time, 0, sr, color='r', linestyle='dashed')
+    # plt.vlines(end_position_time, 0,sr, color='r', linestyle='solid')
+    # plt.colorbar(format='%+2.0f dB')
+    # plt.title('Constant-Q power spectrogram (note)')
+    plt.subplot(3, 1, 2)
+    times = librosa.frames_to_time(np.arange(len(rms)))
+    print("base_frames is {},size is {}".format(base_frames,len(base_frames)))
+    base_frames = [x - (base_frames[0] - onsets_frames[0]) for x in base_frames]
+    #base_frames = base_frames[3:8]
+    #min_d, best_y, _ = get_dtw_min(onsets_frames, base_frames, 100)
+    #base_times = librosa.frames_to_time(best_y, sr=sr)
+    base_times = librosa.frames_to_time(base_frames, sr=sr)
+    the_end_time = librosa.frames_to_time(end, sr=sr)
+    # rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
+    # min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
+    # rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
+    #plt.vlines(onstm, 0, np.max(rms), color='y', linestyle='dashed')
+    #plt.vlines(base_times, 0, np.max(rms), color='r', linestyle='dashed')
+    plt.vlines(the_end_time, 0, np.max(rms), color='black', linestyle='dashed')
+    rms_on_frames = [rms[x] for x in onsets_frames]
+    mean_rms_on_frames = np.mean(rms_on_frames)
+    rms_max = [i for i in range(1,len(rms)-1) if rms[i] > rms[i-1] and rms[i] > rms[i+1] and rms[i] > mean_rms_on_frames]
+    rms_max_time = librosa.frames_to_time(rms_max, sr=sr)
+    plt.plot(times, rms)
+    plt.xlim(0, np.max(times))
+    plt.axhline(mean_rms_on_frames, color='r')
+    plt.vlines(rms_max_time, 0, np.max(rms), color='b', linestyle='dashed')
+
+    plt.subplot(3, 1, 3)
+    rms = np.diff(rms,1)
+    rms = [x if x > 0 else 0 for x in rms]
+
+    rms,max_indexs = filter_hold_local_max(rms, base_frames)
+    max_indexs_time = librosa.frames_to_time(max_indexs, sr=sr)
+    times = librosa.frames_to_time(np.arange(len(rms)))
+
+
+    # rms_on_onset_frames_cqt = [rms[x] for x in onset_frames_cqt]
+    # min_rms_on_onset_frames_cqt = np.min(rms_on_onset_frames_cqt)
+    # rms = [1 if x >=min_rms_on_onset_frames_cqt else 0 for x in rms]
+    rms_on_frames = [rms[x] for x in onsets_frames]
+    mean_rms_on_frames = np.mean(rms_on_frames)
+
+    plt.plot(times, rms)
+    plt.axhline(mean_rms_on_frames, color='r')
+    plt.vlines(onstm, 0, np.max(rms), color='y', linestyle='dashed')
+    plt.vlines(max_indexs_time, 0, np.max(rms), color='r', linestyle='dashed')
+
+    plt.xlim(0, np.max(times))
+    return plt,score,onset_score, note_score,detail_content
+
 def get_melody_score(filename,rhythm_code,pitch_code):
 
     y, sr = librosa.load(filename)
@@ -1458,6 +1585,224 @@ def get_melody_score(filename,rhythm_code,pitch_code):
     score, onset_score, note_score = score1, onset_score1, note_score1
 
     return score,onset_score, note_score,detail_content,onsets_frames,maybe_onset_frames
+
+def get_melody_score_v2(filename,rhythm_code,pitch_code):
+    y, sr = load_and_trim(filename)
+    y,sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    time = librosa.get_duration(filename=filename)
+    print("time is {}".format(time))
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref = np.max)
+    w,h = CQT.shape
+    print("w.h is {},{}".format(w,h))
+    #onsets_frames = get_real_onsets_frames_rhythm(y)
+    CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
+    max_cqt = np.max(CQT)
+    min_cqt = np.min(CQT)
+    result = []
+    starts = []
+    last_i = 1
+    for i in range(1,h-4):
+        col_cqt = CQT[10:,i]
+        before_col_cqt = CQT[10:,i-1]
+        after_col_cqt = CQT[10:, i+3]
+        max_sum = np.sum([1 if x > np.min(col_cqt) else 0 for x in col_cqt])
+        before_max_sum = np.sum([1 if x > np.min(before_col_cqt) else 0 for x in before_col_cqt])
+        after_before_max_sum = np.sum([1 if x > np.min(after_col_cqt) else 0 for x in after_col_cqt])
+        #sum = np.sum(np.array(col_cqt) - np.array(before_col_cqt))
+        sum = np.sum([1 if (before_col_cqt[i] == min_cqt and col_cqt[i] == max_cqt) and max_sum > 0.7*before_max_sum else 0 for i in range(len(col_cqt))])
+        start = np.sum([1 if max_sum > 1.3*before_max_sum and before_max_sum <= 1 and after_before_max_sum > 2 else 0 for i in range(len(col_cqt))])
+        result.append(sum)
+        if start == 0:
+            starts.append(start)
+        else:
+            if i - last_i > 8:
+                starts.append(start)
+                last_i = i
+
+        # for n in range(w-1,10,-1):
+        #     if i >10:
+        #         before_row = CQT[n,i-4:i]
+        #         after_row = CQT[n, i:i+8]
+        #         if np.max(before_row) == min_cqt and np.min(after_row) == max_cqt:
+        #             starts.append(start)
+        #             last_i = i
+
+
+    result = [x if x>0 else 0 for x in result]
+    result = [x/np.max(result) for x in result]
+    result = [x if x>0.1 else 0 for x in result]
+
+
+    starts = [x/np.max(starts) for x in starts]
+    starts = [starts[i] if starts[i] ==1 and starts[i-1] == 0 else 0 for i in range(1,len(starts))]
+    starts.insert(0,0)
+    starts_index = [i for i in range(len(starts)) if starts[i]>0]
+    print("==============starts_index is {}".format(starts_index))
+    # for i in range(1,len(result)):
+    #     offset = [np.abs(i-x) for x in starts_index]
+    #     if (result[i] > 0.46)and np.min(offset) > 8:
+    #         starts_index.append(i)
+
+    start, end, length = get_frame_length(result)
+    base_frames = onsets_base_frames_rhythm(rhythm_code, length)
+    base_frames = [x - (base_frames[0] - start - 1) for x in base_frames]
+    #result, max_indexs = filter_hold_local_max(result, base_frames)
+    max_indexs = [i for i in range(len(result)) if i > start and i < end - 3 and result[i] > 0]
+    onsets_frames, note_lines, note_times = get_note_lines_v2(CQT, max_indexs)
+
+    print("==============note_lines is {}".format(note_lines))
+    print("==============note_times is {}".format(note_times))
+    note_lines_diff = np.diff(note_lines)
+    max_indexs = [max_indexs[i + 1] for i in range(len(note_lines_diff)) if np.abs(note_lines_diff[i]) != 0 and note_times[i+1] > 5]
+    for m in max_indexs:
+        offset = [np.abs(m-x) for x in starts_index]
+        if np.min(offset) > 8:
+            starts_index.append(m)
+
+    starts_index.sort()
+    print("==============starts_index is {}".format(starts_index))
+    rms = np.diff(rms, 1)
+    rms = [x if x > 0 else 0 for x in rms]
+    rms = [x / np.max(rms) for x in rms]
+    rms_max_indexs = [i for i in range(1, len(rms) - 1) if
+                      rms[i] > rms[i - 1] and rms[i] > rms[i + 1] and rms[i] > 0.1 or rms[i] > 0.6]
+
+    print("rms_max_index is {}".format(rms_max_indexs))
+    start, end, length = get_frame_length(result)
+    base_frames = onsets_base_frames_rhythm(rhythm_code, length)
+    base_frames = [x - (base_frames[0] - start) for x in base_frames]
+    select_starts_index = add_loss_by_sub_dtw(rms_max_indexs, starts_index.copy(), base_frames)
+    select_starts_index = starts_index.copy()
+    print("select_starts_index is {}".format(select_starts_index))
+    # plt.vlines(select_starts_index, 0, np.max(result), color='r', linestyle='dashed')
+    onsets_frames = select_starts_index
+    onsets_frames, note_lines, note_times = get_note_lines_v2(CQT, onsets_frames)
+    onsets_frames = [onsets_frames[i] for i in range(len(note_times)) if note_times[i] > 5]
+    note_lines = [note_lines[i] for i in range(len(note_times)) if note_times[i] > 5]
+    note_times = [note_times[i] for i in range(len(note_times)) if note_times[i] > 5]
+    base_notes = base_note(filename, pitch_code)
+    score, onset_score, note_score, detail_content = cal_score_v1(filename, onsets_frames, note_lines, base_frames, base_notes, note_times, rhythm_code)
+
+    if note_score > 55 and onset_score < 30:
+        detail_content = detail_content + ',音高得分较好，节奏方面需要进一步加强'
+        onset_score = int(note_score / 60 * 40)
+        score = onset_score + note_score
+    print('total_score,onset_score, note_scroe is ' + str(score) + ' ' + str(onset_score) + ' ' + str(note_score))
+
+    return score, onset_score, note_score, detail_content,CQT,rms,result,onsets_frames,starts_index
+
+def get_frame_length(cqt_col_diff):
+    end = len(cqt_col_diff)
+    for i in range(2,len(cqt_col_diff)):
+        if np.max(cqt_col_diff[:i-1]) == 0 and cqt_col_diff[i] >0.1:
+            start = i
+
+    for i in range(len(cqt_col_diff)-2,0,-1):
+        if np.max(cqt_col_diff[i+1:]) == 0 and cqt_col_diff[i] >0.1:
+            end = i
+    return start,end,end-start
+
+def get_the_nearly_base_frame(frame,base_frames,last_frame,last_base_frame):
+    offset = [np.abs(frame - x) for x in base_frames]
+    nearly_index = offset.index(np.min(offset))
+    if base_frames[nearly_index] > frame: #位于右侧
+        if nearly_index -1 <= 0:
+            return base_frames[nearly_index], nearly_index
+        else:
+            left_base_frame = base_frames[nearly_index-1]
+            right_base_frame = base_frames[nearly_index]
+            left_gap = left_base_frame - last_base_frame - (frame - last_frame)
+            right_gap = right_base_frame - last_base_frame - (frame - last_frame)
+            if left_gap < right_gap:
+                return left_base_frame, nearly_index-1
+            else:
+                return right_base_frame, nearly_index
+
+    elif base_frames[nearly_index] < frame: #位于左侧
+        if nearly_index +1 >= len(base_frames):
+            return base_frames[nearly_index], nearly_index
+        else:
+            left_base_frame = base_frames[nearly_index]
+            right_base_frame = base_frames[nearly_index +1]
+            left_gap = left_base_frame - last_base_frame - (frame - last_frame)
+            right_gap = right_base_frame - last_base_frame - (frame - last_frame)
+            if left_gap < right_gap:
+                return left_base_frame,nearly_index
+            else:
+                return right_base_frame, nearly_index+1
+    else:
+        return base_frames[nearly_index],nearly_index
+
+def get_all_the_nearly_base_frame(onset_frames,base_frames):
+    all_nearly_base_frames = []
+    all_nearly_indexs = []
+    for x in onset_frames:
+        if x == onset_frames[0]:
+            nearly_base_frames,nearly_index =  base_frames[0],0
+            last_nearly_base_frames, last_nearly_index = nearly_base_frames,nearly_index
+            last_frame = x
+            if nearly_base_frames not in all_nearly_base_frames:
+                all_nearly_base_frames.append(nearly_base_frames)
+                all_nearly_indexs.append(nearly_index)
+        else:
+            last_base_frame = last_nearly_base_frames
+            nearly_base_frames, nearly_index = get_the_nearly_base_frame(x,base_frames,last_frame,last_base_frame)
+            last_nearly_base_frames, last_nearly_index = nearly_base_frames, nearly_index
+            last_frame = x
+            if nearly_base_frames not in all_nearly_base_frames:
+                all_nearly_base_frames.append(nearly_base_frames)
+                all_nearly_indexs.append(nearly_index)
+    return all_nearly_base_frames,all_nearly_indexs
+
+def add_loss_by_sub_dtw(rms_max_indexs,starts_index, base_frames):
+    select_starts_index = starts_index
+    all_nearly_base_frames, all_nearly_indexs = get_all_the_nearly_base_frame(starts_index, base_frames)
+    for i in range(1,len(all_nearly_indexs)):
+        if all_nearly_indexs[i] - all_nearly_indexs[i-1]>1:
+            start = starts_index[i-1]
+            end = starts_index[i]
+            start_base = all_nearly_base_frames[i-1]
+            end_base = all_nearly_base_frames[i]
+            sub_rms_max_indexs = [x for x in rms_max_indexs if x > start and x < end]
+            sub_rms_max_indexs.insert(0,start)
+            sub_rms_max_indexs.append(end)
+            sub_rms_max_indexs = [x-sub_rms_max_indexs[0] for x in sub_rms_max_indexs if x > sub_rms_max_indexs[0]]
+            sub_base_frames = [x for x in base_frames if x >=start_base and x <= end_base]
+            sub_base_frames = [x - sub_base_frames[0] for x in sub_base_frames if x > sub_base_frames[0] and x < sub_base_frames[-1]]
+            #系数
+            rate = (end - start)/(end_base - start_base)
+            sub_base_frames = [int(x*rate) for x in sub_base_frames]
+
+            for x in sub_base_frames:
+                offset = [np.abs(s - x) for s in sub_rms_max_indexs]
+                min_index = offset.index(np.min(offset))
+                selected = x + start_base
+                select_starts_index.append(selected)
+    if all_nearly_indexs[-1] < len(base_frames):
+        start = starts_index[-1]
+        start_base = all_nearly_base_frames[-1]
+        end_base = base_frames[-1]
+        sub_rms_max_indexs = [x for x in rms_max_indexs if x > start]
+        sub_rms_max_indexs.insert(0, start)
+        sub_rms_max_indexs = [x - sub_rms_max_indexs[0] for x in sub_rms_max_indexs if x > sub_rms_max_indexs[0]]
+        sub_base_frames = [x for x in base_frames if x >= start_base and x <= end_base]
+        sub_base_frames = [x - sub_base_frames[0] for x in sub_base_frames if
+                           x > sub_base_frames[0]]
+        # 系数
+        if end_base != start and end_base != start_base:
+            rate = (end_base - start) / (end_base - start_base)
+            sub_base_frames = [int(x * rate) for x in sub_base_frames]
+
+        for x in sub_base_frames:
+            offset = [np.abs(s - x) for s in sub_rms_max_indexs]
+            min_index = offset.index(np.min(offset))
+            selected = x + start_base
+            select_starts_index.append(selected)
+
+    select_starts_index.sort()
+    return select_starts_index
 
 def add_from_maybe_onset_frames(onsets_frames,maybe_onset_frames,CQT,rms,base_frames):
     rms = np.diff(rms, 1)
@@ -1552,7 +1897,7 @@ def filter_hold_local_max(rms,base_frames):
     first_rms = rms[:min_gap_first_index]
     second_rms = rms[min_gap_first_index:min_gap_last_index]
     last_rms = rms[min_gap_last_index:]
-    rate = 0.65
+    rate = 0.5
     f_rms, f_max_indexs = hold_local_max(first_rms, 0, int(second_min_gap*rate/2),int(second_min_gap*rate))
     s_rms, s_max_indexs = hold_local_max(second_rms, 0, int(min_gap*rate/ 2), int(min_gap*rate))
     s_max_indexs = [x + min_gap_first_index for x in s_max_indexs]
