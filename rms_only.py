@@ -131,6 +131,7 @@ def draw_rms_max(filename,rhythm_code,pitch_code):
     from scipy.signal import savgol_filter
 
     rms_filtered = savgol_filter(rms, 19, 3)  # window size 51, polynomial order 3
+    rms_filtered = [x / np.max(rms_filtered) for x in rms_filtered]
     rms_max = [i for i in range(1,len(rms_filtered)-1) if rms_filtered[i] > rms_filtered[i-1] and rms_filtered[i] > rms_filtered[i+1] and rms_filtered[i] > 0.2]
     rms_max_time = librosa.frames_to_time(rms_max, sr=sr)
 
