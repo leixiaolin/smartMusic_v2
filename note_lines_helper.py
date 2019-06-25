@@ -1449,6 +1449,8 @@ def get_melody_score(filename,rhythm_code,pitch_code):
         #print('lossssssssss')
         onsets_frames, note_lines, times = add_from_maybe_onset_frames(onsets_frames, maybe_onset_frames, CQT, rms, base_frames)
 
+    onsets_frames, note_lines, times = check_with_rms_onset(onsets_frames, note_lines, CQT, rms,maybe_onset_frames[-1],base_frames)
+
     score1, onset_score1, note_score1, detail_content = cal_score_v1(filename, onsets_frames, note_lines, base_frames,base_notes, times, rhythm_code)
 
     #print("score, onset_score, note_scroe is {},{},{}".format(score1, onset_score1, note_score1 ))
@@ -1488,6 +1490,49 @@ def add_from_maybe_onset_frames(onsets_frames,maybe_onset_frames,CQT,rms,base_fr
         onsets_frames.append(x)
     onsets_frames.sort()
     onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
+    onsets_frames = [onsets_frames[i] for i in range(len(times)) if times[i] > 3]
+    note_lines = [note_lines[i] for i in range(len(times)) if times[i] > 3]
+    times = [times[i] for i in range(len(times)) if times[i] > 3]
+    return onsets_frames, note_lines, times
+
+def check_with_rms_onset(onsets_frames,note_lines,CQT,rms,last_onset,base_frames):
+    rms = np.diff(rms, 1)
+    rms = [x if x > 0 else 0 for x in rms]
+
+    #last_onset = maybe_onset_frames[-1]
+    print("== last is :{}".format(last_onset))
+    rms, max_indexs = filter_hold_local_max(rms, base_frames)
+
+    if len(max_indexs) < 1:
+        onsets_frames, note_lines, times = get_note_lines(CQT, onsets_frames)
+        return onsets_frames, note_lines, times
+
+    rms_onset =[i for i in range(1,len(rms)-1) if i < len(rms) -1 and rms[i] > rms[i-1] and rms[i] > rms[i+1] and i < last_onset]
+    min_rms_on_onsets_frames = np.min([rms[x] for x in onsets_frames])
+
+    result = []
+    min_cqt = np.min(CQT)
+    max_cqt = np.max(CQT)
+
+    for i in range(1,len(onsets_frames)):
+        x = onsets_frames[i]
+        row = note_lines[i]
+        cols_cqt = CQT[row,x-2:x+2]
+        if np.min(cols_cqt) == max_cqt and note_lines[i-1] == note_lines[i]:
+            continue
+        else:
+            result.append(x)
+
+    for x in rms_onset:
+        row = note_lines[i]
+        cols_cqt = CQT[row, x - 2:x + 2]
+        if np.min(cols_cqt) == max_cqt and note_lines[i-1] == note_lines[i]:
+            continue
+        elif rms[x] > min_rms_on_onsets_frames:
+            result.append(x)
+
+    result.sort()
+    onsets_frames, note_lines, times = get_note_lines(CQT, result)
     onsets_frames = [onsets_frames[i] for i in range(len(times)) if times[i] > 3]
     note_lines = [note_lines[i] for i in range(len(times)) if times[i] > 3]
     times = [times[i] for i in range(len(times)) if times[i] > 3]
