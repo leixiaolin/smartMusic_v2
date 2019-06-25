@@ -798,10 +798,10 @@ def get_score_for_note_v2(onsets_frames,base_frames,rhythm_code):
     onsets_frames_strength = [x *0.5 for x in onsets_frames_strength]
     score,lost_score,ex_score,min_d = get_score_detail_for_note(standard_y, recognize_y, len(base_frames), onsets_frames_strength, min_d)
     #print('最终得分为：{}'.format(score))
-    if std_number >= 4:
-        #print(len(base_frames))
-        score = int(score - each_onset_score*std_number*0.5)
-        detail_content = '与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
+    # if std_number >= 4:
+    #     #print(len(base_frames))
+    #     score = int(score - each_onset_score*std_number*0.5)
+    #     detail_content = '与标准节奏相比，存在较多未匹配的节拍，整体得分扣减相关的分值'
 
     return int(score),int(lost_score),int(ex_score),int(min_d),detail_content
 

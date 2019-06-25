@@ -189,21 +189,27 @@ if __name__ == "__main__":
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋7卉(55).wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3谭（98）.wav'
 
+    filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav'
+
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音3(90).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋9.1(73).wav'
+
     result_path = 'e:/test_image/n/'
     plt.close()
-    # type_index = get_onsets_index_by_filename_rhythm(filename)
-    # rhythm_code = get_code(type_index, 2)
-    # pitch_code = get_code(type_index, 3)
     rhythm_code = '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]'
     pitch_code = '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'
+    type_index = get_onsets_index_by_filename_rhythm(filename)
+    rhythm_code = get_code(type_index, 2)
+    pitch_code = get_code(type_index, 3)
     #rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
     #melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
-    plt, total_score,onset_score, note_scroe,detail_content = draw_plt(filename,rhythm_code,pitch_code)
+    plt, total_score,onset_score, note_scroe,detail_content = draw_plt_v2(filename,rhythm_code,pitch_code)
     plt.show()
     plt.clf()
-    total_score, onset_score, note_scroe,detail_content,onsets_frames,maybe_onset_frames = get_melody_score(filename, rhythm_code, pitch_code)
+    #total_score, onset_score, note_scroe,detail_content,onsets_frames,maybe_onset_frames = get_melody_score(filename, rhythm_code, pitch_code)
+    total_score, onset_score, note_scroe,detail_content, CQT, rms, result, onsets_frames,starts_index = get_melody_score_v2(filename, rhythm_code, pitch_code)
     filepath, fullflname = os.path.split(filename)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
     content = 'total_score,onset_score, note_scroe is ' + str(total_score) + ' ' + str(onset_score) + ' ' + str(note_scroe)
@@ -247,8 +253,10 @@ if __name__ == "__main__":
             pitch_code = get_code(type_index, 3)
             # rhythm_code = '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]'
             # pitch_code = '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'
-            plt, total_score, onset_score, note_scroe,detail_content = draw_plt(dir + filename, rhythm_code, pitch_code)
-            total_score, onset_score, note_scroe,detail_content,onsets_frames,maybe_onset_frames = get_melody_score(dir + filename, rhythm_code, pitch_code)
+            #plt, total_score, onset_score, note_scroe,detail_content = draw_plt(dir + filename, rhythm_code, pitch_code)
+            plt, total_score,onset_score, note_scroe,detail_content = draw_plt_v2(dir + filename,rhythm_code,pitch_code)
+            #total_score, onset_score, note_scroe,detail_content,onsets_frames,maybe_onset_frames = get_melody_score(dir + filename, rhythm_code, pitch_code)
+            total_score, onset_score, note_scroe,detail_content, CQT, rms, result, onsets_frames,starts_index = get_melody_score_v2(dir + filename, rhythm_code, pitch_code)
             print("score, onset_score, note_scroe is {},{},{}".format(total_score, onset_score, note_scroe))
 
             # tmp = os.listdir(result_path)
