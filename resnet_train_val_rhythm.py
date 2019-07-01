@@ -6,7 +6,7 @@ import numpy as np
 import pdb
 import os
 from datetime import datetime
-import slim.nets.inception_resnet_v2 as inception_resnet_v2
+import slim.nets.resnet_v2 as resnet
 from create_tf_record import *
 import tensorflow.contrib.slim as slim
 
@@ -44,7 +44,31 @@ def net_evaluation(sess,loss,accuracy,val_images_batch,val_labels_batch,val_nums
     mean_acc = np.array(val_accs, dtype=np.float32).mean()
     return mean_loss, mean_acc
 
-def step_train(train_op,loss,accuracy,
+def evaluation_detail(sess,score,classIds,val_images_batch,val_labels_batch,val_nums):
+    val_max_steps = int(val_nums / batch_size)
+    allClasses = []
+    allYs = []
+    allScores = []
+    for _ in range(val_max_steps):
+        val_x, val_y = sess.run([val_images_batch, val_labels_batch])
+        val_score,val_classIds = sess.run([score,classIds], feed_dict={input_images: val_x, input_labels: val_y, keep_prob:1.0, is_training: False})
+        val_y = sess.run(tf.argmax(val_y, 1))
+        allClasses = np.hstack((allClasses,val_classIds))
+        allYs = np.hstack((allYs,val_y))
+        allScores.append(val_score)
+    print(array_diff(allClasses,allYs))
+    return allScores,allClasses,allYs
+
+def array_diff(allClasses,allYs):
+    diffs = []
+    types = ['A','B','C','D']
+    for i in range(len(allClasses)):
+        if allClasses[i] != allYs[i]:
+            diffs.append(types[int(allYs[i])] + ' predict to ' + types[int(allClasses[i])])
+    return diffs
+
+
+def step_train(train_op,loss,accuracy,score,classIds,
                train_images_batch,train_labels_batch,train_nums,train_log_step,
                val_images_batch,val_labels_batch,val_nums,val_log_step,
                snapshot_prefix,snapshot):
@@ -76,7 +100,7 @@ def step_train(train_op,loss,accuracy,
             batch_input_images, batch_input_labels = sess.run([train_images_batch, train_labels_batch])
             _, train_loss = sess.run([train_op, loss], feed_dict={input_images: batch_input_images,
                                                                   input_labels: batch_input_labels,
-                                                                  keep_prob: 0.8, is_training: True})
+                                                                  keep_prob: 0.55, is_training: True})
             # train测试(这里仅测试训练集的一个batch)
             if i % train_log_step == 0:
                 train_acc = sess.run(accuracy, feed_dict={input_images: batch_input_images,
@@ -88,7 +112,9 @@ def step_train(train_op,loss,accuracy,
             # val测试(测试全部val数据)
             if i % val_log_step == 0:
                 mean_loss, mean_acc = net_evaluation(sess, loss, accuracy, val_images_batch, val_labels_batch, val_nums)
-                print("%s: Step [%d]  val Loss : %f, val accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
+                print("%s: Step [%d]  val Loss : %f, valuation accuracy :  %g" % (datetime.now(), i, mean_loss, mean_acc))
+                if train_acc > 0.8 and mean_acc > 0.3:
+                    val_score, val_classIds, val_y = evaluation_detail(sess,score, classIds, val_images_batch, val_labels_batch,val_nums)
 
             # 模型保存:每迭代snapshot次或者最后一次保存模型
             if (i % snapshot == 0 and i > 0) or i == max_steps:
@@ -135,6 +161,7 @@ def train(train_record_file,
     val_nums=get_example_nums(val_record_file)
     print('train nums:%d,val nums:%d'%(train_nums,val_nums))
 
+    regularizer = slim.l2_regularizer(0.0005)
     # 从record中读取图片和labels数据
     # train数据,训练数据一般要求打乱顺序shuffle=True
     train_images, train_labels = read_records(train_record_file, resize_height, resize_width, type='normalization')
@@ -148,8 +175,8 @@ def train(train_record_file,
                                                           one_hot=True, shuffle=False)
 
     # Define the model:
-    with slim.arg_scope(inception_resnet_v2.inception_resnet_v2_arg_scope()):
-        out, end_points = inception_resnet_v2.inception_resnet_v2(inputs=input_images, num_classes=labels_nums, dropout_keep_prob=keep_prob, is_training=is_training)
+    with slim.arg_scope(resnet.resnet_arg_scope()):
+        out, end_points = resnet.resnet_v2_50(inputs=input_images, num_classes=labels_nums,  is_training=is_training)
 
     # Specify the loss function: tf.losses定义的loss函数都会自动添加到loss函数,不需要add_loss()了
     tf.losses.softmax_cross_entropy(onehot_labels=input_labels, logits=out)#添加交叉熵损失loss=1.6
@@ -157,14 +184,16 @@ def train(train_record_file,
     loss = tf.losses.get_total_loss(add_regularization_losses=True)#添加正则化损失loss=2.2
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(out, 1), tf.argmax(input_labels, 1)), tf.float32))
 
+    score = tf.nn.softmax(out, name='score')
+    classIds = tf.argmax(out, 1)
     # Specify the optimization scheme:
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
+    # optimizer = tf.train.GradientDescentOptimizer(learning_rate=base_lr)
 
 
     # global_step = tf.Variable(0, trainable=False)
     # learning_rate = tf.train.exponential_decay(0.05, global_step, 150, 0.9)
     #
-    # optimizer = tf.train.MomentumOptimizer(learning_rate, 0.9)
+    optimizer = tf.train.MomentumOptimizer(learning_rate=base_lr,momentum= 0.9)
     # # train_tensor = optimizer.minimize(loss, global_step)
     # train_op = slim.learning.create_train_op(loss, optimizer,global_step=global_step)
 
@@ -182,7 +211,7 @@ def train(train_record_file,
 
 
     # 循环迭代过程
-    step_train(train_op, loss, accuracy,
+    step_train(train_op, loss, accuracy,score,classIds,
                train_images_batch, train_labels_batch, train_nums, train_log_step,
                val_images_batch, val_labels_batch, val_nums, val_log_step,
                snapshot_prefix, snapshot)
@@ -196,7 +225,7 @@ if __name__ == '__main__':
     val_record_file = './rhythm/record/val.tfrecords'
 
     train_log_step=100
-    base_lr = 0.005  # 学习率
+    base_lr = 0.001  # 学习率
     max_steps = 10000  # 迭代次数
     train_param=[base_lr,max_steps]
 

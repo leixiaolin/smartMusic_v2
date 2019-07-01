@@ -4,6 +4,8 @@ import numpy as np
 import librosa
 import argparse
 import time
+import matplotlib.pyplot as plt
+import librosa.display
 
 
 def main(input,output,start,finish):
@@ -27,6 +29,8 @@ def main(input,output,start,finish):
     # 音声ファイル読込
     print('[Do] 音声ファイル読込  Filename: ', input)
     data, sr = librosa.load(input)
+    plt.subplot(2, 1, 1)
+    librosa.display.waveplot(data, sr=sr)
     finish = librosa.get_duration(data,sr)
     print('[Done] 音声ファイル読込  Total Time: ', len(data) / sr, ' [sec]')
 
@@ -72,12 +76,14 @@ def main(input,output,start,finish):
     # 処理時間計算
     process_finish = time.time()
     process_time = process_finish - process_start
-
+    plt.subplot(2, 1, 2)
+    #y, sr = librosa.load(input)
+    librosa.display.waveplot(np.array(OutputS), sr=sr)
     print('[Done] ノイズ軽減ファイル出力  処理時間 : ', process_time, ' [sec]')
-
+    plt.show()
 
 if __name__ == '__main__':
-    input = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律2.100分.wav'
+    input = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40301（90）.wav'
     output = 'f:/test.wav'
     start = 0
     finish = 3

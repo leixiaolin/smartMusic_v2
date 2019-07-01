@@ -112,6 +112,19 @@ def write_txt(content, filename, mode='w'):
     with open(filename, mode) as f:
         f.write(content)
 
+def get_start_and_max_indexs_by_rms(filename):
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+     # Savitzky-Golay filter 平滑
+    from scipy.signal import savgol_filter
+
+    rms_filtered = savgol_filter(rms, 7, 1)  # window size 51, polynomial order 3
+    rms_filtered = [x / np.max(rms_filtered) for x in rms_filtered]
+    rms_max = [i for i in range(1,len(rms_filtered)-1) if rms_filtered[i] > rms_filtered[i-1] and rms_filtered[i] > rms_filtered[i+1] and rms_filtered[i] > 0.2]
+    starts = [i for i in range(1,len(rms_filtered)-1) if rms_filtered[i] < rms_filtered[i-1] and rms_filtered[i] < rms_filtered[i+1]]
+    return rms,rms_filtered,rms_max,starts
+
 def draw_rms_max(filename,rhythm_code,pitch_code):
     y, sr = librosa.load(filename)
     rms = librosa.feature.rmse(y=y)[0]
@@ -130,7 +143,7 @@ def draw_rms_max(filename,rhythm_code,pitch_code):
     # Savitzky-Golay filter 平滑
     from scipy.signal import savgol_filter
 
-    rms_filtered = savgol_filter(rms, 19, 3)  # window size 51, polynomial order 3
+    rms_filtered = savgol_filter(rms, 7, 1)  # window size 51, polynomial order 3
     rms_filtered = [x / np.max(rms_filtered) for x in rms_filtered]
     rms_max = [i for i in range(1,len(rms_filtered)-1) if rms_filtered[i] > rms_filtered[i-1] and rms_filtered[i] > rms_filtered[i+1] and rms_filtered[i] > 0.2]
     rms_max_time = librosa.frames_to_time(rms_max, sr=sr)
@@ -224,6 +237,7 @@ if __name__ == "__main__":
     #
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音3(90).wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋9.1(73).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav'
 
     result_path = 'e:/test_image/n/'
     plt.close()
@@ -236,4 +250,16 @@ if __name__ == "__main__":
     #melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
-    draw_rms_max(filename,rhythm_code,pitch_code)
+    #draw_rms_max(filename,rhythm_code,pitch_code)
+
+    rms, rms_filtered, rms_max,starts = get_start_and_max_indexs_by_rms(filename)
+    times = librosa.frames_to_time(np.arange(len(rms)))
+    rms_max_time = librosa.frames_to_time(rms_max)
+    starts_time = librosa.frames_to_time(starts)
+    plt.plot(times, rms)
+    plt.plot(times, rms_filtered)
+    plt.xlim(0, np.max(times))
+    plt.vlines(rms_max_time, 0, np.max(rms), color='b', linestyle='dashed')
+    plt.vlines(starts_time, 0, np.max(rms), color='r', linestyle='dashed')
+
+    plt.show()

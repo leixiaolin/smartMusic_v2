@@ -12,7 +12,7 @@ from create_tf_record import *
 import tensorflow.contrib.slim as slim
 
 
-def  predict(models_path,image_dir,labels_filename,labels_nums, data_format):
+def  predict(models_path,image_dir,labels_filename,labels_nums, data_format,type):
     [batch_size, resize_height, resize_width, depths] = data_format
 
     labels = np.loadtxt(labels_filename, str, delimiter='\t')
@@ -38,19 +38,22 @@ def  predict(models_path,image_dir,labels_filename,labels_nums, data_format):
         pre_score,pre_label = sess.run([score,class_id], feed_dict={input_images:im})
         max_score=pre_score[0,pre_label]
         #print("{} is: pre labels:{},name:{} score: {}".format(image_path, pre_label, labels[pre_label], max_score))
-        if image_path.split(".jpg")[0].split("-")[2] == labels[pre_label]:
+        #if image_path.split(".jpg")[0].split("-")[2] == labels[pre_label]:
+        if type == labels[pre_label]:
             score_total += 1
         else:
             print("{} is predicted as label::{} ".format(image_path,labels[pre_label]))
-
+    print("score_total and total is {},{}".format(score_total,len(images_list)))
     print("valuation accuracy is {}".format(score_total/len(images_list)))
     sess.close()
 
 
 if __name__ == '__main__':
 
+    type = 'D'
     class_nums=4
-    image_dir='./rhythm/val/D'
+    #image_dir='./rhythm/val/' + type
+    image_dir = 'e:/test_image/n/' + type
     labels_filename='./rhythm/label.txt'
     models_path='./models/rhythm/alex/model.ckpt-10000'
 
@@ -59,4 +62,4 @@ if __name__ == '__main__':
     resize_width = 224  # 指定存储图片宽度
     depths=3
     data_format=[batch_size,resize_height,resize_width,depths]
-    predict(models_path,image_dir, labels_filename, class_nums, data_format)
+    predict(models_path,image_dir, labels_filename, class_nums, data_format,type)

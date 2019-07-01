@@ -5,7 +5,7 @@ from create_base import *
 from create_labels_files import write_txt
 
 score = 0
-path_index = np.array(['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/'])
+path_index = np.array(['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/'])
 
 tmp = ['A','B','C','D','E']
 dis_dir = 'e:/test_image/m/'

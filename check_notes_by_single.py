@@ -23,7 +23,9 @@ import slim.nets.alexnet as alaxnet
 import os
 from create_tf_record import *
 import tensorflow.contrib.slim as slim
-
+import time
+from cqt_rms import *
+from raw_feature.findContours import *
 
 
 def clear_dir(dis_dir):
@@ -40,67 +42,67 @@ def load_and_trim(path):
 
     return audio, sr
 
-def get_single_notes(filename,curr_num,modify_by_energy=False):
-    y, sr = librosa.load(filename)
-    rms = librosa.feature.rmse(y=y)[0]
-    total_frames_number = len(rms)
-    #print("time is {}".format(time))
-    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
-    librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
-    w, h = CQT.shape
-    # onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
-    onset_frames = get_real_onsets_frames_rhythm(y, modify_by_energy=modify_by_energy)
+# def get_single_notes(filename,curr_num,modify_by_energy=False):
+#     y, sr = librosa.load(filename)
+#     rms = librosa.feature.rmse(y=y)[0]
+#     total_frames_number = len(rms)
+#     #print("time is {}".format(time))
+#     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+#     librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
+#     w, h = CQT.shape
+#     # onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
+#     onset_frames = get_real_onsets_frames_rhythm(y, modify_by_energy=modify_by_energy)
+#
+#     onset_times = librosa.frames_to_time(onset_frames, sr=sr)
+#     plt.vlines(onset_times, 0, sr, color='y', linestyle='--')
+#     #print(onset_samples)
+#     #plt.subplot(len(onset_times),1,1)
+#     #plt.show()
+#     plt.clf()
+#
+#     for i in range(0, len(onset_frames)):
+#         half = 15
+#         start = onset_frames[i] - half
+#         if start < 0:
+#             start = 0
+#         end = onset_frames[i] + half
+#         if end >= total_frames_number:
+#             end = total_frames_number - 1
+#         # y2 = [x if i> start and i<end else 0 for i,x in enumerate(y)]
+#         CQT_sub = np.zeros(CQT.shape)
+#         middle = int(h / 2)
+#         offset = middle - onset_frames[i]
+#         for j in range(int(start), int(end)):
+#             CQT_sub[:, j + offset] = CQT[:, j]
+#         # CQT = CQT_T
+#         librosa.display.specshow(CQT_sub, y_axis='cqt_note', x_axis='time')
+#         # y2 = [x for i,x in enumerate(y) if i> start and i<end]
+#         # y2 = [0.03 if i> start and i<end else 0.02 for i,x in enumerate(y)]
+#         # y2[int(len(y2) / 2)] = np.max(y)  # 让图片展示归一化
+#         t = librosa.frames_to_time([middle], sr=sr)
+#         plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
+#         # y2 = np.array(y2)
+#         # print("len(y2) is {}".format(len(y2)))
+#
+#         #print("(end - start)*sr is {}".format((end - start) * sr))
+#         # plt.show()
+#         # plt.subplot(len(onset_times),1,i+1)
+#         # y, sr = librosa.load(filename, offset=2.0, duration=3.0)
+#         # librosa.display.waveplot(y2, sr=sr)
+#         fig = matplotlib.pyplot.gcf()
+#         # fig.set_size_inches(4, 4)
+#         if "." in filename:
+#             Filename = filename.split(".")[0]
+#         plt.axis('off')
+#         plt.axes().get_xaxis().set_visible(False)
+#         plt.axes().get_yaxis().set_visible(False)
+#         plt.savefig(savepath + str(i + 1) + '.jpg', bbox_inches='tight', pad_inches=0)
+#         plt.clf()
+#         curr_num += 1
+#     #plt.show()
+#     return onset_frames,curr_num
 
-    onset_times = librosa.frames_to_time(onset_frames, sr=sr)
-    plt.vlines(onset_times, 0, sr, color='y', linestyle='--')
-    #print(onset_samples)
-    #plt.subplot(len(onset_times),1,1)
-    #plt.show()
-    plt.clf()
-
-    for i in range(0, len(onset_frames)):
-        half = 15
-        start = onset_frames[i] - half
-        if start < 0:
-            start = 0
-        end = onset_frames[i] + half
-        if end >= total_frames_number:
-            end = total_frames_number - 1
-        # y2 = [x if i> start and i<end else 0 for i,x in enumerate(y)]
-        CQT_sub = np.zeros(CQT.shape)
-        middle = int(h / 2)
-        offset = middle - onset_frames[i]
-        for j in range(int(start), int(end)):
-            CQT_sub[:, j + offset] = CQT[:, j]
-        # CQT = CQT_T
-        librosa.display.specshow(CQT_sub, y_axis='cqt_note', x_axis='time')
-        # y2 = [x for i,x in enumerate(y) if i> start and i<end]
-        # y2 = [0.03 if i> start and i<end else 0.02 for i,x in enumerate(y)]
-        # y2[int(len(y2) / 2)] = np.max(y)  # 让图片展示归一化
-        t = librosa.frames_to_time([middle], sr=sr)
-        plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
-        # y2 = np.array(y2)
-        # print("len(y2) is {}".format(len(y2)))
-
-        #print("(end - start)*sr is {}".format((end - start) * sr))
-        # plt.show()
-        # plt.subplot(len(onset_times),1,i+1)
-        # y, sr = librosa.load(filename, offset=2.0, duration=3.0)
-        # librosa.display.waveplot(y2, sr=sr)
-        fig = matplotlib.pyplot.gcf()
-        # fig.set_size_inches(4, 4)
-        if "." in filename:
-            Filename = filename.split(".")[0]
-        plt.axis('off')
-        plt.axes().get_xaxis().set_visible(False)
-        plt.axes().get_yaxis().set_visible(False)
-        plt.savefig(savepath + str(i + 1) + '.jpg', bbox_inches='tight', pad_inches=0)
-        plt.clf()
-        curr_num += 1
-    #plt.show()
-    return onset_frames,curr_num
-
-def  predict(wavname,image_dir,onset_frames,onsets_frames_strength,models_path):
+def  predict(image_dir,onset_frames,models_path):
     import re
     class_nums = 2
     onsets = []
@@ -245,10 +247,14 @@ def test(filename):
     pattern = 'WAV/(.+)'
     wavname = re.findall(pattern,filename)[0]
     curr_num = 1
+    start_time = time.time()
     onset_frames, onsets_frames_strength, curr_num = get_single_notes(filename, curr_num)
+    #onset_frames = cqt_split(filename,image_dir)
+    end_time = time.time()
+    print("run time is {}".format(end_time - start_time))
     print("onset_frames,onsets_frames_strength is {},{}".format(onset_frames, onsets_frames_strength))
     if onset_frames:
-        onsets, onsets_strength, accuracy = predict(wavname,image_dir,onset_frames,onsets_frames_strength,models_path)
+        onsets, onsets_strength, accuracy = predict(image_dir,onset_frames,models_path)
         return accuracy
 
 if __name__ ==  '__main__':
@@ -293,32 +299,58 @@ if __name__ ==  '__main__':
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1（三）(95).wav'
     #filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1.2(100).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.1(100).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01（95）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01（95）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1.1(96).wav'
+    #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律八（2）（60）.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4录音4(95).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8录音4(93).wav'
 
     clear_dir(image_dir)
     pattern = 'WAV/(.+)'
     #wavname = re.findall(pattern,filename)[0]
     wavname = ''
     curr_num = 1
-    onset_frames, curr_num = get_single_notes(filename, curr_num,True)
+    onsets = []
+    onsets_strength = []
+    #onset_frames, curr_num = get_single_notes(filename, curr_num,savepath,True)
+    onset_frames = [1]
     onsets_frames_strength = []
+    step_width = 2
+    y, sr = librosa.load(filename)
+    start_time = time.time()
+    print("0 time is {}".format(time.time()))
+    #onsets_frames = get_real_onsets_frames_rhythm(y, modify_by_energy=True, gap=0.1)
+    pic_path = "./raw_feature/tmp/tmp.jpg"
+    draw_img3, img, note_lines,lenght = get_contours(filename,pic_path)
+    onset_frames = get_note_lines(img, note_lines, lenght)
+    onset_frames = cqt_split(filename, image_dir,step_width,onset_frames)
+    cv2.imshow("img", img)
+    print("2 time is {}".format(time.time()))
+    #onset_frames = cqt_split(filename, image_dir, step_width,onsets_frames)
+    #onset_frames,_,_ = get_detail_cqt_rms(filename)
+    end_time = time.time()
+    print("run time is {}".format(end_time - start_time))
     #print("onset_frames,onsets_frames_strength is {},{}".format(onset_frames))
+    #onset_frames = [x for x in range(180)]
     if onset_frames:
-        onsets, onsets_strength,_ = predict(wavname,image_dir,onset_frames,onsets_frames_strength,models_path)
+        print("onset_frames len is {}".format(len(onset_frames)))
+        onsets, onsets_strength,_ = predict(image_dir,onset_frames,models_path)
+        #onsets = onset_frames
         print("onsets, onsets_strength is {},{}".format(onsets, onsets_strength))
         y, sr = librosa.load(filename)
-        onsets = del_note_end_by_cqt(y,onsets)
-        onsets = del_note_middle_by_cqt(y,onsets)
+        # # onsets = del_note_end_by_cqt(y,onsets)
+        # # onsets = del_note_middle_by_cqt(y,onsets)
         if len(onsets) > 0:
             min_width = get_min_width_rhythm(filename)
+            min_width = 5
             print("min_width is {}".format(min_width))
-            onsets = del_overcrowding(onsets, min_width/3)
+            onsets = del_overcrowding(onsets, min_width)
         #librosa.display.waveplot(y, sr=sr)
         CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
         w, h = CQT.shape
-        CQT[50:w, :] = np.min(CQT)
+        print("w,h is {},{}".format(w,h))
+        #CQT[50:w, :] = np.min(CQT)
         CQT[0:20, :] = np.min(CQT)
         for i in range(w):
             for j in range(h):
@@ -327,6 +359,7 @@ if __name__ ==  '__main__':
                 # else:
                 #     CQT[i][j] = np.min(CQT)
         librosa.display.specshow(CQT, y_axis='cqt_note', x_axis='time')
+        onset_frames.append(h-1)
         onsets_time = librosa.frames_to_time(onsets, sr=sr)
         onset_frames_time = librosa.frames_to_time(onset_frames,sr = sr)
         #plt.vlines(onset_frames_time,0,sr, color='b', linestyle='dashed')
@@ -339,7 +372,7 @@ if __name__ ==  '__main__':
     测试多个文件
     '''
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
-    #dir_list = []
+    dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/t/'

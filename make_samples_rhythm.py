@@ -46,8 +46,8 @@ filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2林(
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2语(85).wav'
 #filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节2罗（75）.wav'
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01（95）.wav'
-
-
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（11）（60）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
 
 
 
@@ -61,7 +61,7 @@ CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref = np.max)
 librosa.display.specshow(CQT, y_axis='cqt_note',x_axis='time')
 w,h = CQT.shape
 #onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
-onset_frames = get_real_onsets_frames_rhythm(y)
+onset_frames = get_real_onsets_frames_rhythm(y,modify_by_energy=False)
 
 onset_times = librosa.frames_to_time(onset_frames, sr=sr)
 plt.vlines(onset_times, 0,sr, color='y', linestyle='--')
@@ -90,7 +90,7 @@ for i in range(0, len(onset_frames)):
     #y2 = [x for i,x in enumerate(y) if i> start and i<end]
     #y2 = [0.03 if i> start and i<end else 0.02 for i,x in enumerate(y)]
     #y2[int(len(y2) / 2)] = np.max(y)  # 让图片展示归一化
-    t = librosa.samples_to_time([middle], sr=sr)
+    t = librosa.frames_to_time([middle], sr=sr)
     plt.vlines(t, 0,sr, color='y', linestyle='--')# 标出节拍位置
     #y2 = np.array(y2)
     #print("len(y2) is {}".format(len(y2)))

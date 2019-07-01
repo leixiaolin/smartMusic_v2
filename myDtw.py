@@ -349,7 +349,7 @@ def get_match_lines(standard_y,recognize_y):
             standard_diff = standard_y_diff[standard_i-1]
             diff_gap = np.abs(real_diff - standard_diff)/standard_diff
             #匹配
-            if diff_gap < 0.35:
+            if diff_gap < 0.45:
                 select_standard_y.append(standard_y[standard_i])
                 select_recognize_y.append(recognize_y[recognize_i])
                 standard_i += 1
@@ -419,11 +419,16 @@ if __name__ == '__main__':
     #x = np.array([24, 24, 26, 26, 26, 26, 23, 26, 20, 26, 24, 24, 25])
     # x = np.array([1,5,10,13])
     # y = np.array([1,4,13])
-    x = [-1 ,-3, -2, -1,  1,  2 ,-2 ,-6, -1  ,0]
-    y = [ 0 ,-3 ,-2 ,-2,  2 , 0 , 2 ,-2 ,-5 ,-2]
-    longest_note, base_notes = get_matched_note_lines_compared(x, y)
-    print(longest_note)
-    print(base_notes)
+    x = [100,119,139]
+    #x = np.diff(x)
+    y = [101, 103, 106, 121, 123, 128,145]
+    #y = np.diff(y)
+    xc, yc = get_matched_onset_frames_compared(x, y)
+    print("get_matched_onset_frames_compared===========================compared")
+    print(x)
+    print(xc)
+    print(y)
+    print(yc)
     # x = [38, 55, 73, 88]
     # y = [48, 66, 83, 100]
     y = [i -(y[0]-x[0]) for i in y]

@@ -20,7 +20,7 @@ from filters import *
 import crepe
 
 score = 0
-save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/onsets/test/'
+save_path = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/rhythm/test/'
 src_path = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/'
 #save_path = './onsets/test'
 #src_path = './onsets/mp3/2.27节奏'
@@ -140,15 +140,15 @@ for filename in files:
 
         frequency = expand_output(frequency, step, length)
         frequency = get_nearly_note(frequency, step)
-        frequency[0] = 200
-        frequency[len(frequency)-1] = 550
         plt.plot(time, frequency)
         #onsets_frames = get_onsets_by_all_v2(y, sr,len(codes[type_index])+2)
         # if len(onsets_frames) < 3:
         #     continue
 
         #print("onsets_frames is {}".format(onsets_frames))
-
+        onsets_frames = get_onsets_frames_by_cqt_for_rhythm(y,sr)
+        onstm = librosa.frames_to_time(onsets_frames, sr=sr)
+        plt.vlines(onstm, 0, sr, color='y', linestyle='solid')
 
     fig = matplotlib.pyplot.gcf()
     fig.set_size_inches(4, 4)
@@ -157,6 +157,7 @@ for filename in files:
     plt.axis('off')
     plt.axes().get_xaxis().set_visible(False)
     plt.axes().get_yaxis().set_visible(False)
+    plt.ylim(200,550)
     #plt.rcParams['savefig.dpi'] = 300  # 图片像素
     #plt.figure(figsize=(10, 10))
     #plt.rcParams['figure.dpi'] = 300  # 分辨率

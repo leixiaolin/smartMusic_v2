@@ -167,13 +167,22 @@ if __name__ == "__main__":
     # filename = 'F:/项目/花城音乐项目/样式数据/1-2/节奏/节奏一（7）(50).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/1-2/节奏/节奏6.60分.wav'
 
-
+    filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-5.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-6.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-7.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-7.wav'
 
 
 
     plt.close()
     type_index = get_onsets_index_by_filename(filename)
     onset_code = get_code(type_index, 1)
+    onset_code = '[1000,250,250,250,250;2000;1000,500,500;2000]'
     print("onset_code is {}".format(onset_code))
     score, lost_score, ex_score, min_d,standard_y, recognize_y,onsets_frames_strength,detail_content  = get_score_jz(filename,onset_code)
     print("recognize_y is {}".format(recognize_y))
@@ -196,7 +205,7 @@ if __name__ == "__main__":
     #dir_list = ['F:/项目/花城音乐项目/样式数据/1-2/节奏/']
     #dir_list = ['F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/']
     #dir_list = ['e:/test_image/m1/A/']
-    #dir_list = []
+    dir_list = []
     total_accuracy = 0
     total_num = 0
     result_path = 'e:/test_image/o/'

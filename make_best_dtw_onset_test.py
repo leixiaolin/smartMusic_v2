@@ -159,7 +159,7 @@ for filename in files:
         #判断是否有未吻合的三连节拍,1是有，0是无
         three_hit = check_three_hit(onsets_frames, best_y)
 
-        #librosa.display.waveplot(y, sr=sr)
+        librosa.display.waveplot(y, sr=sr)
         # plt.show()
         plt.vlines(onstm, -1 * np.max(y), np.max(y), color='b', linestyle='solid')
     plt.vlines(base_onsets,  -1*np.max(y),np.max(y), color='r', linestyle='dashed')
