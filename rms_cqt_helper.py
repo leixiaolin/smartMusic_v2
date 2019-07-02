@@ -70,14 +70,33 @@ def get_score_for_onset_by_frame(filename,onset_code):
     max_indexs = [x for x in max_indexs if x >= start-5 and x < end]
     max_indexs_diff = np.diff(max_indexs)
 
-    dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
-    print("dis_with_starts is {}".format(dis_with_starts))
-    dis_with_maxs = get_dtw(max_indexs_diff, base_frames_diff)
-    print("dis_with_maxs is {}".format(dis_with_maxs))
-    if dis_with_starts < dis_with_maxs:
-        onsets_frames = start_indexs
+    if len(start_indexs) > 1 and len(max_indexs) > 1:
+        dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
+        #print("dis_with_starts is {}".format(dis_with_starts))
+        dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
+        #print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
+        dis_with_maxs = get_dtw(max_indexs_diff, base_frames_diff)
+        #print("dis_with_maxs is {}".format(dis_with_maxs))
+        dis_with_maxs_on_first = get_dtw(max_indexs_diff[1:], base_frames_diff)
+        #print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
+        all_dis = [dis_with_starts,dis_with_starts_no_first,dis_with_maxs,dis_with_maxs_on_first]
+        dis_min = np.min(all_dis)
+        min_index = all_dis.index(dis_min)
+        if 0 == min_index:
+            onsets_frames = start_indexs
+        elif 1 == min_index:
+            onsets_frames = start_indexs[1:]
+        elif 2 == min_index:
+            onsets_frames = max_indexs
+        elif 3 == min_index:
+            onsets_frames = max_indexs[1:]
+        # if dis_with_starts < dis_with_maxs:
+        #     onsets_frames = start_indexs
+        # else:
+        #     onsets_frames = max_indexs
     else:
         onsets_frames = max_indexs
+
 
     #onsets_frames = check_starts_with_max_index(filename)
     #onsets_frames = get_cqt_start_indexs(filename)
