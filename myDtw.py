@@ -416,93 +416,8 @@ def get_match_lines_v2(standard_y,recognize_y):
     return select_standard_y,select_recognize_y
 
 if __name__ == '__main__':
-    #x = np.array([24, 24, 26, 26, 26, 26, 23, 26, 20, 26, 24, 24, 25])
-    # x = np.array([1,5,10,13])
-    # y = np.array([1,4,13])
-    x = [100,119,139]
-    #x = np.diff(x)
-    y = [101, 103, 106, 121, 123, 128,145]
-    #y = np.diff(y)
-    xc, yc = get_matched_onset_frames_compared(x, y)
-    print("get_matched_onset_frames_compared===========================compared")
-    print(x)
-    print(xc)
-    print(y)
-    print(yc)
-    # x = [38, 55, 73, 88]
-    # y = [48, 66, 83, 100]
-    y = [i -(y[0]-x[0]) for i in y]
-    # x = np.diff(x)
-    # y = np.diff(y)
-    # x = [1,1,3,3,8,1]
-    # y = [2,0,0,8,7,2]
-    # a,b = get_mismatch_line(y.copy(),x.copy())
-    # print("a,b is {},{}".format(a,b))
-    # print(np.mean(x))
-    # print(np.mean(y))
-    # print(np.std(x))
-    # print(np.std(y))
-    # off = int(np.mean(y) - np.mean(x))
-    # print(off)
-    # #y = [x - int(np.mean(y) - np.mean(x)) for x in y]
-    # #y = [x - off for x in y]
-    # min_d,best_y,_ = get_dtw_min(x,y,65)
-    # print("min_d,best_y is {},{}".format(min_d,best_y))
 
-    #xd = np.diff(x)
-    #yd = np.diff(y)
-    euclidean_norm = lambda x, y: np.abs(x - y)
-    # d, cost_matrix, acc_cost_matrix, path = dtw(x, y, dist=euclidean_norm)
-    # print("d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d ,np.sum(acc_cost_matrix.shape)))
-    # notes_score = 60 - int(d * np.sum(acc_cost_matrix.shape))
-    # print("notes_score is {}".format(notes_score))
-    # print("acc_cost_matrix is :")
-    # print(acc_cost_matrix)
-    # print("path is :")
-    # print(path[0])
-    # print(path[1])
-    xc, yc,path1,path2 = get_matched_onset_frames_by_path_v3(x, y)
-    xc = get_raw_data_from_diff(x, xc)
-    yc = get_raw_data_from_diff(y, yc)
-    #d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
-    #print("get_matched_onset_frames_by_path_v3=======================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
-    print("x  is {},size is {}".format(x, len(x)))
-    print("y  is {},size is {}".format(y, len(y)))
-    print("xc is {},size is {}".format(xc,len(xc)))
-    print("yc is {},size is {}".format(yc,len(yc)))
-    print("path is :")
-    print(path1)
-    print(path2)
 
-    #x = np.array([1,0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1])
-    #y = np.array([0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2])
-    # x = np.array([42, 49, 65])
-    # y = np.array([0, 19, 38])
-    # y = [i - (y[0] - x[0]) for i in y]
-    xd = np.diff(x)
-    yd = np.diff(y)
-    print(xd)
-    print(yd)
-
-    # xc, yc = get_matched_onset_frames_by_path_v2(x, y)
-    # d, cost_matrix, acc_cost_matrix, path = dtw(xc, yc, dist=euclidean_norm)
-    # print("get_matched_onset_frames_by_path_v2===========================d ,np.sum(acc_cost_matrix.shape) is {},{}".format(d, np.sum(acc_cost_matrix.shape)))
-    # print(xc)
-    # print(yc)
-    # print(np.diff(xc))
-    # print(np.diff(yc))
-
-    xc, yc = get_matched_onset_frames_compared(x, y)
-    print("get_matched_onset_frames_compared===========================compared")
-    print(x)
-    print(xc)
-    print(y)
-    print(yc)
-
-    x = [34, 59, 82, 125, 168, 209, 226, 241, 251, 281, 295, 316, 339]
-    y = [46, 69, 92, 137, 160, 182, 227, 244, 250, 261, 273, 290, 295, 307, 318, 341, 363]
-    # x = [26, 62, 92, 125, 156, 178, 196, 227, 260]
-    # y = [26, 96, 165, 182, 191, 200, 269]
     x = [60, 79, 101, 147, 166, 188, 231, 250, 262, 272, 288, 295, 306, 319, 339, 362]
     y = [61, 83, 105, 149, 171, 193, 236, 253, 258, 269, 280, 297, 302, 313, 324, 346, 368]
     xd = np.diff(x)
@@ -523,6 +438,11 @@ if __name__ == '__main__':
     print(y,len(y))
     print(yc,len(yc))
 
+    euclidean_norm = lambda x, y: np.abs(x - y)
+    d, cost_matrix, acc_cost_matrix, path = dtw(np.diff(x), np.diff(y), dist=euclidean_norm)
+    print("d is {}".format(d * np.sum(acc_cost_matrix.shape)))
+    d, cost_matrix, acc_cost_matrix, path = dtw(np.diff(x), np.diff(yc), dist=euclidean_norm)
+    print("d is {}".format(d * np.sum(acc_cost_matrix.shape)))
 
     x_max = np.max(x) if np.max(x) > np.max(y) else np.max(y)
     x_max += 5

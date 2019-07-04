@@ -588,6 +588,9 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav'
 
     filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/1；100.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/12；98.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/01，100.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，90.wav'
 
 
     result_path = 'e:/test_image/n/'
@@ -606,14 +609,14 @@ if __name__ == "__main__":
     # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav','[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      97
     # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav','[2000;250,250,250,250,1000;2000;500,500,1000]'  # 第3条 故意错一个，扣一分即可               89
     # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav','[1000,250,250,250,250;2000;1000,500,500;2000]'  # 第4条 故意错了两处，应该扣两分左右即可     85
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 应该有七分左右                     74
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题三.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 应该接近满分                       97
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  # 可给满分                           100
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  # 可给接近满分                        100
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第一题.wav', '[1000,1000;500,250,250,1000;500,500,500,500;2000]'  # 可给满分                         89
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第二题.wav', '[1000,500,500;500,250,250,500;500,500,1000;2000]'  # 可给接近满分                      90
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏一.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'  # 可给接近满分                         92
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  # 可给接近满分                         78
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 应该有七分左右                     74
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题三.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 应该接近满分                       97
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  # 可给满分                           100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  # 可给接近满分                        100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第一题.wav', '[1000,1000;500,250,250,1000;500,500,500,500;2000]'  # 可给满分                         89
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第二题.wav', '[1000,500,500;500,250,250,500;500,500,1000;2000]'  # 可给接近满分                      90
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏一.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'  # 可给接近满分                         92
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  # 可给接近满分                         78
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分                          94
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分                        87
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分                        87
@@ -647,35 +650,47 @@ if __name__ == "__main__":
     start_indexs_diff = np.diff(start_indexs)
 
     rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
-    max_indexs = [x for x in max_indexs if x > start and x <  end]
+    max_indexs = [x for x in max_indexs if x > start-5 and x <  end]
     max_indexs_diff = np.diff(max_indexs)
 
     if len(start_indexs) > 1 and len(max_indexs) > 1:
         dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
-        #print("dis_with_starts is {}".format(dis_with_starts))
+        print("dis_with_starts is {}".format(dis_with_starts))
         dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
-        #print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
+        print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
         dis_with_maxs = get_dtw(max_indexs_diff, base_frames_diff)
-        #print("dis_with_maxs is {}".format(dis_with_maxs))
+        print("dis_with_maxs is {}".format(dis_with_maxs))
         dis_with_maxs_on_first = get_dtw(max_indexs_diff[1:], base_frames_diff)
-        #print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
+        print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
         all_dis = [dis_with_starts,dis_with_starts_no_first,dis_with_maxs,dis_with_maxs_on_first]
         dis_min = np.min(all_dis)
         min_index = all_dis.index(dis_min)
         if 0 == min_index:
-            onsets_frames = start_indexs
+            start_indexs = start_indexs
         elif 1 == min_index:
-            onsets_frames = start_indexs[1:]
+            sum_cols, sig_ff = get_sum_max_for_cols(filename)
+            first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
+            if first_range > base_frames_diff[0]*0.3:
+                start_indexs = start_indexs
+            else:
+                start_indexs = start_indexs[1:]
         elif 2 == min_index:
-            onsets_frames = max_indexs
+            start_indexs = max_indexs
         elif 3 == min_index:
-            onsets_frames = max_indexs[1:]
+            sum_cols, sig_ff = get_sum_max_for_cols(filename)
+            first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
+            if first_range > base_frames_diff[0]*0.3:
+                start_indexs = max_indexs
+            else:
+                start_indexs = max_indexs[1:]
         # if dis_with_starts < dis_with_maxs:
         #     onsets_frames = start_indexs
         # else:
-        #     onsets_frames = max_indexs
+        #     onsets_frames = max_index
+
     else:
-        onsets_frames = max_indexs
+        start_indexs = max_indexs
+
 
     start_indexs = check_each_onset(start_indexs, onset_code)
     start_indexs = add_loss_small_onset(start_indexs, onset_code)

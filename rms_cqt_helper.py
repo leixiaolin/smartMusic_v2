@@ -70,26 +70,36 @@ def get_score_for_onset_by_frame(filename,onset_code):
     max_indexs = [x for x in max_indexs if x >= start-5 and x < end]
     max_indexs_diff = np.diff(max_indexs)
 
-    if len(start_indexs) > 1 and len(max_indexs) > 1:
+    if len(start_indexs) > 2 and len(max_indexs) > 2:
         dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
-        #print("dis_with_starts is {}".format(dis_with_starts))
+        print("dis_with_starts is {}".format(dis_with_starts))
         dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
-        #print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
+        print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
         dis_with_maxs = get_dtw(max_indexs_diff, base_frames_diff)
-        #print("dis_with_maxs is {}".format(dis_with_maxs))
+        print("dis_with_maxs is {}".format(dis_with_maxs))
         dis_with_maxs_on_first = get_dtw(max_indexs_diff[1:], base_frames_diff)
-        #print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
+        print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
         all_dis = [dis_with_starts,dis_with_starts_no_first,dis_with_maxs,dis_with_maxs_on_first]
         dis_min = np.min(all_dis)
         min_index = all_dis.index(dis_min)
         if 0 == min_index:
             onsets_frames = start_indexs
         elif 1 == min_index:
-            onsets_frames = start_indexs[1:]
+            sum_cols, sig_ff = get_sum_max_for_cols(filename)
+            first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
+            if first_range > base_frames_diff[0]*0.3:
+                onsets_frames = start_indexs
+            else:
+                onsets_frames = start_indexs[1:]
         elif 2 == min_index:
             onsets_frames = max_indexs
         elif 3 == min_index:
-            onsets_frames = max_indexs[1:]
+            sum_cols, sig_ff = get_sum_max_for_cols(filename)
+            first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
+            if first_range > base_frames_diff[0]*0.3:
+                onsets_frames = max_indexs
+            else:
+                onsets_frames = max_indexs[1:]
         # if dis_with_starts < dis_with_maxs:
         #     onsets_frames = start_indexs
         # else:

@@ -295,8 +295,12 @@ if __name__ == "__main__":
 
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10.1(97).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4熙(95).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/12；98.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/1；100.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/10；84.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，90.wav'
 
-    filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav','[1000,1000;500,250,250,500;1000,500,500;2000]'  # 第1条 这个可以给满分 90
+    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav','[1000,1000;500,250,250,500;1000,500,500;2000]'  # 第1条 这个可以给满分 90
     # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav','[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分  97
     # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav','[2000;250,250,250,250,1000;2000;500,500,1000]'  # 第3条 故意错一个，扣一分即可 89
     # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav','[1000,250,250,250,250;2000;1000,500,500;2000]'  # 第4条 故意错了两处，应该扣两分左右即可  85
@@ -325,6 +329,7 @@ if __name__ == "__main__":
     # plt.show()
     # plt.clf()
     rms,rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
+    print("max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
 
     start, end, total_length = get_start_end_length_by_max_index(max_indexs, onset_code)
     #max_indexs = get_topN_rms_max_indexs_for_onset(filename, 10)
