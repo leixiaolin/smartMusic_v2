@@ -211,7 +211,7 @@ def get_cqt_start_indexs(filename,filter_p1 = 7,filter_p2 = 1,row_level=30,sum_c
     for i in range(1,len(starts)):
         s = selected_starts[-1]
         e = starts[i]
-        if np.min(sum_cols[s:e]) <= sum_cols_threshold and sig_ff[e] - np.min(sig_ff[s:e]) > 1:
+        if np.min(sum_cols[s:e]) <= sum_cols_threshold and (sig_ff[e] - np.min(sig_ff[s:e]) > np.mean(sig_ff)*0.5 and sig_ff[s] - np.min(sig_ff[s:e]) > np.mean(sig_ff)*0.5):
             selected_starts.append(e)
     selected_starts = [x -4 for x in selected_starts]
 
@@ -500,6 +500,124 @@ def check_each_onset(start_indexs,onset_code):
             pass
     return start_indexs
 
+def check_rms_max_by_dtw(max_indexs,base_frames,start_indexs):
+    base_frames_diff = np.diff(base_frames)
+    max_indexs_diff = np.diff(max_indexs)
+    raw_dis = get_dtw(max_indexs_diff,base_frames_diff)
+    del_maxs = []
+    last_del_i = 0
+    last_del_dis = 100000
+    selected_max_indexs = max_indexs.copy()
+    for i in range(1,len(max_indexs)):
+        x = max_indexs[i]
+        offset = [np.abs(x - s) for s in start_indexs]
+        if np.min(offset)<=2: #即在cqt识别出的节拍中，则不作删除处理，相信cqt识别结果
+            continue
+        tmp = [m for m in max_indexs if m != x]
+        dis = get_dtw(np.diff(tmp), base_frames_diff)
+        dis_selected = get_dtw(np.diff(selected_max_indexs), base_frames_diff)
+        if dis < raw_dis and dis < dis_selected:
+            if i - last_del_i == 1:
+                if dis < last_del_dis:
+                    del_maxs.append(x)
+                    if max_indexs[last_del_i] in del_maxs:
+                        del_maxs.remove(max_indexs[last_del_i])
+                # else:
+                #     del_maxs.append(max_indexs[last_del_i])
+            else:
+                del_maxs.append(x)
+            last_del_i = i
+            last_del_dis = dis
+        selected_max_indexs = [x for x in max_indexs if x not in del_maxs]
+    return selected_max_indexs
+
+def get_onset_type(onset_frames,onset_code):
+
+    if len(onset_frames) == 0:
+        return []
+    #print("start_index is {},size is {}".format(start_indexs,len(start_indexs)))
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
+
+    #print("code is {},size is {}".format(code, len(code)))
+
+    total_length_no_last = np.sum(code[:-1])
+    real_total_length_no_last = onset_frames[-1] - onset_frames[0]
+    rate = real_total_length_no_last/total_length_no_last
+    code_dict = {}
+    for x in range(125, 4000, 125):
+        code_dict[x] = int(x * rate)
+
+    width_3000 = int(3000 * rate)
+    width_2000 = int(2000 * rate)
+    width_1500 = int(1500 * rate)
+    width_1000 = int(1000 * rate)
+    width_750 = int(750 * rate)
+    width_500 = int(500 * rate)
+    width_375 = int(375 * rate)
+    width_250 = int(250 * rate)
+    width_125 = int(125 * rate)
+    types = []
+    for x in np.diff(onset_frames):
+        if np.abs(x - width_125) < width_125/2:
+            type = 125
+        elif np.abs(x - width_250) < width_250/2:
+            type = 250
+        elif np.abs(x - width_375) < width_375/2:
+            type = 375
+        elif np.abs(x - width_500) < width_500/2:
+            type = 500
+        elif np.abs(x - width_750) < width_750/2:
+            type = 750
+        elif np.abs(x - width_1000) < width_1000/2:
+            type = 1000
+        elif np.abs(x - width_1500) < width_1500/2:
+            type = 1500
+        elif np.abs(x - width_2000) < width_2000/2:
+            type = 2000
+        elif np.abs(x - width_3000) < width_3000 / 2:
+            type = 3000
+        types.append(type)
+    #print("types is {},size {}".format(types,len(types)))
+    return types
+
+def get_best_onset_types(start_indexs,onset_frames,onset_code):
+
+
+    #通过与cqt起始点的距离判断可能的伪节拍
+    fake_onset_frames = []
+    for x in onset_frames:
+        offset = [np.abs(x-s) for s in start_indexs]
+        if np.min(offset) > 5:
+            fake_onset_frames.append(x)
+
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
+
+    if len(onset_frames) - len(fake_onset_frames) == len(code):
+        tmp = [ x for x in onset_frames if x not in fake_onset_frames]
+        return tmp,fake_onset_frames
+
+    best_dis = 1000000
+    best_onset_frames = onset_frames
+    if len(fake_onset_frames)>0:
+        while len(best_onset_frames) > len(code):
+            onset_frames_tmp = best_onset_frames.copy()
+            flag = True
+            for f in fake_onset_frames:
+                tmp = [o for o in onset_frames_tmp if o != f]
+                types = get_onset_type(tmp, onset_code)
+                dis = get_dtw(types, code[:-1])
+                if dis < best_dis:
+                    best_onset_frames = tmp
+                    best_dis = dis
+                    flag = False
+            if flag == True:
+                return best_onset_frames, fake_onset_frames
+    else:
+        return onset_frames,fake_onset_frames
+    return best_onset_frames,fake_onset_frames
+
 if __name__ == "__main__":
     # y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
@@ -591,7 +709,9 @@ if __name__ == "__main__":
     # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/12；98.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/01，100.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，90.wav'
-
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，78.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，80.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/2，88（声音偏小）.wav'
 
     result_path = 'e:/test_image/n/'
     plt.close()
@@ -647,12 +767,14 @@ if __name__ == "__main__":
     base_frames_diff =np.diff(base_frames)
 
     start_indexs = get_cqt_start_indexs(filename)
+    raw_start_indexs = start_indexs.copy()
     start_indexs_diff = np.diff(start_indexs)
 
     rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
     max_indexs = [x for x in max_indexs if x > start-5 and x <  end]
     max_indexs_diff = np.diff(max_indexs)
 
+    raw_start_indexs = start_indexs.copy()
     if len(start_indexs) > 1 and len(max_indexs) > 1:
         dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
         print("dis_with_starts is {}".format(dis_with_starts))
@@ -670,7 +792,9 @@ if __name__ == "__main__":
         elif 1 == min_index:
             sum_cols, sig_ff = get_sum_max_for_cols(filename)
             first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
-            if first_range > base_frames_diff[0]*0.3:
+            if len(start_indexs) == len(base_frames) + 1:
+                start_indexs = start_indexs[1:]
+            elif first_range > base_frames_diff[0]*0.3:
                 start_indexs = start_indexs
             else:
                 start_indexs = start_indexs[1:]
@@ -683,6 +807,9 @@ if __name__ == "__main__":
                 start_indexs = max_indexs
             else:
                 start_indexs = max_indexs[1:]
+            print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+            start_indexs =check_rms_max_by_dtw(start_indexs, base_frames,raw_start_indexs)
+            print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
         # if dis_with_starts < dis_with_maxs:
         #     onsets_frames = start_indexs
         # else:
@@ -692,13 +819,29 @@ if __name__ == "__main__":
         start_indexs = max_indexs
 
 
-    start_indexs = check_each_onset(start_indexs, onset_code)
-    start_indexs = add_loss_small_onset(start_indexs, onset_code)
-    print("start_indexs is {},size is {}".format(start_indexs,len(start_indexs)))
+    if len(start_indexs) != len(base_frames):
+        start_indexs = check_each_onset(start_indexs, onset_code)
+        print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+        start_indexs = add_loss_small_onset(start_indexs, onset_code)
+        print("start_indexs is {},size is {}".format(start_indexs,len(start_indexs)))
+    # types = get_onset_type(start_indexs, onset_code)
+    # types[7] = types[6] + types[7]
+    # types.remove(125)
+    # code = parse_onset_code(onset_code)
+    # code = [int(x) for x in code]
+    # dis = get_dtw(types, code[:-1])
+    # print("dis is {}".format(dis))
+    start_indexs,fake_onset_frames = get_best_onset_types(raw_start_indexs, start_indexs, onset_code)
+    print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+    print("raw_start_indexs is {},size is {}".format(raw_start_indexs, len(raw_start_indexs)))
+    raw_start_indexs_time = librosa.frames_to_time(raw_start_indexs)
     start_indexs_time = librosa.frames_to_time(start_indexs)
     max_indexs_time = librosa.frames_to_time(max_indexs)
+    fake_onset_frames_time = librosa.frames_to_time(fake_onset_frames)
+    #plt.vlines(raw_start_indexs_time, 0, 84, color='w', linestyle='solid')
     plt.vlines(start_indexs_time, 0,84, color='b', linestyle='solid')
-    plt.vlines(max_indexs_time, 0, 84, color='r', linestyle='dashed')
+    #plt.vlines(max_indexs_time, 0, 84, color='r', linestyle='dashed')
+    #plt.vlines(fake_onset_frames_time, 0, 84, color='black', linestyle='dashed')
 
 
     start_time = librosa.frames_to_time(start)

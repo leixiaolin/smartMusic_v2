@@ -72,13 +72,13 @@ def get_score_for_onset_by_frame(filename,onset_code):
 
     if len(start_indexs) > 2 and len(max_indexs) > 2:
         dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
-        print("dis_with_starts is {}".format(dis_with_starts))
+        #print("dis_with_starts is {}".format(dis_with_starts))
         dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
-        print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
+        #print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
         dis_with_maxs = get_dtw(max_indexs_diff, base_frames_diff)
-        print("dis_with_maxs is {}".format(dis_with_maxs))
+        #print("dis_with_maxs is {}".format(dis_with_maxs))
         dis_with_maxs_on_first = get_dtw(max_indexs_diff[1:], base_frames_diff)
-        print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
+        #print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
         all_dis = [dis_with_starts,dis_with_starts_no_first,dis_with_maxs,dis_with_maxs_on_first]
         dis_min = np.min(all_dis)
         min_index = all_dis.index(dis_min)
@@ -87,7 +87,9 @@ def get_score_for_onset_by_frame(filename,onset_code):
         elif 1 == min_index:
             sum_cols, sig_ff = get_sum_max_for_cols(filename)
             first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
-            if first_range > base_frames_diff[0]*0.3:
+            if len(start_indexs) == len(base_frames) + 1:
+                onsets_frames = start_indexs[1:]
+            elif first_range > base_frames_diff[0]*0.3:
                 onsets_frames = start_indexs
             else:
                 onsets_frames = start_indexs[1:]
@@ -100,6 +102,8 @@ def get_score_for_onset_by_frame(filename,onset_code):
                 onsets_frames = max_indexs
             else:
                 onsets_frames = max_indexs[1:]
+            onsets_frames = check_rms_max_by_dtw(onsets_frames, base_frames,start_indexs)
+            #print("onsets_frames is {} ,size{}".format(onsets_frames,len(onsets_frames)))
         # if dis_with_starts < dis_with_maxs:
         #     onsets_frames = start_indexs
         # else:
@@ -110,9 +114,19 @@ def get_score_for_onset_by_frame(filename,onset_code):
 
     #onsets_frames = check_starts_with_max_index(filename)
     #onsets_frames = get_cqt_start_indexs(filename)
-    onsets_frames = check_each_onset(onsets_frames, onset_code)
-    onsets_frames = add_loss_small_onset(onsets_frames, onset_code)
-    #print("start_indexs is {},size is {}".format(onsets_frames, len(onsets_frames)))
+    if len(onsets_frames) != len(base_frames):
+        onsets_frames = check_each_onset(onsets_frames, onset_code)
+        #print("onsets_frames is {} ,size{}".format(onsets_frames, len(onsets_frames)))
+        onsets_frames = add_loss_small_onset(onsets_frames, onset_code)
+        #get_onset_type(onsets_frames, onset_code)
+        onsets_frames,fake_onset_frames = get_best_onset_types(start_indexs, onsets_frames, onset_code)
+        #print("onset_code is {},size {}".format(onset_code,len(base_frames)))
+        #print("onsets_frames is {} ,size{}".format(onsets_frames, len(onsets_frames)))
+        #print("base_frames is {} ,size{}".format(base_frames, len(base_frames)))
+
+        #print("onsets_frames_diff is {} ,size{}".format(np.diff(onsets_frames), len(onsets_frames)-1))
+        #print("base_frames_diff is {} ,size{}".format(np.diff(base_frames), len(base_frames) - 1))
+        #print("start_indexs is {},size is {}".format(onsets_frames, len(onsets_frames)))
 
 
     if len(onsets_frames) == 0:
@@ -189,7 +203,8 @@ def get_score_for_onset_by_frame(filename,onset_code):
     ex_score = int(each_onset_score * (len(onsets_frames) - len(code)))
     if ex_score < 0:
         print("--------0ipi9-99- is {}".format(ex_score))
-        score,lost_score,ex_score,min_d = 0,0,0,0
+        lost_score,ex_score = 0,0
+        score = 100 - lost_score - ex_score - int(min_d)
     else:
         score = 100 - lost_score - ex_score - int(min_d)
     # score, lost_score, ex_score, min_d = get_score1(standard_y.copy(), recognize_y.copy(), len(base_frames),
