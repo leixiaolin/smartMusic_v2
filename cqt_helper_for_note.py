@@ -204,16 +204,7 @@ def get_cqt_start_indexs(filename,filter_p1 = 7,filter_p2 = 1,row_level=30,sum_c
     # return result
     sum_cols, sig_ff = get_sum_max_for_cols(filename,filter_p1,filter_p2,row_level)
     sig_ff = [x / np.std(sig_ff) for x in sig_ff]
-    starts = [i for i in range(1,len(sig_ff)-1) if sig_ff[i] > sig_ff[i-1] and sig_ff[i] >= sig_ff[i+1] and sig_ff[i] >np.mean(sig_ff)*0.5]
-    if len(starts) == 0:
-        return []
-    selected_starts = [starts[0]]
-    for i in range(1,len(starts)):
-        s = selected_starts[-1]
-        e = starts[i]
-        if np.min(sum_cols[s:e]) <= sum_cols_threshold and (sig_ff[e] - np.min(sig_ff[s:e]) > np.mean(sig_ff)*0.5 and sig_ff[s] - np.min(sig_ff[s:e]) > np.mean(sig_ff)*0.5):
-            selected_starts.append(e)
-    selected_starts = [x -4 for x in selected_starts]
+    selected_starts = [i for i in range(1,len(sum_cols)-1) if sum_cols[i] > sum_cols[i-1] and sum_cols[i-1] == 0]
 
     tmp = selected_starts[0]
     for x in range(selected_starts[0]-1,5,-1):
@@ -265,7 +256,7 @@ def get_onset_frame_length(filename):
 
     return start,end,end-start
 
-def get_sum_max_for_cols(filename,filter_p1 = 7,filter_p2 = 1,row_level=30):
+def get_sum_max_for_cols(filename,filter_p1 = 17,filter_p2 = 3,row_level=30):
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     w, h = CQT.shape
@@ -522,7 +513,7 @@ def check_each_onset(start_indexs,rhythm_code):
                    start_indexs.append(start_indexs[i] + int(code_dict.get(code[i + 1]) + code_dict.get(code[i + 2])))
                    start_indexs.append(start_indexs[i] + int(code_dict.get(code[i + 1]) + code_dict.get(code[i + 2]) + code_dict.get(code[i + 3])))
                 start_indexs.sort()
-                print("ok")
+                #print("ok")
             pass
     return start_indexs
 
@@ -643,6 +634,30 @@ def get_best_onset_types(start_indexs,onset_frames,rhythm_code):
     else:
         return onset_frames,fake_onset_frames
     return best_onset_frames,fake_onset_frames
+
+def get_all_notes(onset_frames,cqt,end_frame):
+    w,h = cqt.shape
+    min_cqt = np.min(cqt)
+    max_cqt = np.max(cqt)
+    all_notes = []
+    for i in range(len(onset_frames)):
+        col_sum = np.zeros(84)
+        x = onset_frames[i]
+        if x == onset_frames[-1]:
+            start = x
+            end = end_frame
+        else:
+            start = x
+            end = onset_frames[i+1]
+        cols_cqt = cqt[:,start:end]
+        for i in range(10,w-5):
+            row_cqt = [1 if x == max_cqt else 0 for x in cols_cqt[i]]
+            col_sum[i] = np.sum(row_cqt)
+        max_indexs = [i for i in range(1,len(col_sum) -1) if col_sum[i] > col_sum[i-1] and col_sum[i] >= col_sum[i+1]]
+        if len(max_indexs) > 0:
+            all_notes.append(max_indexs[0])
+    print("all_notes is {},size {}".format(all_notes,len(all_notes)))
+    return all_notes
 
 if __name__ == "__main__":
     # y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
@@ -844,9 +859,9 @@ if __name__ == "__main__":
                 start_indexs = max_indexs
             else:
                 start_indexs = max_indexs[1:]
-            print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+            print("1 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
             start_indexs =check_rms_max_by_dtw(start_indexs, base_frames,raw_start_indexs)
-            print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+            print("2 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
         # if dis_with_starts < dis_with_maxs:
         #     onsets_frames = start_indexs
         # else:
@@ -855,12 +870,12 @@ if __name__ == "__main__":
     else:
         start_indexs = max_indexs
 
-
+    print("3 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
     if len(start_indexs) != len(base_frames):
         start_indexs = check_each_onset(start_indexs, rhythm_code)
-        print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+        print("4 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
         start_indexs = add_loss_small_onset(start_indexs, rhythm_code)
-        print("start_indexs is {},size is {}".format(start_indexs,len(start_indexs)))
+        print("5 start_indexs is {},size is {}".format(start_indexs,len(start_indexs)))
     # types = get_onset_type(start_indexs, rhythm_code)
     # types[7] = types[6] + types[7]
     # types.remove(125)
@@ -869,14 +884,14 @@ if __name__ == "__main__":
     # dis = get_dtw(types, code[:-1])
     # print("dis is {}".format(dis))
     start_indexs,fake_onset_frames = get_best_onset_types(raw_start_indexs, start_indexs, rhythm_code)
-    print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+    print("6 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
     print("raw_start_indexs is {},size is {}".format(raw_start_indexs, len(raw_start_indexs)))
     raw_start_indexs_time = librosa.frames_to_time(raw_start_indexs)
     start_indexs_time = librosa.frames_to_time(start_indexs)
     max_indexs_time = librosa.frames_to_time(max_indexs)
     fake_onset_frames_time = librosa.frames_to_time(fake_onset_frames)
-    #plt.vlines(raw_start_indexs_time, 0, 84, color='w', linestyle='solid')
-    plt.vlines(start_indexs_time, 0,84, color='b', linestyle='solid')
+    plt.vlines(raw_start_indexs_time, 0, 84, color='w', linestyle='solid')
+    #plt.vlines(start_indexs_time, 0,84, color='b', linestyle='solid')
     #plt.vlines(max_indexs_time, 0, 84, color='r', linestyle='dashed')
     #plt.vlines(fake_onset_frames_time, 0, 84, color='black', linestyle='dashed')
 
@@ -885,6 +900,7 @@ if __name__ == "__main__":
     end_time = librosa.frames_to_time(end)
     plt.vlines(start_time, 0, 84, color='r', linestyle='dashed')
     plt.vlines(end_time, 0, 84, color='r', linestyle='dashed')
+    get_all_notes(start_indexs, CQT, end)
 
     plt.subplot(2,1,2)
     sum_cols, sig_ff = get_sum_max_for_cols(filename)
