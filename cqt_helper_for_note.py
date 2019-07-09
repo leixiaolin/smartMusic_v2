@@ -212,7 +212,12 @@ def get_cqt_start_indexs(filename,filter_p1 = 7,filter_p2 = 1,row_level=30,sum_c
             tmp = x
             break
     selected_starts[0] = tmp
-    return selected_starts
+    result = []
+    result.append(selected_starts[0])
+    for i in range(1,len(selected_starts)):
+        if selected_starts[i] - result[-1] > 5:
+            result.append(selected_starts[i])
+    return result
 
 
 
@@ -256,7 +261,7 @@ def get_onset_frame_length(filename):
 
     return start,end,end-start
 
-def get_sum_max_for_cols(filename,filter_p1 = 17,filter_p2 = 3,row_level=30):
+def get_sum_max_for_cols(filename,filter_p1 = 51,filter_p2 = 3,row_level=20):
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     w, h = CQT.shape
@@ -279,16 +284,16 @@ def get_sum_max_for_cols(filename,filter_p1 = 17,filter_p2 = 3,row_level=30):
     result = [0,0,0,0,0,0,0,0,0,0]
     for i in range(10, h):
         col_cqt = CQT[row_level:, i]
-        sum_col_cqt = np.sum([1 for i in range(len(col_cqt)) if col_cqt[i] == max_cqt])
+        sum_col_cqt = np.sum([n for n in range(len(col_cqt)) if col_cqt[n] == max_cqt])
 
         result.append(sum_col_cqt)
 
-    from scipy.signal import savgol_filter
-    sig_ff = savgol_filter(result, filter_p1, filter_p2)  # window size 51, polynomial order 3
+    # from scipy.signal import savgol_filter
+    # sig_ff = savgol_filter(result, filter_p1, filter_p2)  # window size 51, polynomial order 3
 
-    # b, a = signal.butter(4, 0.2, analog=False)
-    # sig_ff = signal.filtfilt(b, a, result)
-    #sig_ff = [x / np.max(sig_ff) for x in sig_ff]
+    b, a = signal.butter(4, 0.2, analog=False)
+    sig_ff = signal.filtfilt(b, a, result)
+    sig_ff = [x / np.max(sig_ff) for x in sig_ff]
     return result,sig_ff
 
 def parse_rhythm_code(rhythm_code):
@@ -636,6 +641,7 @@ def get_best_onset_types(start_indexs,onset_frames,rhythm_code):
     return best_onset_frames,fake_onset_frames
 
 def get_all_notes(onset_frames,cqt,end_frame):
+    cqt = signal.medfilt(cqt, (5, 5))  # 二维中值滤波
     w,h = cqt.shape
     min_cqt = np.min(cqt)
     max_cqt = np.max(cqt)
@@ -780,11 +786,11 @@ if __name__ == "__main__":
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律8录音3(95).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1谭（98）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8文(58).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4王（56）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4欧(25).wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4王（56）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4欧(25).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音3(90).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋9.1(73).wav'
 
@@ -807,6 +813,7 @@ if __name__ == "__main__":
     plt.subplot(2,1,1)
     rms, sig_ff, max_indexs = get_cqt_diff(filename)
     times = librosa.frames_to_time(np.arange(len(rms)))
+    CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
     librosa.display.specshow(CQT, x_axis='time')
     #plt.plot(times, rms)
     #plt.plot(times, sig_ff)
@@ -892,7 +899,7 @@ if __name__ == "__main__":
     fake_onset_frames_time = librosa.frames_to_time(fake_onset_frames)
     plt.vlines(raw_start_indexs_time, 0, 84, color='w', linestyle='solid')
     #plt.vlines(start_indexs_time, 0,84, color='b', linestyle='solid')
-    #plt.vlines(max_indexs_time, 0, 84, color='r', linestyle='dashed')
+    plt.vlines(max_indexs_time, 0, 84, color='r', linestyle='dashed')
     #plt.vlines(fake_onset_frames_time, 0, 84, color='black', linestyle='dashed')
 
 
