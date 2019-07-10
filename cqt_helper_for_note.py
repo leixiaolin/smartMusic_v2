@@ -640,6 +640,45 @@ def get_best_onset_types(start_indexs,onset_frames,rhythm_code):
         return onset_frames,fake_onset_frames
     return best_onset_frames,fake_onset_frames
 
+def get_losses_from_rms_max(start_indexs,max_indexs,rhythm_code):
+
+    code = parse_rhythm_code(rhythm_code)
+    code = [int(x) for x in code]
+    selected_start_indexs = start_indexs.copy()
+
+    total_length_no_last = np.sum(code[:-1])
+    real_total_length_no_last = start_indexs[-1] - start_indexs[0]
+    rate = real_total_length_no_last / total_length_no_last
+    code_dict = {}
+    for x in range(125, 4000, 125):
+        code_dict[x] = int(x * rate)
+
+    start_indexs_diff = np.diff(start_indexs)
+    index_offset = 0
+    for i in range(1,len(start_indexs)):
+        start = start_indexs[i-1]
+        end = start_indexs[i]
+        gap = start_indexs_diff[i-1]
+        mayby_indexs = [x for x in max_indexs if x > start +5 and x < end -5]
+        current_index = i + index_offset -1
+        current_code_dict = code_dict.get(code[current_index])
+        all_note_widths = [code_dict.get(c) for c in code[current_index:]]
+        all_note_width_sum = [np.sum(all_note_widths[:i]) for i in range(1,len(all_note_widths))]
+        if gap > current_code_dict:
+            offset = [np.abs(gap - x) for x in all_note_width_sum]
+            min_index = offset.index(np.min(offset))
+            for m in range(1,min_index+1):
+                tmp = code_dict.get(code[m])
+                tmp = start + tmp
+                offset_tmp = [np.abs(tmp - m) for m in mayby_indexs]
+                offset_tmp_min_index = offset_tmp.index(np.min(offset_tmp))
+                selected_onset = mayby_indexs[offset_tmp_min_index]
+                selected_start_indexs.append(selected_onset)
+                index_offset += 1
+    selected_start_indexs.sort()
+    return selected_start_indexs
+
+
 def get_all_notes(onset_frames,cqt,end_frame):
     cqt = signal.medfilt(cqt, (5, 5))  # 二维中值滤波
     w,h = cqt.shape
@@ -659,7 +698,7 @@ def get_all_notes(onset_frames,cqt,end_frame):
         for i in range(10,w-5):
             row_cqt = [1 if x == max_cqt else 0 for x in cols_cqt[i]]
             col_sum[i] = np.sum(row_cqt)
-        max_indexs = [i for i in range(1,len(col_sum) -1) if col_sum[i] > col_sum[i-1] and col_sum[i] >= col_sum[i+1]]
+        max_indexs = [i for i in range(1,len(col_sum) -1) if col_sum[i] > col_sum[i-1] and col_sum[i] >= col_sum[i+1] and col_sum[i] > np.max(col_sum)*0.5]
         if len(max_indexs) > 0:
             all_notes.append(max_indexs[0])
     print("all_notes is {},size {}".format(all_notes,len(all_notes)))
@@ -830,8 +869,7 @@ if __name__ == "__main__":
     start_indexs_diff = np.diff(start_indexs)
 
     rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
-    max_indexs = [x for x in max_indexs if x > start-5 and x <  end]
-    max_indexs_diff = np.diff(max_indexs)
+    max_indexs = [x for x in max_indexs if x > start - 5 and x < end]
 
     raw_start_indexs = start_indexs.copy()
     if len(start_indexs) > 1 and len(max_indexs) > 1:
@@ -839,11 +877,8 @@ if __name__ == "__main__":
         print("dis_with_starts is {}".format(dis_with_starts))
         dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
         print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
-        dis_with_maxs = get_dtw(max_indexs_diff, base_frames_diff)
-        print("dis_with_maxs is {}".format(dis_with_maxs))
-        dis_with_maxs_on_first = get_dtw(max_indexs_diff[1:], base_frames_diff)
-        print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
-        all_dis = [dis_with_starts,dis_with_starts_no_first,dis_with_maxs,dis_with_maxs_on_first]
+
+        all_dis = [dis_with_starts,dis_with_starts_no_first]
         dis_min = np.min(all_dis)
         min_index = all_dis.index(dis_min)
         if 0 == min_index:
@@ -857,18 +892,7 @@ if __name__ == "__main__":
                 start_indexs = start_indexs
             else:
                 start_indexs = start_indexs[1:]
-        elif 2 == min_index:
-            start_indexs = max_indexs
-        elif 3 == min_index:
-            sum_cols, sig_ff = get_sum_max_for_cols(filename)
-            first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
-            if first_range > base_frames_diff[0]*0.3:
-                start_indexs = max_indexs
-            else:
-                start_indexs = max_indexs[1:]
-            print("1 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
-            start_indexs =check_rms_max_by_dtw(start_indexs, base_frames,raw_start_indexs)
-            print("2 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+
         # if dis_with_starts < dis_with_maxs:
         #     onsets_frames = start_indexs
         # else:
@@ -893,14 +917,19 @@ if __name__ == "__main__":
     start_indexs,fake_onset_frames = get_best_onset_types(raw_start_indexs, start_indexs, rhythm_code)
     print("6 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
     print("raw_start_indexs is {},size is {}".format(raw_start_indexs, len(raw_start_indexs)))
+    print("max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
+    selected_start_indexs = get_losses_from_rms_max(raw_start_indexs, max_indexs, rhythm_code)
+    print("selected_start_indexs is {},size is {}".format(selected_start_indexs, len(selected_start_indexs)))
+
     raw_start_indexs_time = librosa.frames_to_time(raw_start_indexs)
     start_indexs_time = librosa.frames_to_time(start_indexs)
     max_indexs_time = librosa.frames_to_time(max_indexs)
     fake_onset_frames_time = librosa.frames_to_time(fake_onset_frames)
+    selected_start_indexs_time = librosa.frames_to_time(selected_start_indexs)
     plt.vlines(raw_start_indexs_time, 0, 84, color='w', linestyle='solid')
     #plt.vlines(start_indexs_time, 0,84, color='b', linestyle='solid')
     plt.vlines(max_indexs_time, 0, 84, color='r', linestyle='dashed')
-    #plt.vlines(fake_onset_frames_time, 0, 84, color='black', linestyle='dashed')
+    plt.vlines(selected_start_indexs_time, 0, 84, color='b', linestyle='dashed')
 
 
     start_time = librosa.frames_to_time(start)

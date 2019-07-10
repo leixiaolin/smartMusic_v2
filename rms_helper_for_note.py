@@ -152,7 +152,7 @@ def get_rms_max_indexs_for_onset(filename):
     from scipy.signal import savgol_filter
     sig_ff = savgol_filter(rms, 5, 1)  # window size 51, polynomial order 3
     sig_ff = [x/np.std(sig_ff) for x in sig_ff]
-    max_indexs = [i for i in range(1,len(sig_ff)-1) if sig_ff[i]>sig_ff[i-1] and sig_ff[i]>sig_ff[i+1] and sig_ff[i] > np.max(sig_ff)*0.15]
+    max_indexs = [i for i in range(1,len(sig_ff)-1) if sig_ff[i]>sig_ff[i-1] and sig_ff[i]>sig_ff[i+1] and sig_ff[i] > np.max(sig_ff)*0.05]
     return rms_bak,rms,sig_ff,max_indexs
 
 def get_start_end_length_by_max_index(max_indexs,rhythm_code):
