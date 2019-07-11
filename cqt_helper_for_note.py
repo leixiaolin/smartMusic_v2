@@ -168,7 +168,7 @@ def get_cqt_diff(filename):
     max_indexs = [i for i in range(1,len(sig_ff)-1) if sig_ff[i]>sig_ff[i-1] and sig_ff[i]>sig_ff[i+1] and sig_ff[i] > 0.2]
     return result,sig_ff,max_indexs
 
-def get_cqt_start_indexs(filename,filter_p1 = 7,filter_p2 = 1,row_level=30,sum_cols_threshold=1):
+def get_cqt_start_indexs(filename,filter_p1 = 51,filter_p2 = 3,row_level=20,sum_cols_threshold=1):
     #print("filename is {}".format(filename))
     # y, sr = librosa.load(filename)
     # CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
@@ -217,9 +217,25 @@ def get_cqt_start_indexs(filename,filter_p1 = 7,filter_p2 = 1,row_level=30,sum_c
     for i in range(1,len(selected_starts)):
         if selected_starts[i] - result[-1] > 5:
             result.append(selected_starts[i])
-    return result
+    result_width = []
+    for i in range(len(result)):
+        start = result[i]
+        if i+1 <len(result):
+            end = result[i+1]
+        else:
+            end = len(sum_cols)
+        tmp = sum_cols[start+1:end]
+        width = list(tmp).index(0)
+        result_width.append(width)
 
-
+    maybe_starts = [i for i in range(10, len(sum_cols) - 5) if np.abs(sum_cols[i] - sum_cols[i + 3]) > 0 and sum_cols[i + 3] > 0 and sum_cols[i] > 0 and sum_cols[i-6] > 0 and np.abs(sum_cols[i] - sum_cols[i + 1]) > 0]
+    maybe_starts = [ x for x in maybe_starts if x not in result]
+    maybe_result = []
+    maybe_result.append(maybe_starts[0])
+    for i in range(1, len(maybe_starts)):
+        if maybe_starts[i] - maybe_result[-1] > 5:
+            maybe_result.append(maybe_starts[i])
+    return result,maybe_result,result_width
 
 def get_cqt_col_diff(filename):
     y, sr = librosa.load(filename)
@@ -245,7 +261,7 @@ def get_onset_frame_length(filename):
     cqt_col_diff[-10:] = 0
     #cqt_col_diff = [x if x > 2 else 0 for x in cqt_col_diff]
     end = len(cqt_col_diff)
-    starts = get_cqt_start_indexs(filename)
+    starts,maybe_starts,starts_width = get_cqt_start_indexs(filename)
 
     if len(starts) == 0:
         return 0,0,0
@@ -268,7 +284,7 @@ def get_sum_max_for_cols(filename,filter_p1 = 51,filter_p2 = 3,row_level=20):
     CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
     min_cqt = np.min(CQT)
     max_cqt = np.max(CQT)
-    CQT = signal.medfilt(CQT, (5, 5))  #二维中值滤波
+    CQT = signal.medfilt(CQT, (3, 3))  # 二维中值滤波
 
     # 滤波去噪声
     for i in range(10, h):
@@ -294,6 +310,8 @@ def get_sum_max_for_cols(filename,filter_p1 = 51,filter_p2 = 3,row_level=20):
     b, a = signal.butter(4, 0.2, analog=False)
     sig_ff = signal.filtfilt(b, a, result)
     sig_ff = [x / np.max(sig_ff) for x in sig_ff]
+    start_index = int(len(result)*0.25)
+    result[:start_index] = signal.medfilt(result[:start_index], 5)  # 一维中值滤波
     return result,sig_ff
 
 def parse_rhythm_code(rhythm_code):
@@ -431,10 +449,10 @@ def modify_row_level(filename):
     base_frames = get_base_frames_for_onset(filename)
     base_frames_diff = np.diff(base_frames)
     best_dis = 0
-    best_start_indexs = get_cqt_start_indexs(filename)
+    best_start_indexs,mayby_indexs,starts_width = get_cqt_start_indexs(filename)
     best_row_level = 31
     for row_level in range(31,55):
-        start_indexs = get_cqt_start_indexs(filename, filter_p1=31, filter_p2=12, row_level=row_level)
+        start_indexs,mayby_indexs,starts_width = get_cqt_start_indexs(filename, filter_p1=31, filter_p2=12, row_level=row_level)
         start_indexs_diff = np.diff(start_indexs)
         base_frames = [x - (base_frames[0]-start_indexs[0]) for x in base_frames]
         dis = get_dtw(start_indexs_diff,base_frames_diff)
@@ -640,7 +658,7 @@ def get_best_onset_types(start_indexs,onset_frames,rhythm_code):
         return onset_frames,fake_onset_frames
     return best_onset_frames,fake_onset_frames
 
-def get_losses_from_rms_max(start_indexs,max_indexs,rhythm_code):
+def get_losses_from_rms_max(start_indexs,max_indexs,rhythm_code,end_frame):
 
     code = parse_rhythm_code(rhythm_code)
     code = [int(x) for x in code]
@@ -655,32 +673,153 @@ def get_losses_from_rms_max(start_indexs,max_indexs,rhythm_code):
 
     start_indexs_diff = np.diff(start_indexs)
     index_offset = 0
-    for i in range(1,len(start_indexs)):
+    current_index = 0
+    for i in range(1,len(start_indexs)+1):
         start = start_indexs[i-1]
-        end = start_indexs[i]
-        gap = start_indexs_diff[i-1]
+        if i < len(start_indexs):
+            end = start_indexs[i]
+            gap = start_indexs_diff[i-1]
+        else:
+            end = end_frame
+            gap = end - start
         mayby_indexs = [x for x in max_indexs if x > start +5 and x < end -5]
-        current_index = i + index_offset -1
         current_code_dict = code_dict.get(code[current_index])
         all_note_widths = [code_dict.get(c) for c in code[current_index:]]
-        all_note_width_sum = [np.sum(all_note_widths[:i]) for i in range(1,len(all_note_widths))]
-        if gap > current_code_dict:
+        all_note_width_sum = [np.sum(all_note_widths[:i]) for i in range(1,len(all_note_widths)+1)]
+
+        last_selected_onset = 0
+        if gap > current_code_dict and gap > all_note_width_sum[1]:
             offset = [np.abs(gap - x) for x in all_note_width_sum]
             min_index = offset.index(np.min(offset))
-            for m in range(1,min_index+1):
-                tmp = code_dict.get(code[m])
+            for m in range(0,min_index):
+                tmp = code_dict.get(code[current_index + m])
                 tmp = start + tmp
+                if tmp > mayby_indexs[-1]:
+                    break
                 offset_tmp = [np.abs(tmp - m) for m in mayby_indexs]
                 offset_tmp_min_index = offset_tmp.index(np.min(offset_tmp))
                 selected_onset = mayby_indexs[offset_tmp_min_index]
-                selected_start_indexs.append(selected_onset)
-                index_offset += 1
+                if selected_onset > last_selected_onset:
+                    selected_start_indexs.append(selected_onset)
+                    index_offset += 1
+                    last_selected_onset = selected_onset
+                    start = tmp
+                else:
+                    selected_onset = mayby_indexs[offset_tmp_min_index+1]
+                    selected_start_indexs.append(selected_onset)
+                    index_offset += 1
+                    last_selected_onset = selected_onset
+                    start = tmp
+            current_index += index_offset
+            index_offset = 0
+        current_index += 1
     selected_start_indexs.sort()
     return selected_start_indexs
 
+def get_losses_from_maybe_onset(start_indexs,start_indexs_width,mayby_indexs,rhythm_code,end_frame):
+
+    code = parse_rhythm_code(rhythm_code)
+    code = [int(x) for x in code]
+    selected_start_indexs = start_indexs.copy()
+
+    total_length_no_last = np.sum(code[:-1])
+    real_total_length_no_last = start_indexs[-1] - start_indexs[0]
+    rate = real_total_length_no_last / total_length_no_last
+    code_dict = {}
+    for x in range(125, 5000, 125):
+        code_dict[x] = int(x * rate)
+
+    index_offset = 0
+    current_index = 0
+    # current_code_dict = code_dict.get(code[current_index])
+    # all_note_widths = [code_dict.get(c) for c in code[current_index:]]
+    # all_note_width_sum = [np.sum(all_note_widths[:i]) for i in range(1, len(all_note_widths) + 1)]
+    for i in range(0,len(start_indexs)):
+        if current_index > len(code)-1:
+            break
+        current_code_dict = code_dict.get(code[current_index])
+        all_note_widths = [code_dict.get(c) for c in code[current_index:]]
+        if all_note_widths[-1] is None:
+            break
+        #print(" all_note_widths[-1],code_dict.get(2000) is {},{}".format( all_note_widths[-1],code_dict.get(2000)))
+        if all_note_widths[-1] >= code_dict.get(2000):
+            all_note_widths[-1] = all_note_widths[-1] *0.85
+        all_note_width_sum = [np.sum(all_note_widths[:i]) for i in range(1, len(all_note_widths) + 1)]
+
+        current_width = start_indexs_width[i]
+
+        if current_code_dict <= code_dict.get(250):
+            if current_width > current_code_dict * 1.3:
+                mod = current_width // current_code_dict #求模
+                for m in range(1,mod):
+                    if len(selected_start_indexs) < len(code):
+                        selected_onset = start_indexs[i] + current_code_dict*m
+                        selected_start_indexs.append(selected_onset)
+                        selected_start_indexs.sort()
+                        current_index += 1
+                if current_width - current_code_dict * mod > current_code_dict *0.3:
+                    if len(selected_start_indexs) < len(code):
+                        selected_onset = start_indexs[i] + current_code_dict * mod
+                        selected_start_indexs.append(selected_onset)
+                        selected_start_indexs.sort()
+                        current_index += 1
+        else:
+            offset = [np.abs(current_width - x) for x in all_note_width_sum] # 到起点的距离，即节拍长度
+            min_index =offset.index(np.min(offset))  #匹配节拍的序号
+            if min_index == 0:
+                if current_width > current_code_dict and i < len(start_indexs)-1 and start_indexs[i+1] - start_indexs[i]  - all_note_width_sum[1] < np.min(offset):
+                    if len(selected_start_indexs) < len(code):
+                        selected_onset = start_indexs[i] + all_note_width_sum[0]
+                        selected_start_indexs.append(selected_onset)
+                        selected_start_indexs.sort()
+                        current_index += 1
+            else:
+                for m in range(0,min_index):
+                    if len(selected_start_indexs) < len(code):
+                        selected_onset = start_indexs[i] + all_note_width_sum[m]
+                        selected_start_indexs.append(selected_onset)
+                        selected_start_indexs.sort()
+                        current_index += 1
+        current_index += 1
+    return selected_start_indexs
+
+def get_losses_by_dtw(start_indexs,max_indexs,base_frames,end_frame):
+    max_indexs = [x for x in max_indexs if x > start_indexs[0] + 4 and x < end_frame - 5 and x not in start_indexs]
+    print("max_indexs is {},size {}".format(max_indexs, len(max_indexs)))
+    base_frames = [x - (base_frames[0]- start_indexs[0]) for x in base_frames]
+    offset_length = len(base_frames) - len(start_indexs)
+    best_x = []
+    step = 0
+    init_tmp = start_indexs.copy()
+    init_tmp.append(end_frame)
+    base_frames.append(end_frame)
+    print("base_frames is {},size {}".format(base_frames,len(base_frames)))
+    best_dtw = 1000000000
+    while step <= offset_length:
+        tmp = init_tmp
+        for x in max_indexs:
+            tmp = init_tmp.copy()
+            tmp.append(x)
+            tmp.sort()
+            dis = get_dtw(np.diff(tmp),np.diff(base_frames))
+            #dis = get_dtw(tmp, base_frames)
+            print("================x,dis,best_dtw is {},{},{}".format(x,dis,best_dtw))
+            if dis < best_dtw:
+                best_dtw = dis
+                best_x = x
+                best_tmp = tmp
+        print("best_dtw is {}".format(best_dtw))
+        print("best_x is {}".format(best_x))
+        print("best_tmp is {},size {}".format(best_tmp,len(best_tmp)))
+        init_tmp = best_tmp
+        max_indexs = [x for x in max_indexs if x != best_x]
+        step += 1
+    return best_tmp
+
+
 
 def get_all_notes(onset_frames,cqt,end_frame):
-    cqt = signal.medfilt(cqt, (5, 5))  # 二维中值滤波
+    #cqt = signal.medfilt(cqt, (5, 5))  # 二维中值滤波
     w,h = cqt.shape
     min_cqt = np.min(cqt)
     max_cqt = np.max(cqt)
@@ -700,8 +839,17 @@ def get_all_notes(onset_frames,cqt,end_frame):
             col_sum[i] = np.sum(row_cqt)
         max_indexs = [i for i in range(1,len(col_sum) -1) if col_sum[i] > col_sum[i-1] and col_sum[i] >= col_sum[i+1] and col_sum[i] > np.max(col_sum)*0.5]
         if len(max_indexs) > 0:
-            all_notes.append(max_indexs[0])
-    print("all_notes is {},size {}".format(all_notes,len(all_notes)))
+            if len(all_notes) ==0:
+                all_notes.append(max_indexs[0])
+            elif np.abs(max_indexs[0] - all_notes[-1]) < 8:
+                all_notes.append(max_indexs[0])
+            else:
+                all_notes.append(max_indexs[0] - 12)
+            #print("x is {}, note is {}".format(x,max_indexs[0]))
+        else:
+            #print("x is {}, note is {}".format(x,None))
+            pass
+    #print("all_notes is {},size {}".format(all_notes,len(all_notes)))
     return all_notes
 
 if __name__ == "__main__":
@@ -824,7 +972,7 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3.3(96).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律8录音3(95).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1谭（98）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1谭（98）.wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8文(58).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
@@ -833,11 +981,19 @@ if __name__ == "__main__":
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音3(90).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋9.1(73).wav'
 
+    # ============================== ok start ===============================
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4王（56）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1谭（98）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4欧(25).wav'
+    # ============================== ok end ===============================
+
     result_path = 'e:/test_image/n/'
     type_index = get_onsets_index_by_filename_rhythm(filename)
     rhythm_code = get_code(type_index, 2)
     pitch_code = get_code(type_index, 3)
 
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低 66
     # rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
     # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
@@ -852,7 +1008,7 @@ if __name__ == "__main__":
     plt.subplot(2,1,1)
     rms, sig_ff, max_indexs = get_cqt_diff(filename)
     times = librosa.frames_to_time(np.arange(len(rms)))
-    CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
+    CQT = signal.medfilt(CQT, (3, 3))  # 二维中值滤波
     librosa.display.specshow(CQT, x_axis='time')
     #plt.plot(times, rms)
     #plt.plot(times, sig_ff)
@@ -864,7 +1020,10 @@ if __name__ == "__main__":
     base_frames = onsets_base_frames_rhythm(rhythm_code, length)
     base_frames_diff =np.diff(base_frames)
 
-    start_indexs = get_cqt_start_indexs(filename)
+    start_indexs,maybe_start_indexs,starts_width = get_cqt_start_indexs(filename)
+    print("0 start_indexs is {},size {}".format(start_indexs,len(start_indexs)))
+    print("0 starts_width is {},size {}".format(starts_width, len(starts_width)))
+    start_indexs = [x for x in start_indexs if x > start - 5 and x < end]
     raw_start_indexs = start_indexs.copy()
     start_indexs_diff = np.diff(start_indexs)
 
@@ -902,11 +1061,11 @@ if __name__ == "__main__":
         start_indexs = max_indexs
 
     print("3 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
-    if len(start_indexs) != len(base_frames):
-        start_indexs = check_each_onset(start_indexs, rhythm_code)
-        print("4 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
-        start_indexs = add_loss_small_onset(start_indexs, rhythm_code)
-        print("5 start_indexs is {},size is {}".format(start_indexs,len(start_indexs)))
+    # if len(start_indexs) != len(base_frames):
+    #     start_indexs = check_each_onset(start_indexs, rhythm_code)
+    #     print("4 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+    #     start_indexs = add_loss_small_onset(start_indexs, rhythm_code)
+    #     print("5 start_indexs is {},size is {}".format(start_indexs,len(start_indexs)))
     # types = get_onset_type(start_indexs, rhythm_code)
     # types[7] = types[6] + types[7]
     # types.remove(125)
@@ -918,25 +1077,29 @@ if __name__ == "__main__":
     print("6 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
     print("raw_start_indexs is {},size is {}".format(raw_start_indexs, len(raw_start_indexs)))
     print("max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
-    selected_start_indexs = get_losses_from_rms_max(raw_start_indexs, max_indexs, rhythm_code)
+    #selected_start_indexs = get_losses_from_rms_max(raw_start_indexs, max_indexs, rhythm_code,end)
+    #selected_start_indexs = get_losses_by_dtw(raw_start_indexs,maybe_start_indexs,base_frames,end)
+    selected_start_indexs = get_losses_from_maybe_onset(raw_start_indexs,starts_width,maybe_start_indexs,rhythm_code,end)
     print("selected_start_indexs is {},size is {}".format(selected_start_indexs, len(selected_start_indexs)))
 
     raw_start_indexs_time = librosa.frames_to_time(raw_start_indexs)
+    maybe_start_indexs_time = librosa.frames_to_time(maybe_start_indexs)
     start_indexs_time = librosa.frames_to_time(start_indexs)
     max_indexs_time = librosa.frames_to_time(max_indexs)
     fake_onset_frames_time = librosa.frames_to_time(fake_onset_frames)
     selected_start_indexs_time = librosa.frames_to_time(selected_start_indexs)
     plt.vlines(raw_start_indexs_time, 0, 84, color='w', linestyle='solid')
     #plt.vlines(start_indexs_time, 0,84, color='b', linestyle='solid')
-    plt.vlines(max_indexs_time, 0, 84, color='r', linestyle='dashed')
+    #plt.vlines(max_indexs_time, 0, 84, color='r', linestyle='dashed')
     plt.vlines(selected_start_indexs_time, 0, 84, color='b', linestyle='dashed')
+    #plt.vlines(maybe_start_indexs_time, 0, 84, color='y', linestyle='dashed')
 
 
     start_time = librosa.frames_to_time(start)
     end_time = librosa.frames_to_time(end)
-    plt.vlines(start_time, 0, 84, color='r', linestyle='dashed')
-    plt.vlines(end_time, 0, 84, color='r', linestyle='dashed')
-    get_all_notes(start_indexs, CQT, end)
+    plt.vlines(start_time, 0, 40, color='r', linestyle='dashed')
+    plt.vlines(end_time, 0, 40, color='r', linestyle='dashed')
+    get_all_notes(selected_start_indexs, CQT, end)
 
     plt.subplot(2,1,2)
     sum_cols, sig_ff = get_sum_max_for_cols(filename)
@@ -945,8 +1108,9 @@ if __name__ == "__main__":
     starts = [i for i in range(1, len(sig_ff) - 1) if sig_ff[i] > sig_ff[i - 1] and sig_ff[i] >= sig_ff[i + 1] and sig_ff[i] > 3]
 
     # best_row_level, best_start_indexs = modify_row_level(filename)
-    # best_start_indexs_times = librosa.frames_to_time(best_start_indexs)
-    # plt.vlines(best_start_indexs_times, 0, 15, color='r', linestyle='solid')
+    base_frames = [x - (base_frames[0]-start_indexs[0]) for x in base_frames]
+    base_frames_times = librosa.frames_to_time(base_frames)
+    plt.vlines(base_frames_times, 0, np.max(sum_cols)/2, color='r', linestyle='solid')
 
     times = librosa.frames_to_time(np.arange(len(rms)))
     sum_cols_diff = list(np.diff(sum_cols))
