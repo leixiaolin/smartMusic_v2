@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-from rms_helper_for_note import *
 from cqt_helper_for_note import *
 from create_base import *
 
