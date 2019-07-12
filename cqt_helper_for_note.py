@@ -225,8 +225,20 @@ def get_cqt_start_indexs(filename,filter_p1 = 51,filter_p2 = 3,row_level=20,sum_
         else:
             end = len(sum_cols)
         tmp = sum_cols[start+1:end]
-        width = list(tmp).index(0)
+        tmp_max_index = tmp.index(np.max(tmp))
+        tmp[:tmp_max_index] = np.ones(tmp_max_index)
+        if np.min(tmp) == 0:
+            width = list(tmp).index(0)
+        else:
+            width = end - start
         result_width.append(width)
+
+    selected_result = []
+    selected_result_width = []
+    for i in range(len(result)):
+        if result_width[i] >= 4:
+            selected_result.append(result[i])
+            selected_result_width.append(result_width[i])
 
     maybe_starts = [i for i in range(10, len(sum_cols) - 5) if np.abs(sum_cols[i] - sum_cols[i + 3]) > 0 and sum_cols[i + 3] > 0 and sum_cols[i] > 0 and sum_cols[i-6] > 0 and np.abs(sum_cols[i] - sum_cols[i + 1]) > 0]
     maybe_starts = [ x for x in maybe_starts if x not in result]
@@ -235,7 +247,7 @@ def get_cqt_start_indexs(filename,filter_p1 = 51,filter_p2 = 3,row_level=20,sum_
     for i in range(1, len(maybe_starts)):
         if maybe_starts[i] - maybe_result[-1] > 5:
             maybe_result.append(maybe_starts[i])
-    return result,maybe_result,result_width
+    return selected_result,maybe_result,selected_result_width
 
 def get_cqt_col_diff(filename):
     y, sr = librosa.load(filename)
@@ -767,7 +779,7 @@ def get_losses_from_maybe_onset(start_indexs,start_indexs_width,mayby_indexs,rhy
             offset = [np.abs(current_width - x) for x in all_note_width_sum] # 到起点的距离，即节拍长度
             min_index =offset.index(np.min(offset))  #匹配节拍的序号
             if min_index == 0:
-                if current_width > current_code_dict and i < len(start_indexs)-1 and start_indexs[i+1] - start_indexs[i]  - all_note_width_sum[1] < np.min(offset):
+                if current_width > current_code_dict and i < len(start_indexs)-1 and np.abs(start_indexs[i+1] - start_indexs[i]  - all_note_width_sum[1]) < np.min(offset):
                     if len(selected_start_indexs) < len(code):
                         selected_onset = start_indexs[i] + all_note_width_sum[0]
                         selected_start_indexs.append(selected_onset)
@@ -988,12 +1000,19 @@ if __name__ == "__main__":
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4欧(25).wav'
     # ============================== ok end ===============================
 
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋10文(97).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4.4(0).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2.3(95).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2录音1(90).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/4，98.wav'
+
     result_path = 'e:/test_image/n/'
     type_index = get_onsets_index_by_filename_rhythm(filename)
     rhythm_code = get_code(type_index, 2)
     pitch_code = get_code(type_index, 3)
 
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低 66
+    rhythm_code, pitch_code = '[500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000]', '[5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]'
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低 66
     # rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
     # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
@@ -1031,7 +1050,7 @@ if __name__ == "__main__":
     max_indexs = [x for x in max_indexs if x > start - 5 and x < end]
 
     raw_start_indexs = start_indexs.copy()
-    if len(start_indexs) > 1 and len(max_indexs) > 1:
+    if len(start_indexs) > 2:
         dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
         print("dis_with_starts is {}".format(dis_with_starts))
         dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
@@ -1061,6 +1080,8 @@ if __name__ == "__main__":
         start_indexs = max_indexs
 
     print("3 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+    print("3 starts_width is {},size is {}".format(starts_width, len(starts_width)))
+    print("3 rhythm_code is {},size is {}".format(rhythm_code, len(rhythm_code)))
     # if len(start_indexs) != len(base_frames):
     #     start_indexs = check_each_onset(start_indexs, rhythm_code)
     #     print("4 start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))

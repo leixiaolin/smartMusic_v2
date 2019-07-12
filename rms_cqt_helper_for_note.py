@@ -74,7 +74,7 @@ def cal_score_onset_and_note(filename,rhythm_code,pitch_code):
 
     raw_start_indexs = start_indexs.copy()
 
-    if len(start_indexs) > 1:
+    if len(start_indexs) > 2:
         dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
         #print("dis_with_starts is {}".format(dis_with_starts))
         dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
@@ -98,9 +98,11 @@ def cal_score_onset_and_note(filename,rhythm_code,pitch_code):
     else:
         onsets_frames = max_indexs
 
-
+    #print("3 onsets_frames is {},size is {}".format(onsets_frames, len(onsets_frames)))
+    #print("3 starts_width is {},size is {}".format(starts_width, len(starts_width)))
+    #print("3 rhythm_code is {},size is {}".format(rhythm_code, len(rhythm_code)))
     onsets_frames = get_losses_from_maybe_onset(raw_start_indexs, starts_width, maybe_start_indexs, rhythm_code,end)
-
+    #print("4 onsets_frames is {},size is {}".format(onsets_frames, len(onsets_frames)))
 
     if len(onsets_frames) == 0:
         return 0,0,0,0,[],[],[]

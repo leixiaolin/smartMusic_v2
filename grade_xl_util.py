@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 import argparse
 import sys
-from note_lines_helper import *
+from rms_cqt_helper_for_note import *
 import warnings
 warnings.simplefilter('ignore')
 
@@ -34,7 +34,7 @@ else:
     print("melody_code is {}".format(melody_code))
     #file_path = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4欧(95).wav'
     #file_code = '[19,60,92,128,161,178,197,230,263]'
-    total_score, onset_score, note_scroe,detail_content,onsets_frames,maybe_onset_frames = get_melody_score(file_path,rhythm_code,melody_code)
+    total_score, onset_score, note_scroe,maybe_onset_frames, onsets_frames,detail_content = cal_score_onset_and_note(file_path,rhythm_code,melody_code)
     print("total_score,onset_score, note_scroe is {},{},{}".format(total_score,onset_score, note_scroe))
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'

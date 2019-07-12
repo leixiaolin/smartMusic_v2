@@ -146,6 +146,7 @@ def draw_detail(filename,rhythm_code,pitch_code):
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
+    CQT = signal.medfilt(CQT, (3, 3))  # 二维中值滤波
     librosa.display.specshow(CQT, x_axis='time')
     # start_indexs = check_starts_with_max_index(filename)
     start_indexs_time = librosa.frames_to_time(start_indexs)
@@ -209,7 +210,7 @@ def batch_test(dir_list):
     #dir_list = []
     total_accuracy = 0
     total_num = 0
-    result_path = 'e:/test_image/o/'
+    result_path = 'e:/test_image/n/'
     # clear_dir(result_path)
     # 要测试的数量
     test_num = 100
@@ -243,6 +244,7 @@ def batch_test(dir_list):
             type_index = get_onsets_index_by_filename_rhythm(dir + filename)
             rhythm_code = get_code(type_index, 2)
             pitch_code = get_code(type_index, 3)
+            rhythm_code, pitch_code =  '[500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000]', '[5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]'
             total_score, onset_score, note_score, standard_y, start_indexs, detail_content = cal_score_onset_and_note(dir + filename,rhythm_code,pitch_code)
             print("score, onset_score, note_score is {},{},{}".format(total_score, onset_score, note_score))
             print("detail_content is {}".format(detail_content))
@@ -292,6 +294,10 @@ if __name__ == "__main__":
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1谭（98）.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4欧(25).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4.4(0).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2.3(95).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2.4(50).wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2录音1(90).wav'
 
     result_path = 'e:/test_image/n/'
     plt.close()
@@ -299,13 +305,13 @@ if __name__ == "__main__":
     rhythm_code = get_code(type_index, 2)
     pitch_code = get_code(type_index, 3)
 
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1089.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低  99
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1089.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低  99
     # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1328.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #音准节奏均正确，给分偏低  99
     # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1586.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #音准节奏均正确，给分偏低  95
     # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #音准节奏均正确，给分偏低 90
     # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'          # 音准节奏均正确，给分偏低 90
     # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-8973.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #音准节奏均正确，给分偏低 98
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #这个给九分多是可以的 67
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #这个给九分多是可以的 67
     # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #故意把最后一个音唱错了，节奏全对,扣0.5左右即可 64
     # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  # 这一条故意唱错了两个音，节奏是对的，这个扣一分即可 72
     # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  # 这一条节奏不是太稳，但音高基本正确,9.5分是没问题的 93
@@ -319,6 +325,6 @@ if __name__ == "__main__":
     plt = draw_detail(filename,rhythm_code,pitch_code)
     plt.show()
 
-    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/']
-    dir_list = ['F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/']
-    #batch_test(dir_list)
+    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/']
+    batch_test(dir_list)
