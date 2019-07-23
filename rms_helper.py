@@ -324,8 +324,17 @@ if __name__ == "__main__":
     onset_code = get_code(type_index, 1)
     rhythm_code = get_code(type_index, 2)
     pitch_code = get_code(type_index, 3)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  # 应该给接近九分
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      100
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 应该有七分左右 74
+    #                  93
     # rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
     # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
+
+
+
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
     # plt, total_score, onset_score, note_scroe, detail_content = draw_plt(filename, rhythm_code, pitch_code)
@@ -357,8 +366,11 @@ if __name__ == "__main__":
     plt.xlim(0, np.max(times))
 
     plt.subplot(3, 1,3)
-    xc, yc = get_matched_onset_frames_compared(max_indexs, base_frames)
-    xc_times = librosa.frames_to_time(xc)
+    #xc, yc = get_matched_onset_frames_compared(max_indexs, base_frames)
+    print("base_frames is {}, size {}".format(base_frames, len(base_frames)))
+    print("max_indexs is {}, size {}".format(max_indexs, len(max_indexs)))
+    xc,yc, path1, path2,loss_indexs = get_matched_frames(base_frames,max_indexs)
+    xc_times = librosa.frames_to_time(yc)
     plt.vlines(xc_times, 0, 10, color='r', linestyle='dashed')
     plt.xlim(0, np.max(times))
 

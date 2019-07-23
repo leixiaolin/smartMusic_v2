@@ -56,20 +56,38 @@ def parse_rhythm_code(rhythm_code):
 
 def cal_score_onset_and_note(filename,rhythm_code,pitch_code):
     # 标准节拍时间点
-    start, end, total_frames_number = get_onset_frame_length(filename)
+    start, end, total_frames_number = get_onset_frame_length(filename,rhythm_code)
     base_frames = onsets_base_frames(rhythm_code, total_frames_number)
 
     base_frames_diff = np.diff(base_frames)
 
+    rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
+    max_indexs = [x for x in max_indexs if x > start - 5 and x < end]
+    max_indexs, all_height = get_heigth_for_max_indexs(sig_ff, max_indexs, rhythm_code)
+
     start_indexs, maybe_start_indexs, starts_width = get_cqt_start_indexs(filename)
-    #print("0 start_indexs is {},size {}".format(start_indexs, len(start_indexs)))
-    #print("0 starts_width is {},size {}".format(starts_width, len(starts_width)))
+    # print("0 start_indexs is {},size {}".format(start_indexs, len(start_indexs)))
+
+    # print("gap is {}".format(len(start_indexs) - len(base_frames)))
+    min_diff_start = np.min(np.diff(start_indexs))
+    max_diff_start = np.max(np.diff(start_indexs))
+    if len(base_frames) > len(start_indexs) :
+        tmp = []
+        for x in max_indexs:
+            offset = [np.abs(x - s) for s in start_indexs]
+            if np.min(offset) > min_diff_start * 0.5 and np.min(offset) < max_diff_start * 0.4:
+                tmp.append(x)
+        start_indexs = check_with_combinations(tmp, start_indexs, base_frames)
+        # print("1 start_indexs is {},size {}".format(start_indexs, len(start_indexs)))
+
+    start_indexs,starts_width = get_note_width(filename, start_indexs)
+
+    # print("2 start_indexs is {},size {}".format(start_indexs, len(start_indexs)))
+    # print("2 starts_width is {},size {}".format(starts_width, len(starts_width)))
     start_indexs = [x for x in start_indexs if x > start - 5 and x < end]
     raw_start_indexs = start_indexs.copy()
     start_indexs_diff = np.diff(start_indexs)
 
-    rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
-    max_indexs = [x for x in max_indexs if x > start - 5 and x < end]
 
     raw_start_indexs = start_indexs.copy()
 
@@ -101,7 +119,7 @@ def cal_score_onset_and_note(filename,rhythm_code,pitch_code):
     #print("3 starts_width is {},size is {}".format(starts_width, len(starts_width)))
     #print("3 rhythm_code is {},size is {}".format(rhythm_code, len(rhythm_code)))
     onsets_frames = get_losses_from_maybe_onset(raw_start_indexs, starts_width, maybe_start_indexs, rhythm_code,end)
-    #print("4 onsets_frames is {},size is {}".format(onsets_frames, len(onsets_frames)))
+    print("4 onsets_frames is {},size is {}".format(onsets_frames, len(onsets_frames)))
 
     if len(onsets_frames) == 0:
         return 0,0,0,0,[],[],[]

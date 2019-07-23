@@ -152,9 +152,41 @@ def get_rms_max_indexs_for_onset(filename):
     from scipy.signal import savgol_filter
     sig_ff = savgol_filter(rms, 5, 1)  # window size 51, polynomial order 3
     sig_ff = [x/np.std(sig_ff) for x in sig_ff]
-    max_indexs = [i for i in range(1,len(sig_ff)-1) if sig_ff[i]>sig_ff[i-1] and sig_ff[i]>sig_ff[i+1] and sig_ff[i] > np.max(sig_ff)*0.05]
+    max_indexs = [i for i in range(1,len(sig_ff)-1) if sig_ff[i]>sig_ff[i-1] and sig_ff[i]>sig_ff[i+1] and sig_ff[i] > np.std(sig_ff)*0.45]
     return rms_bak,rms,sig_ff,max_indexs
 
+def get_heigth_for_max_indexs(sig_ff,max_indexs,rhythm_code):
+
+    code = parse_rhythm_code(rhythm_code)
+    code = [int(x) for x in code]
+
+    result = []
+    result_height = []
+    all_height = []
+    for i in range(len(max_indexs)):
+        if i == 0:
+            start = 5
+        else:
+            start = max_indexs[i-1]
+        end = max_indexs[i]
+        for x in range(end-1,start,-1):
+            if sig_ff[x-1] >= sig_ff[x]:
+                if sig_ff[end] - sig_ff[x] > np.std(sig_ff)*0.25:
+                    all_height.append(sig_ff[end] - sig_ff[x])
+                    result.append(end)
+                break
+    if len(max_indexs) <= len(code):
+        return result,all_height
+    else:
+        topN_max_indexs = find_n_largest(all_height,len(code))
+        result = []
+        result_height = []
+        for x in topN_max_indexs:
+            m = max_indexs[x]
+            h = all_height[x]
+            result.append(m)
+            result_height.append(h)
+        return result,result_height
 def get_start_end_length_by_max_index(max_indexs,rhythm_code):
     code = parse_rhythm_code(rhythm_code)
     code = [int(x) for x in code]
@@ -335,18 +367,37 @@ if __name__ == "__main__":
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1录音3(90).wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋9.1(73).wav'
 
+
     result_path = 'e:/test_image/n/'
     type_index = get_onsets_index_by_filename_rhythm(filename)
     rhythm_code = get_code(type_index, 2)
     pitch_code = get_code(type_index, 3)
 
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1089.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低  99
+    # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1328.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #音准节奏均正确，给分偏低  99
+    # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1586.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #音准节奏均正确，给分偏低  95
+    # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #音准节奏均正确，给分偏低 90
+    # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'          # 音准节奏均正确，给分偏低 90
+    # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-8973.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #音准节奏均正确，给分偏低 98
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #这个给九分多是可以的 67
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  # 故意把最后一个音唱错了，节奏全对,扣0.5左右即可 64
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  # 这一条故意唱错了两个音，节奏是对的，这个扣一分即可 72
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  # 这一条节奏不是太稳，但音高基本正确,9.5分是没问题的 93
+
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-5.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #  准确 96
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #基本可给满分 59
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #第一个节奏应该扣分，最后一个音没唱，应该没分  79
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #节奏全对，旋律错最后一个  86
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
     # plt, total_score, onset_score, note_scroe, detail_content = draw_plt(filename, rhythm_code, pitch_code)
     # plt.show()
     # plt.clf()
     rms,rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
-    print("max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
+    print("0 max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
+    max_indexs,all_height = get_heigth_for_max_indexs(sig_ff, max_indexs,rhythm_code)
+    print("1 max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
+    print("all_height is {},size is {}".format(all_height, len(all_height)))
 
     start, end, total_length = get_start_end_length_by_max_index(max_indexs, rhythm_code)
     #max_indexs = get_topN_rms_max_indexs_for_onset(filename, 10)

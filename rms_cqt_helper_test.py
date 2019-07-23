@@ -139,22 +139,24 @@ def write_txt(content, filename, mode='w'):
         f.write(content)
 def draw_detail(filename,onset_code):
     score, lost_score, ex_score, min_d, standard_y, start_indexs, detail_content = get_score_for_onset_by_frame(filename, onset_code)
-    print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
-
+    #print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
 
     plt.subplot(4, 1, 1)
+    plt.title(filename)
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     CQT = np.where(CQT > -22, np.max(CQT), np.min(CQT))
     librosa.display.specshow(CQT, x_axis='time')
     # start_indexs = check_starts_with_max_index(filename)
     start_indexs_time = librosa.frames_to_time(start_indexs)
-    plt.vlines(start_indexs_time, 0, 84, color='b', linestyle='dashed')
-    start, end, length = get_onset_frame_length(filename)
+    plt.vlines(start_indexs_time, 0, 84, color='r', linestyle='dashed')
+    start, end, length = get_onset_frame_length(filename,onset_code)
     start_time = librosa.frames_to_time(start)
     end_time = librosa.frames_to_time(end)
-    plt.vlines(start_time, 0, 40, color='r', linestyle='dashed')
-    plt.vlines(end_time, 0, 40, color='r', linestyle='dashed')
+    plt.vlines(start_time, 0, 40, color='white', linestyle='dashed')
+    plt.vlines(end_time, 0, 40, color='white', linestyle='dashed')
 
 
     print("score, lost_score, ex_score is {},{},{}".format(score, lost_score, ex_score))
@@ -181,6 +183,7 @@ def draw_detail(filename,onset_code):
 
     plt.subplot(4, 1, 4)
     rms,rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
+    max_indexs = [x for x in max_indexs if x >= start - 5 and x < base_frames[-1] + int((end - base_frames[-1]) * 0.65)]
     #print("=====max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
     times = librosa.frames_to_time(np.arange(len(rms)))
     plt.plot(times, rms)
@@ -281,6 +284,192 @@ def batch_test(dir_list):
 
         write_txt(files_list, new_old_txt, mode='w')
 
+def test_batch_samples():
+    files,onset_codes = [],[]
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 第1条 这个可以给满分                       95/90
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 第3条 故意错一个，扣一分即可               89?86
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 第4条 故意错了两处，应该扣两分左右即可     94?87
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 应该有七分左右                     78
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题三.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 应该接近满分                       98
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  # 可给满分                           100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  # 可给接近满分                        100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第一题.wav', '[1000,1000;500,250,250,1000;500,500,500,500;2000]'  # 可给满分                         100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第二题.wav', '[1000,500,500;500,250,250,500;500,500,1000;2000]'  # 可给接近满分                      90
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏一.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'  # 可给接近满分                         94
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  # 可给接近满分                         97 ?????
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  # 可给接近满分                          100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  # 应该给接近九分                        93 ????
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  # 应该给接近九分                        93
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 可给满分                        100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 可给满分                       100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-3.wav', '[2000,250,250,250,250,1000;2000;500,500,1000]'  # 可给满分                       100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 可给满分                        100
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 68
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 65
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 87
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100 ?????
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 54
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 47
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 42
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 30
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 92
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 65
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 81
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 85
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 60
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 67
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 49
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 86
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 66
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 89
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+    files.append(filename)
+    onset_codes.append(onset_code)
+
+    for filename,onset_code in zip(files,onset_codes):
+        print(filename)
+        total_score, lost_score, ex_score, min_d, standard_y, recognize_y, detail_content = get_score_for_onset_by_frame(filename, onset_code)
+        plt = draw_detail(filename, onset_code)
+        #plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '-' + str(total_score) + '-' + str(lost_score) + '-' + str(ex_score) + '-' + str(min_d) + '.jpg', bbox_inches='tight', pad_inches=0)
+        plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '-' + str(total_score) + '分.jpg', bbox_inches='tight', pad_inches=0)
+        plt.clf()
+
 if __name__ == "__main__":
     # y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
@@ -319,15 +508,20 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节8.1(78).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节7录音4(50).wav'
     filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节8文(5).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav'
 
     filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/12；98.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏8，70.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏8，70.wav'
     filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，90.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，78.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，80.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/2，88（声音偏小）.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，78.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，80.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/17；57.wav'
+    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/7，60.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/3；45.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/2；40.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/3，38.wav'
+    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/11，60.wav'
 
     result_path = 'e:/test_image/n/'
     plt.close()
@@ -336,22 +530,71 @@ if __name__ == "__main__":
     onset_code = '[500,500,250,250,250,250;500,250,250,1000;250,250,250,250,750,250;250,250,500,1000]'
     # rhythm_code = get_code(type_index, 2)
     # pitch_code = get_code(type_index, 3)
-    filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav','[1000,1000;500,250,250,500;1000,500,500;2000]'  # 第1条 这个可以给满分                       95/85
-    filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav','[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      96
-    filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav','[2000;250,250,250,250,1000;2000;500,500,1000]'  # 第3条 故意错一个，扣一分即可               89?77
-    filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav','[1000,250,250,250,250;2000;1000,500,500;2000]'  # 第4条 故意错了两处，应该扣两分左右即可     94?85
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  #应该有七分左右                     75
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题三.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  #应该接近满分                       98
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  #可给满分                           100
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分                        100
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第一题.wav', '[1000,1000;500,250,250,1000;500,500,500,500;2000]'  #可给满分                         89
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第二题.wav', '[1000,500,500;500,250,250,500;500,500,1000;2000]'  #可给接近满分                      90
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏一.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'  #可给接近满分                         92
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  #可给接近满分                         95
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分                          94
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分                        94
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分                        94
+    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav','[1000,1000;500,250,250,500;1000,500,500;2000]'  # 第1条 这个可以给满分                       95/90
+    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav','[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      100
+    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav','[2000;250,250,250,250,1000;2000;500,500,1000]'  # 第3条 故意错一个，扣一分即可               89?86
+    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav','[1000,250,250,250,250;2000;1000,500,500;2000]'  # 第4条 故意错了两处，应该扣两分左右即可     94?87
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  #应该有七分左右                     78
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题三.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  #应该接近满分                       98
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  #可给满分                           100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分                        100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第一题.wav', '[1000,1000;500,250,250,1000;500,500,500,500;2000]'  #可给满分                         100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第二题.wav', '[1000,500,500;500,250,250,500;500,500,1000;2000]'  #可给接近满分                      90
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏一.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'  #可给接近满分                         94
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  #可给接近满分                         97 ?????
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分                          100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分                        93 ????
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分                        93
 
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 可给满分                        100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 可给满分                       100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-3.wav', '[2000,250,250,250,250,1000;2000;500,500,1000]'  # 可给满分                       100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 可给满分                        100
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 68
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 65
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 87
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100 ?????
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  #54
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 47
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 42
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 30
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 92
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 65
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 81
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 85
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 60
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 67
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 49
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 86
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  #  66
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  #  89
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
     # rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
     # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     # print("rhythm_code is {}".format(rhythm_code))
@@ -359,9 +602,12 @@ if __name__ == "__main__":
     # plt, total_score, onset_score, note_scroe, detail_content = draw_plt(filename, rhythm_code, pitch_code)
     # plt.show()
     # plt.clf()
+    print(filename)
     plt = draw_detail(filename,onset_code)
     plt.show()
 
+    # test_batch_samples()
+
     dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/']
     dir_list = ['F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/']
-    #batch_test(dir_list)
+    batch_test(dir_list)

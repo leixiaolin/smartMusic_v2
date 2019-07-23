@@ -415,6 +415,62 @@ def get_match_lines_v2(standard_y,recognize_y):
             standard_i = next_start
     return select_standard_y,select_recognize_y
 
+# 找出匹配的节拍
+def get_matched_frames(base_frames,onset_frames):
+    if len(onset_frames) == 0:
+        return base_frames,onset_frames,[],[],[]
+    base_frames = [x - (base_frames[0] - onset_frames[0]) for x in base_frames]
+    best_d = 10000000
+    best_base_frames = []
+    best_path = []
+    raw_base_frames = base_frames
+    for step in range(-100,100,2):
+        base_frames = [n + step for n in raw_base_frames]
+        euclidean_norm = lambda base_frames,onset_frames: np.abs(base_frames - onset_frames)
+        d, cost_matrix, acc_cost_matrix, path = dtw(base_frames,onset_frames, dist=euclidean_norm)
+        if d < best_d:
+            best_d = d
+            best_base_frames = base_frames
+            best_path = path
+
+    # print("best_path0 is {}".format(best_path[0]))
+    # print("best_path1 is {}".format(best_path[1]))
+    x = best_base_frames
+    y = onset_frames
+    path = best_path
+    xc = []
+    yc = []
+    i = 0
+
+    while i < len(path[0]):
+        p1 = int(path[0][i])
+        p2 = int(path[1][i])
+        p1_indexs = get_indexs(path[0], p1)
+        p2_indexs = get_indexs(path[1], p2)
+        if len(p1_indexs) == 1 and len(p2_indexs) == 1: #如果没有一对多
+            xc.append(x[p1])
+            yc.append(y[p2])
+            i += 1
+        elif len(p1_indexs) > 1: #如果一个x对应多个y
+            x_tmp = x[p1]
+            y_tmp = [y[int(path[1][i])] for i in p1_indexs]
+            gap = [np.abs(x_tmp - t) for t in y_tmp]
+            min_index = get_indexs(gap, np.min(gap))
+            xc.append(x_tmp)
+            yc.append(y_tmp[min_index[0]])
+            i += len(p1_indexs)
+        elif len(p2_indexs) > 1:  #如果一个y对应多个x
+            y_tmp = y[p2]
+            x_tmp = [x[int(path[0][i])] for i in p2_indexs]
+            gap = [np.abs(y_tmp - t) for t in x_tmp]
+            min_index = get_indexs(gap, np.min(gap))
+            xc.append(x_tmp[min_index[0]])
+            yc.append(y_tmp)
+            i += len(p2_indexs)
+    loss_indexs = [i for i in range(len(x)) if x[i] not in xc]
+    return xc, yc, path[0], path[1],loss_indexs
+
+
 if __name__ == '__main__':
 
 

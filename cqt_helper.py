@@ -205,6 +205,7 @@ def get_cqt_start_indexs(filename,filter_p1 = 7,filter_p2 = 1,row_level=30,sum_c
     sum_cols, sig_ff = get_sum_max_for_cols(filename,filter_p1,filter_p2,row_level)
     sig_ff = [x / np.std(sig_ff) for x in sig_ff]
     starts = [i for i in range(1,len(sig_ff)-1) if sig_ff[i] > sig_ff[i-1] and sig_ff[i] >= sig_ff[i+1] and sig_ff[i] >np.mean(sig_ff)*0.5]
+    # starts = [i for i in range(10,len(sum_cols)-1) if sum_cols[i] > sum_cols[i-1] and np.max(sum_cols[i-5:i-1]) == 0]
     if len(starts) == 0:
         return []
     selected_starts = [starts[0]]
@@ -213,11 +214,72 @@ def get_cqt_start_indexs(filename,filter_p1 = 7,filter_p2 = 1,row_level=30,sum_c
         e = starts[i]
         if np.min(sum_cols[s:e]) <= sum_cols_threshold and (sig_ff[e] - np.min(sig_ff[s:e]) > np.mean(sig_ff)*0.5 and sig_ff[s] - np.min(sig_ff[s:e]) > np.mean(sig_ff)*0.5):
             selected_starts.append(e)
-    selected_starts = [x -4 for x in selected_starts]
+    selected_starts = [x -2 for x in selected_starts]
 
     return selected_starts
 
+def get_cqt_start_indexs_v2(filename,filter_p1 = 7,filter_p2 = 1,row_level=30,sum_cols_threshold=1):
 
+    sum_cols, sig_ff = get_sum_max_for_cols(filename,filter_p1,filter_p2,row_level)
+    tmp = np.zeros(len(sum_cols))
+    for i in range(1, len(sum_cols) - 1):
+        tmp[i] = np.max(sum_cols[i - 1:i + 2])
+    sig_ff = signal.medfilt(tmp, 1)  # 二维中值滤波
+    sig_ff = [x / np.std(sig_ff) for x in sig_ff]
+    #starts = [i for i in range(1,len(sig_ff)-1) if sig_ff[i] > sig_ff[i-1] and sig_ff[i] >= sig_ff[i+1] and sig_ff[i] >np.mean(sig_ff)*0.5]
+    # starts = [i for i in range(1, len(sig_ff) - 6) if sig_ff[i] > sig_ff[i - 1] and sig_ff[i-1] == 0 or(sig_ff[i-1] > sig_ff[i] and sig_ff[i+1] > sig_ff[i]  and np.max(sig_ff[i-1:i+5]) - np.min(sig_ff[i-1:i+5]) > np.max(sig_ff)*0.5)]
+    starts = [i for i in range(1, len(sig_ff) - 6) if sig_ff[i] > sig_ff[i - 1] and sig_ff[i-1] == 0 and sig_ff[i-1] == 0 or(sig_ff[i-1] > sig_ff[i] and sig_ff[i+1] > sig_ff[i]  and np.max(sig_ff[i-1:i+5]) - np.min(sig_ff[i-1:i+5]) > np.max(sig_ff)*0.5)]
+    selected_starts = starts
+    # sig_ff_on_starts = [sig_ff[i] for i in starts]
+    # starts = [x for x in starts if sig_ff[x] > np.mean(sig_ff_on_starts)* 0.80]
+    # starts = [i for i in range(10,len(sig_ff)-1) if sig_ff[i] > sig_ff[i-1] and np.max(sig_ff[i-4:i]) == 0]
+    # if len(starts) == 0:
+    #     return []
+    # selected_starts = [starts[0]]
+    # for i in range(1,len(starts)):
+    #     s = selected_starts[-1]
+    #     e = starts[i]
+    #     if np.min(sum_cols[s:e]) <= sum_cols_threshold and (sig_ff[e] - np.min(sig_ff[s:e]) > np.mean(sig_ff)*0.5 and sig_ff[s] - np.min(sig_ff[s:e]) > np.mean(sig_ff)*0.5):
+    #         selected_starts.append(e)
+    selected_starts = [x for x in selected_starts]
+
+    return selected_starts
+
+def get_best_cqt_start_indexs_by_diff_level(filename,start, end,base_frames):
+    base_total = len(base_frames)
+    # print("start, end,base_total is {},{},{}".format(start, end,base_total))
+    best_gap_number = 1000
+    best_start_indexs = []
+    rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
+    for row_level in range(30,60,3):
+        start_indexs = get_cqt_start_indexs_v2(filename, filter_p1=7, filter_p2=1, row_level = row_level, sum_cols_threshold=1)
+        start_indexs = [x for x in start_indexs if x > start-6 and x < end]
+        # if len(start_indexs) == len(max_indexs):
+        #     gaps = [np.abs(max_indexs[i] - start_indexs[i]) for i in range(len(start_indexs))]
+        #     if np.max(gaps) < 6:
+        #         return start_indexs
+        # print("row_level is {}".format(row_level))
+        # print("base_frames is {} ,size {}".format(base_frames, len(base_frames)))
+        # print("start_indexs is {} ,size {}".format(start_indexs, len(start_indexs)))
+        xc, yc, path1, path2,loss_indexs = get_matched_frames(base_frames, start_indexs)
+        if len(xc) == len(base_frames) and len(yc) != 0:
+            return yc
+        tmp = []
+        for x in start_indexs:
+            offset = [np.abs(x - m) for m in max_indexs]
+            if np.min(offset) < 10:
+                tmp.append(x)
+        start_indexs = tmp
+        # if len(start_indexs) >= base_total:
+        #     return start_indexs
+        if np.abs(len(start_indexs) - base_total) < best_gap_number:
+            best_gap_number = np.abs(len(start_indexs) - base_total)
+            best_start_indexs = start_indexs
+        if len(best_start_indexs) == base_total:
+            return best_start_indexs
+        else:
+            xc, yc, path1, path2,loss_indexs = get_matched_frames(base_frames, best_start_indexs)
+    return yc
 
 def get_cqt_col_diff(filename):
     y, sr = librosa.load(filename)
@@ -236,7 +298,11 @@ def get_cqt_col_diff(filename):
 
     return result
 
-def get_onset_frame_length(filename):
+def get_onset_frame_length(filename,onset_code):
+
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
+
     sum_cols, sig_ff = get_sum_max_for_cols(filename)
     #cqt_col_diff = get_cqt_col_diff(filename)
     cqt_col_diff = np.array(sum_cols)
@@ -256,6 +322,11 @@ def get_onset_frame_length(filename):
         if np.max(cqt_col_diff[i+1:]) <= 1 and cqt_col_diff[i] >=1:
             end = i
 
+    start_indexs = get_cqt_start_indexs(filename)
+    if code[-1] >= 2000:
+        end = end + (end - start -  (end - start_indexs[-1])) * code[-1]/(np.sum(code[:-1])) - (end - start_indexs[-1])
+        if end > len(sum_cols):
+            end = len(sum_cols) - 10
 
     return start,end,end-start
 
@@ -419,14 +490,14 @@ def get_dtw(onset_frames,base_frames):
     dis = d * np.sum(acc_cost_matrix.shape)
     return dis
 
-def get_base_frames_for_onset(filename):
-    start, end, total_frames_number = get_onset_frame_length(filename)
+def get_base_frames_for_onset(filename,onset_code):
+    start, end, total_frames_number = get_onset_frame_length(filename,onset_code)
 
     base_frames = onsets_base_frames(onset_code, total_frames_number)
     return base_frames
 
-def modify_row_level(filename):
-    base_frames = get_base_frames_for_onset(filename)
+def modify_row_level(filename,onset_code):
+    base_frames = get_base_frames_for_onset(filename,onset_code)
     base_frames_diff = np.diff(base_frames)
     best_dis = 0
     best_start_indexs = get_cqt_start_indexs(filename)
@@ -725,22 +796,51 @@ if __name__ == "__main__":
     # filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav'
     # filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav'
 
-    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav','[1000,1000;500,250,250,500;1000,500,500;2000]'  # 第1条 这个可以给满分                       90
-    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav','[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      97
-    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav','[2000;250,250,250,250,1000;2000;500,500,1000]'  # 第3条 故意错一个，扣一分即可               89
-    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav','[1000,250,250,250,250;2000;1000,500,500;2000]'  # 第4条 故意错了两处，应该扣两分左右即可     85
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 应该有七分左右                     74
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题三.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 应该接近满分                       97
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 第1条 这个可以给满分                       95/90
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 第3条 故意错一个，扣一分即可               89?86
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 第4条 故意错了两处，应该扣两分左右即可     94?87
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 应该有七分左右                     78
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题三.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 应该接近满分                       98
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  # 可给满分                           100
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  # 可给接近满分                        100
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第一题.wav', '[1000,1000;500,250,250,1000;500,500,500,500;2000]'  # 可给满分                         89
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第一题.wav', '[1000,1000;500,250,250,1000;500,500,500,500;2000]'  # 可给满分                         100
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第二题.wav', '[1000,500,500;500,250,250,500;500,500,1000;2000]'  # 可给接近满分                      90
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏一.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'  # 可给接近满分                         92
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  # 可给接近满分                         78
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分                          94
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分                        87
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分                        87
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏一.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'  # 可给接近满分                         94
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  # 可给接近满分                         97
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  # 可给接近满分                          100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  # 应该给接近九分                        93 ????
 
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 可给满分                        100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 可给满分                       100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-3.wav', '[2000,250,250,250,250,1000;2000;500,500,1000]'  # 可给满分                       100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 可给满分                        100
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 68
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 65
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 87
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100 ?????
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 可给满分
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/17；57.wav','[500,500,250,250,250,250;500,250,250,1000;250,250,250,250,750,250;250,250,500,1000]'
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 可给满分
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'
     # rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
     # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
@@ -762,61 +862,76 @@ if __name__ == "__main__":
     max_index_times = librosa.frames_to_time(max_indexs)
     #plt.vlines(max_index_times, 0, np.max(rms), color='r', linestyle='dashed')
 
-    start, end, length = get_onset_frame_length(filename)
+    start, end, length = get_onset_frame_length(filename,onset_code)
     base_frames = onsets_base_frames(onset_code, length)
     base_frames_diff =np.diff(base_frames)
 
     start_indexs = get_cqt_start_indexs(filename)
+    print("start_indexs is {} ,size {}".format(start_indexs, len(start_indexs)))
+    best_start_indexs = get_best_cqt_start_indexs_by_diff_level(filename,start, end,base_frames)
+    start_indexs = best_start_indexs
+    print("best_start_indexs is {} ,size {}".format(best_start_indexs, len(best_start_indexs)))
     raw_start_indexs = start_indexs.copy()
     start_indexs_diff = np.diff(start_indexs)
 
     rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
-    max_indexs = [x for x in max_indexs if x > start-5 and x <  end]
-    max_indexs_diff = np.diff(max_indexs)
-
-    raw_start_indexs = start_indexs.copy()
-    if len(start_indexs) > 1 and len(max_indexs) > 1:
-        dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
-        print("dis_with_starts is {}".format(dis_with_starts))
-        dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
-        print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
-        dis_with_maxs = get_dtw(max_indexs_diff, base_frames_diff)
-        print("dis_with_maxs is {}".format(dis_with_maxs))
-        dis_with_maxs_on_first = get_dtw(max_indexs_diff[1:], base_frames_diff)
-        print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
-        all_dis = [dis_with_starts,dis_with_starts_no_first,dis_with_maxs,dis_with_maxs_on_first]
-        dis_min = np.min(all_dis)
-        min_index = all_dis.index(dis_min)
-        if 0 == min_index:
-            start_indexs = start_indexs
-        elif 1 == min_index:
-            sum_cols, sig_ff = get_sum_max_for_cols(filename)
-            first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
-            if len(start_indexs) == len(base_frames) + 1:
-                start_indexs = start_indexs[1:]
-            elif first_range > base_frames_diff[0]*0.3:
-                start_indexs = start_indexs
-            else:
-                start_indexs = start_indexs[1:]
-        elif 2 == min_index:
-            start_indexs = max_indexs
-        elif 3 == min_index:
-            sum_cols, sig_ff = get_sum_max_for_cols(filename)
-            first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
-            if first_range > base_frames_diff[0]*0.3:
-                start_indexs = max_indexs
-            else:
-                start_indexs = max_indexs[1:]
-            print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
-            start_indexs =check_rms_max_by_dtw(start_indexs, base_frames,raw_start_indexs)
-            print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
-        # if dis_with_starts < dis_with_maxs:
-        #     onsets_frames = start_indexs
-        # else:
-        #     onsets_frames = max_index
-
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
+    if code[-1] >= 2000:
+        width_2000 = length * 2000 /np.sum(code)
+        max_indexs = [x for x in max_indexs if x >= start - 5 and x < end - int(width_2000*0.4)]
     else:
-        start_indexs = max_indexs
+        max_indexs = [x for x in max_indexs if x >= start - 5 and x < end]
+    print("base_frames is {} ,size {}".format(base_frames, len(base_frames)))
+    print("max_indexs is {} ,size {}".format(max_indexs, len(max_indexs)))
+    max_indexs_diff = np.diff(max_indexs)
+    xc, yc, path1, path2,loss_indexs = get_matched_frames(base_frames, max_indexs)
+    if len(xc) == len(base_frames):
+        start_indexs = yc
+    else:
+        raw_start_indexs = start_indexs.copy()
+        if len(start_indexs) > 1 and len(max_indexs) > 1 and len(start_indexs) != len(base_frames):
+            dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
+            print("dis_with_starts is {}".format(dis_with_starts))
+            dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
+            print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
+            dis_with_maxs = get_dtw(max_indexs_diff, base_frames_diff)
+            print("dis_with_maxs is {}".format(dis_with_maxs))
+            dis_with_maxs_on_first = get_dtw(max_indexs_diff[1:], base_frames_diff)
+            print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
+            all_dis = [dis_with_starts,dis_with_starts_no_first,dis_with_maxs,dis_with_maxs_on_first]
+            dis_min = np.min(all_dis)
+            min_index = all_dis.index(dis_min)
+            if 0 == min_index:
+                start_indexs = start_indexs
+            elif 1 == min_index:
+                sum_cols, sig_ff = get_sum_max_for_cols(filename)
+                first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
+                if len(start_indexs) == len(base_frames) + 1:
+                    start_indexs = start_indexs[1:]
+                elif first_range > base_frames_diff[0]*0.3:
+                    start_indexs = start_indexs
+                else:
+                    start_indexs = start_indexs[1:]
+            elif 2 == min_index:
+                start_indexs = max_indexs
+            elif 3 == min_index:
+                sum_cols, sig_ff = get_sum_max_for_cols(filename)
+                first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
+                if first_range > base_frames_diff[0]*0.3:
+                    start_indexs = max_indexs
+                else:
+                    start_indexs = max_indexs[1:]
+                print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+                start_indexs =check_rms_max_by_dtw(start_indexs, base_frames,raw_start_indexs)
+                print("start_indexs is {},size is {}".format(start_indexs, len(start_indexs)))
+            # if dis_with_starts < dis_with_maxs:
+            #     onsets_frames = start_indexs
+            # else:
+            #     onsets_frames = max_index
+
+        else:
+            start_indexs = start_indexs
 
 
     if len(start_indexs) != len(base_frames):
@@ -850,14 +965,21 @@ if __name__ == "__main__":
     plt.vlines(end_time, 0, 84, color='r', linestyle='dashed')
 
     plt.subplot(2,1,2)
-    sum_cols, sig_ff = get_sum_max_for_cols(filename)
+    sum_cols, sig_ff = get_sum_max_for_cols(filename,filter_p1 = 7,filter_p2 = 1,row_level=30)
+    #sum_cols = [10 if s > 0 else 0 for s in sum_cols]
+    #sum_cols = [np.max(sum_cols[i-1:i+2]) for i in range(1,len(sum_cols)-1)]
+    tmp = np.zeros(len(sum_cols))
+    for i in range(1,len(sum_cols)-1):
+        tmp[i] = np.max(sum_cols[i-1:i+2])
+    sig_ff = signal.medfilt(tmp,1)  #二维中值滤波
+
     #sum_cols,sig_ff = get_sum_max_for_cols(filename,filter_p1 = 31,filter_p2 = 12,row_level = 50)
-    sig_ff = [x/np.std(sig_ff) for x in sig_ff]
-    starts = [i for i in range(1, len(sig_ff) - 1) if sig_ff[i] > sig_ff[i - 1] and sig_ff[i] >= sig_ff[i + 1] and sig_ff[i] > 3]
+    #sig_ff = [x/np.std(sig_ff) for x in sig_ff]
+    starts = [i for i in range(1, len(sig_ff) - 6) if sig_ff[i] > sig_ff[i - 1] and sig_ff[i-1] == 0 or(sig_ff[i-1] > sig_ff[i] and sig_ff[i+1] > sig_ff[i]  and np.max(sig_ff[i-1:i+5]) - np.min(sig_ff[i-1:i+5]) > np.max(sig_ff)*0.5)]
 
     # best_row_level, best_start_indexs = modify_row_level(filename)
-    # best_start_indexs_times = librosa.frames_to_time(best_start_indexs)
-    # plt.vlines(best_start_indexs_times, 0, 15, color='r', linestyle='solid')
+    starts_times = librosa.frames_to_time(starts)
+    plt.vlines(starts_times, 0, 15, color='r', linestyle='solid')
 
     times = librosa.frames_to_time(np.arange(len(rms)))
     sum_cols_diff = list(np.diff(sum_cols))

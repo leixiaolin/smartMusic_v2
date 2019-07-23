@@ -58,68 +58,96 @@ def parse_onset_code(onset_code):
 
 def get_score_for_onset_by_frame(filename,onset_code):
     # 标准节拍时间点
-    start, end, total_frames_number = get_onset_frame_length(filename)
+    start, end, total_frames_number = get_onset_frame_length(filename,onset_code)
     base_frames = onsets_base_frames(onset_code, total_frames_number)
+    # print("base_frames is {} ,size {}".format(base_frames,len(base_frames)))
 
     base_frames_diff = np.diff(base_frames)
 
     start_indexs = get_cqt_start_indexs(filename)
+    # print("start_indexs is {} ,size {}".format(start_indexs, len(start_indexs)))
+    best_start_indexs = get_best_cqt_start_indexs_by_diff_level(filename,start, end, base_frames)
+    # print("best_start_indexs is {} ,size {}".format(best_start_indexs, len(best_start_indexs)))
+    start_indexs = best_start_indexs
     start_indexs_diff = np.diff(start_indexs)
 
     rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
-    max_indexs = [x for x in max_indexs if x >= start-5 and x < end]
-    max_indexs_diff = np.diff(max_indexs)
 
-    if len(start_indexs) > 2 and len(max_indexs) > 2:
-        dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
-        #print("dis_with_starts is {}".format(dis_with_starts))
-        dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
-        #print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
-        dis_with_maxs = get_dtw(max_indexs_diff, base_frames_diff)
-        #print("dis_with_maxs is {}".format(dis_with_maxs))
-        dis_with_maxs_on_first = get_dtw(max_indexs_diff[1:], base_frames_diff)
-        #print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
-        all_dis = [dis_with_starts,dis_with_starts_no_first,dis_with_maxs,dis_with_maxs_on_first]
-        dis_min = np.min(all_dis)
-        min_index = all_dis.index(dis_min)
-        if 0 == min_index:
-            onsets_frames = start_indexs
-        elif 1 == min_index:
-            sum_cols, sig_ff = get_sum_max_for_cols(filename)
-            first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
-            if len(start_indexs) == len(base_frames) + 1:
-                onsets_frames = start_indexs[1:]
-            elif first_range > base_frames_diff[0]*0.3:
-                onsets_frames = start_indexs
-            else:
-                onsets_frames = start_indexs[1:]
-        elif 2 == min_index:
-            onsets_frames = max_indexs
-        elif 3 == min_index:
-            sum_cols, sig_ff = get_sum_max_for_cols(filename)
-            first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
-            if first_range > base_frames_diff[0]*0.3:
-                onsets_frames = max_indexs
-            else:
-                onsets_frames = max_indexs[1:]
-            onsets_frames = check_rms_max_by_dtw(onsets_frames, base_frames,start_indexs)
-            #print("onsets_frames is {} ,size{}".format(onsets_frames,len(onsets_frames)))
-        # if dis_with_starts < dis_with_maxs:
-        #     onsets_frames = start_indexs
-        # else:
-        #     onsets_frames = max_indexs
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
+    if code[-1] >= 2000:
+        width_2000 = total_frames_number * 2000 / np.sum(code)
+        max_indexs = [x for x in max_indexs if x >= start - 5 and x < end - int(width_2000 * 0.4)]
     else:
+        max_indexs = [x for x in max_indexs if x >= start - 5 and x < end]
+    # print("base_frames is {} ,size {}".format(base_frames, len(base_frames)))
+    # print("max_indexs is {} ,size {}".format(max_indexs, len(max_indexs)))
+    real_gap_total = np.abs(len(base_frames) - len(max_indexs))
+    print("real_gap_total is {}".format(real_gap_total))
+    max_indexs_diff = np.diff(max_indexs)
+    xc, yc, path1, path2,loss_indexs = get_matched_frames(base_frames, max_indexs)
+    if len(base_frames) == len(max_indexs):
         onsets_frames = max_indexs
+        loss_indexs = []
+        xc, yc = base_frames, max_indexs
+    elif len(xc) == len(base_frames):
+        onsets_frames = yc
+        loss_indexs = []
+        xc, yc = base_frames, yc
+    else:
+        onsets_frames = start_indexs
 
+        # if len(start_indexs) > 2 and len(max_indexs) > 2  and len(start_indexs) != len(base_frames):
+        #     dis_with_starts = get_dtw(start_indexs_diff, base_frames_diff)
+        #     #print("dis_with_starts is {}".format(dis_with_starts))
+        #     dis_with_starts_no_first = get_dtw(start_indexs_diff[1:], base_frames_diff)
+        #     #print("dis_with_starts_no_first is {}".format(dis_with_starts_no_first))
+        #     dis_with_maxs = get_dtw(max_indexs_diff, base_frames_diff)
+        #     #print("dis_with_maxs is {}".format(dis_with_maxs))
+        #     dis_with_maxs_on_first = get_dtw(max_indexs_diff[1:], base_frames_diff)
+        #     #print("dis_with_maxs_on_first is {}".format(dis_with_maxs_on_first))
+        #     all_dis = [dis_with_starts,dis_with_starts_no_first,dis_with_maxs,dis_with_maxs_on_first]
+        #     dis_min = np.min(all_dis)
+        #     min_index = all_dis.index(dis_min)
+        #     if 0 == min_index:
+        #         onsets_frames = start_indexs
+        #     elif 1 == min_index:
+        #         sum_cols, sig_ff = get_sum_max_for_cols(filename)
+        #         first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
+        #         # if len(start_indexs) == len(base_frames) + 1:
+        #         #     onsets_frames = start_indexs[1:]
+        #         if first_range > base_frames_diff[0]*0.2:
+        #             onsets_frames = start_indexs
+        #         else:
+        #             onsets_frames = start_indexs[1:]
+        #     elif 2 == min_index:
+        #         onsets_frames = max_indexs
+        #     elif 3 == min_index:
+        #         sum_cols, sig_ff = get_sum_max_for_cols(filename)
+        #         first_range = np.sum([1 if i > start and i < start + start_indexs_diff[0] and sum_cols[i] > sum_cols[start+3]*0.2 else 0 for i in range(start,start + start_indexs_diff[0])])  #根据节拍长度判断是否为真实节拍
+        #         if first_range > base_frames_diff[0]*0.2:
+        #             onsets_frames = max_indexs
+        #         else:
+        #             onsets_frames = max_indexs[1:]
+        #         onsets_frames = check_rms_max_by_dtw(onsets_frames, base_frames,start_indexs)
+        #         #print("onsets_frames is {} ,size{}".format(onsets_frames,len(onsets_frames)))
+        #     # if dis_with_starts < dis_with_maxs:
+        #     #     onsets_frames = start_indexs
+        #     # else:
+        #     #     onsets_frames = max_indexs
+        # else:
+        #     onsets_frames = start_indexs
+
+        # print("real gap number is {} ".format(np.abs(len(onsets_frames) - len(base_frames))))
 
     #onsets_frames = check_starts_with_max_index(filename)
     #onsets_frames = get_cqt_start_indexs(filename)
     if len(onsets_frames) != len(base_frames):
         onsets_frames = check_each_onset(onsets_frames, onset_code)
         #print("onsets_frames is {} ,size{}".format(onsets_frames, len(onsets_frames)))
-        onsets_frames = add_loss_small_onset(onsets_frames, onset_code)
+        # onsets_frames = add_loss_small_onset(onsets_frames, onset_code)
         #get_onset_type(onsets_frames, onset_code)
-        onsets_frames,fake_onset_frames = get_best_onset_types(start_indexs, onsets_frames, onset_code)
+        # onsets_frames,fake_onset_frames = get_best_onset_types(start_indexs, onsets_frames, onset_code)
         #print("onset_code is {},size {}".format(onset_code,len(base_frames)))
         #print("onsets_frames is {} ,size{}".format(onsets_frames, len(onsets_frames)))
         #print("base_frames is {} ,size{}".format(base_frames, len(base_frames)))
@@ -128,6 +156,9 @@ def get_score_for_onset_by_frame(filename,onset_code):
         #print("base_frames_diff is {} ,size{}".format(np.diff(base_frames), len(base_frames) - 1))
         #print("start_indexs is {},size is {}".format(onsets_frames, len(onsets_frames)))
 
+    if len(base_frames) == len(onsets_frames):
+        loss_indexs = []
+        xc, yc = base_frames, onsets_frames
 
     if len(onsets_frames) == 0:
         return 0,0,0,0,[],[],[]
@@ -150,57 +181,63 @@ def get_score_for_onset_by_frame(filename,onset_code):
 
 
     each_onset_score = 100 / len(standard_y)
-    try:
-        if len(standard_y) != len(recognize_y):
-            xc,yc = get_match_lines(standard_y,recognize_y)
-            #xc, yc = get_matched_onset_frames_compared(standard_y,recognize_y)
-        else:
-            xc, yc = standard_y, recognize_y
-    except AssertionError as e:
-        lenght = len(standard_y) if len(standard_y) <= len(recognize_y) else len(recognize_y)
-        xc, yc = standard_y[:lenght], recognize_y[:lenght]
+    # try:
+    #     if len(standard_y) != len(recognize_y):
+    #         # xc,yc = get_match_lines(standard_y,recognize_y)
+    #         xc, yc, path1, path2,loss_indexs = get_matched_frames(standard_y,recognize_y)
+    #         #xc, yc = get_matched_onset_frames_compared(standard_y,recognize_y)
+    #     else:
+    #         xc, yc = standard_y, recognize_y
+    # except AssertionError as e:
+    #     lenght = len(standard_y) if len(standard_y) <= len(recognize_y) else len(recognize_y)
+    #     xc, yc = standard_y[:lenght], recognize_y[:lenght]
     std_number = len(standard_y) - len(xc) + len(recognize_y) - len(yc)
+    #print("total number for loss is {}".format(std_number))
     # 未匹配节拍的序号
-    loss_indexs = [i for i in range(len(standard_y)) if standard_y[i] not in xc]
+    # loss_indexs = [i for i in range(len(standard_y)) if standard_y[i] not in xc]
     #多出节拍的序号
     ex_indexs = [i for i in range(len(recognize_y)) if recognize_y[i] not in yc]
-    added_sum = 0
-    added_indexs = []
-    if len(loss_indexs) > 0:
-        rms,rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
-        #print("0 max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
-        for i in loss_indexs:
-            if i < len(onsets_frames):
-                maybe_indexs = [x for x in max_indexs if x > onsets_frames[i-1] and x < onsets_frames[i]]
-                xc.append(standard_y[i])  # 补齐便为比较
-                # yc.append(yc[i-1]+(standard_y[i] - standard_y[i-1]))
-                if len(maybe_indexs) == 1:
-                    yc.append(maybe_indexs[0]-3)
-                    added_sum += 1
-                    added_indexs.append(i)
-                elif len(maybe_indexs) == 2:
-                    yc.append(maybe_indexs[1]-3)
-                    added_sum += 1
-                    added_indexs.append(i)
-                else:
-                    yc.append(onsets_frames[i] + (standard_y[i] - standard_y[i-1]))
-                yc.sort()
-
-    xc.sort()
-    yc.sort()
+    #print("total number for more than std is {}".format(len(ex_indexs)))
+    # added_sum = 0
+    # added_indexs = []
+    # if len(loss_indexs) > 0:
+    #     rms,rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
+    #     #print("0 max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
+    #     for i in loss_indexs:
+    #         if i < len(onsets_frames):
+    #             maybe_indexs = [x for x in max_indexs if x > onsets_frames[i-1] and x < onsets_frames[i]]
+    #             xc.append(standard_y[i])  # 补齐便为比较
+    #             # yc.append(yc[i-1]+(standard_y[i] - standard_y[i-1]))
+    #             if len(maybe_indexs) == 1:
+    #                 yc.append(maybe_indexs[0]-3)
+    #                 added_sum += 1
+    #                 added_indexs.append(i)
+    #             elif len(maybe_indexs) == 2:
+    #                 yc.append(maybe_indexs[1]-3)
+    #                 added_sum += 1
+    #                 added_indexs.append(i)
+    #             else:
+    #                 yc.append(onsets_frames[i] + (standard_y[i] - standard_y[i-1]))
+    #             yc.sort()
+    #
+    # xc.sort()
+    # yc.sort()
 
     code = parse_onset_code(onset_code)
     # if len(loss_indexs) == added_sum:
     #     loss_indexs = []
     #     added_sum = 0
     # code = [code[i] for i in range(len(code)) if i not in loss_indexs]
-    min_d, detail_content,a = get_detail(xc, yc, code, each_onset_score,total_frames_number,loss_indexs,added_indexs)
-
+    # min_d, detail_content,a = get_detail(xc, yc, code, each_onset_score,total_frames_number,loss_indexs,added_indexs)
+    matched_indexs = [i for i in range(len(base_frames)) if i not in loss_indexs]
+    min_d, detail_content, a = get_detail_without_all(xc, yc, code, each_onset_score,loss_indexs,matched_indexs)
     if len(onsets_frames) == len(base_frames):
         lost_score = 0
     else:
-        lost_score = int(each_onset_score * (len(loss_indexs) -added_sum))
-    ex_score = int(each_onset_score * (len(onsets_frames) - len(code)))
+        lost_score = int(each_onset_score * (len(loss_indexs)))
+    ex_score = 0
+    if len(onsets_frames) > len(code):
+        ex_score = int(each_onset_score * (len(onsets_frames) -len(code)))
     if ex_score < 0:
         print("--------0ipi9-99- is {}".format(ex_score))
         lost_score,ex_score = 0,0
@@ -209,6 +246,12 @@ def get_score_for_onset_by_frame(filename,onset_code):
         score = 100 - lost_score - ex_score - int(min_d)
     # score, lost_score, ex_score, min_d = get_score1(standard_y.copy(), recognize_y.copy(), len(base_frames),
     #                                                 onsets_frames_strength, min_d)
+
+    if real_gap_total > len(base_frames) * 0.3:
+        score = score - int(real_gap_total * each_onset_score)
+        score = score if score > 0 else 0
+        detail_content = detail_content + "，节拍个数与标准个数相差" + str(real_gap_total) + "个"
+
     print('最终得分为：{}'.format(score))
 
     return int(score), int(lost_score), int(ex_score), int(min_d), xc, yc, detail_content
@@ -270,6 +313,55 @@ def get_detail(standard_y,recognize_y,codes,each_onset_score,total_frames_number
 
     #print(total_continue)
     detail_content = '未能匹配的节奏有'+ str(len(loss_indexs)-len(added_indexs)) + '，节奏时长偏差较大的有' + str(b) + '个，偏差较小的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个，' + str_detail_list
+    return total,detail_content,a
+
+def get_detail_without_all(standard_y,recognize_y,codes,each_onset_score,loss_indexs,matched_indexs):
+    #each_onset_score = 100/len(standard_y)
+    score = 0
+    total = 0
+    a = 0
+    b = 0
+    c = 0
+    detail_list = []
+    continue_right = []
+    for x in range(len(loss_indexs)+len(matched_indexs)):
+        if x in loss_indexs:  #如果是缺失的节拍
+            detail_list.append("?")
+        else:
+            i = matched_indexs.index(x)
+            if i < len(recognize_y)-1:
+                offset =np.abs((recognize_y[i+1]-recognize_y[i]) /(standard_y[i+1] - standard_y[i]) -1)
+            else:
+                offset  = get_code_offset(codes[i])
+            standard_offset = get_code_offset(codes[i])
+            if offset <= standard_offset:
+                score = 0
+                a += 1
+                detail_list.append("1")
+                continue_right.append(1)
+            elif offset >= 1:
+                score = each_onset_score
+                b += 1
+                detail_list.append("0")
+                continue_right.append(0)
+            else:
+                score = each_onset_score * offset
+                c += 1
+                detail_list.append("-")
+                continue_right.append(0)
+            total +=score
+    # if b == 1:
+    #     total -= int(each_onset_score*0.5)
+    str_detail_list = '识别的结果是：' + str(detail_list)
+    str_detail_list = str_detail_list.replace("1","√")
+    total_continue = continueOne(continue_right)
+    if total_continue >= 4 and total > 20:
+        total -= 15
+        str_continue = '连续唱对的节拍数为' + str(total_continue) + '个。'
+        str_detail_list = str_continue + str_detail_list
+
+    #print(total_continue)
+    detail_content = '未能匹配的节奏有'+ str(len(loss_indexs)) + '，节奏时长偏差较大的有' + str(b) + '个，偏差较小的有' + str(c) + '个，偏差在合理区间的有' + str(a) + '个，' + str_detail_list
     return total,detail_content,a
 
 def get_code_offset(code):

@@ -236,7 +236,7 @@ def get_cqt_start_indexs(filename,filter_p1 = 51,filter_p2 = 3,row_level=20,sum_
     selected_result = []
     selected_result_width = []
     for i in range(len(result)):
-        if result_width[i] >= 4:
+        if result_width[i] >= 4 and (i < len(result) - 1 and result_width[i] > (result[i+1] - result[i])*0.25 or (i == len(result) -1 and result_width[i] > 8) ):
             selected_result.append(result[i])
             selected_result_width.append(result_width[i])
 
@@ -266,7 +266,10 @@ def get_cqt_col_diff(filename):
 
     return result
 
-def get_onset_frame_length(filename):
+def get_onset_frame_length(filename,rhythm_code):
+    code = parse_rhythm_code(rhythm_code)
+    code = [int(x) for x in code]
+
     sum_cols, sig_ff = get_sum_max_for_cols(filename)
     #cqt_col_diff = get_cqt_col_diff(filename)
     cqt_col_diff = np.array(sum_cols)
@@ -285,7 +288,11 @@ def get_onset_frame_length(filename):
     for i in range(len(cqt_col_diff)-6,0,-1):
         if np.max(cqt_col_diff[i+1:]) <= 1 and cqt_col_diff[i] >=1:
             end = i
-
+    start_indexs,maybe_result,start_indexs_width = get_cqt_start_indexs(filename)
+    # if code[-1] >= 2000:
+    #     end = end + (end - start - (end - start_indexs[-1])) * code[-1] / (np.sum(code[:-1])) - (end - start_indexs[-1])
+    #     if end > len(sum_cols):
+    #         end = len(sum_cols) - 10
 
     return start,end,end-start
 
@@ -451,14 +458,14 @@ def get_dtw(onset_frames,base_frames):
     dis = d * np.sum(acc_cost_matrix.shape)
     return dis
 
-def get_base_frames_for_onset(filename):
-    start, end, total_frames_number = get_onset_frame_length(filename)
+def get_base_frames_for_onset(filename,rhythm_code):
+    start, end, total_frames_number = get_onset_frame_length(filename,rhythm_code)
 
     base_frames = onsets_base_frames(rhythm_code, total_frames_number)
     return base_frames
 
-def modify_row_level(filename):
-    base_frames = get_base_frames_for_onset(filename)
+def modify_row_level(filename,rhythm_code):
+    base_frames = get_base_frames_for_onset(filename,rhythm_code)
     base_frames_diff = np.diff(base_frames)
     best_dis = 0
     best_start_indexs,mayby_indexs,starts_width = get_cqt_start_indexs(filename)
@@ -758,6 +765,8 @@ def get_losses_from_maybe_onset(start_indexs,start_indexs_width,mayby_indexs,rhy
             all_note_widths[-1] = all_note_widths[-1] *0.85
         all_note_width_sum = [np.sum(all_note_widths[:i]) for i in range(1, len(all_note_widths) + 1)]
 
+        if i > len(start_indexs_width) - 1:
+            break
         current_width = start_indexs_width[i]
 
         if current_code_dict <= code_dict.get(250):
@@ -792,6 +801,7 @@ def get_losses_from_maybe_onset(start_indexs,start_indexs_width,mayby_indexs,rhy
                         selected_start_indexs.append(selected_onset)
                         selected_start_indexs.sort()
                         current_index += 1
+
         current_index += 1
     return selected_start_indexs
 
@@ -863,6 +873,77 @@ def get_all_notes(onset_frames,cqt,end_frame):
             pass
     #print("all_notes is {},size {}".format(all_notes,len(all_notes)))
     return all_notes
+
+def get_note_width(filename,result,filter_p1 = 51,filter_p2 = 3,row_level=20):
+    sum_cols, sig_ff = get_sum_max_for_cols(filename, filter_p1, filter_p2, row_level)
+    result_width = []
+    for i in range(len(result)):
+        start = result[i]
+        if i + 1 < len(result):
+            end = result[i + 1]
+        else:
+            end = len(sum_cols)
+        tmp = sum_cols[start + 1:end]
+        if len(tmp) < 1:
+            break
+        tmp_max_index = tmp.index(np.max(tmp))
+        tmp[:tmp_max_index] = np.ones(tmp_max_index)
+        if np.min(tmp) == 0:
+            width = list(tmp).index(0)
+        else:
+            width = end - start
+        result_width.append(width)
+
+    selected_result = []
+    selected_result_width = []
+    for i in range(len(result)):
+        if result_width[i] >= 4:
+            selected_result.append(result[i])
+            selected_result_width.append(result_width[i])
+    return selected_result,selected_result_width
+
+'''
+数组元素组合
+https://blog.csdn.net/suibianshen2012/article/details/80772905
+'''
+def get_combinations(list1,number):
+    import itertools
+    list2 = []
+    for i in range(1, len(list1) + 1):
+        iter = itertools.combinations(list1, i)
+        tmp = list(iter)
+        # print(len(tmp))
+        # print(tmp[0])
+        # print(len(tmp[0]))
+        if len(tmp[0]) == number:
+            list2.append(tmp)
+    #print(list2)
+    return list2
+
+def check_with_combinations(max_indexs,start_indexs,base_frames):
+    number = len(base_frames) - len(start_indexs)
+    combinations = get_combinations(max_indexs, number)
+    start_indexs_diff = np.diff(start_indexs)
+    base_frames_diff = np.diff(base_frames)
+
+    init_dtw = get_dtw(start_indexs_diff, base_frames_diff)
+    best_dtw = 1000000000
+    best_tmp = []
+    for cb in combinations:
+        for n in range(len(cb)):
+            tmp = start_indexs.copy()
+            for i in range(number):
+                tmp.append(cb[n][i])
+            tmp.sort()
+            start_indexs_diff = np.diff(tmp)
+            dtw = get_dtw(start_indexs_diff, base_frames_diff)
+            if dtw < best_dtw:
+                best_dtw = dtw
+                best_tmp = tmp
+    if best_dtw < init_dtw:
+        return best_tmp
+    else:
+        return start_indexs
 
 if __name__ == "__main__":
     # y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
@@ -1011,8 +1092,21 @@ if __name__ == "__main__":
     rhythm_code = get_code(type_index, 2)
     pitch_code = get_code(type_index, 3)
 
-    rhythm_code, pitch_code = '[500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000]', '[5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]'
-    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低 66
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1089.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低  99
+    # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1328.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #音准节奏均正确，给分偏低  99
+    # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1586.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #音准节奏均正确，给分偏低  95
+    filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #音准节奏均正确，给分偏低 90
+    # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'          # 音准节奏均正确，给分偏低 90
+    # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-8973.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #音准节奏均正确，给分偏低 98
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #这个给九分多是可以的 67
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  # 故意把最后一个音唱错了，节奏全对,扣0.5左右即可 64
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  # 这一条故意唱错了两个音，节奏是对的，这个扣一分即可 72
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  # 这一条节奏不是太稳，但音高基本正确,9.5分是没问题的 93
+
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-5.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #  准确 96
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #基本可给满分 59
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #第一个节奏应该扣分，最后一个音没唱，应该没分  79
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #节奏全对，旋律错最后一个  86
     # rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
     # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
@@ -1035,19 +1129,39 @@ if __name__ == "__main__":
     max_index_times = librosa.frames_to_time(max_indexs)
     #plt.vlines(max_index_times, 0, np.max(rms), color='r', linestyle='dashed')
 
-    start, end, length = get_onset_frame_length(filename)
+    start, end, length = get_onset_frame_length(filename,rhythm_code)
     base_frames = onsets_base_frames_rhythm(rhythm_code, length)
     base_frames_diff =np.diff(base_frames)
 
+    rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
+    max_indexs = [x for x in max_indexs if x > start - 5 and x < end]
+    max_indexs, all_height = get_heigth_for_max_indexs(sig_ff, max_indexs, rhythm_code)
+
     start_indexs,maybe_start_indexs,starts_width = get_cqt_start_indexs(filename)
+
+    # print("gap is{},{} {}".format(len(start_indexs) , len(base_frames),len(start_indexs) - len(base_frames)))
+    #
+    # for x in max_indexs:
+    #     offset = [np.abs(x - s) for s in start_indexs]
+    #     if np.min(offset) > 15:
+    #         start_indexs.append(x)
+    #         start_indexs.sort()
+    if len(base_frames) > len(start_indexs):
+        tmp = []
+        for x in max_indexs:
+            offset = [np.abs(x - s) for s in start_indexs]
+            if np.min(offset) > 4:
+                tmp.append(x)
+        start_indexs = check_with_combinations(tmp, start_indexs, base_frames)
+
+    start_indexs,starts_width = get_note_width(filename,start_indexs)
+
     print("0 start_indexs is {},size {}".format(start_indexs,len(start_indexs)))
     print("0 starts_width is {},size {}".format(starts_width, len(starts_width)))
     start_indexs = [x for x in start_indexs if x > start - 5 and x < end]
     raw_start_indexs = start_indexs.copy()
     start_indexs_diff = np.diff(start_indexs)
 
-    rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
-    max_indexs = [x for x in max_indexs if x > start - 5 and x < end]
 
     raw_start_indexs = start_indexs.copy()
     if len(start_indexs) > 2:
@@ -1128,7 +1242,7 @@ if __name__ == "__main__":
     sig_ff = [x/np.std(sig_ff) for x in sig_ff]
     starts = [i for i in range(1, len(sig_ff) - 1) if sig_ff[i] > sig_ff[i - 1] and sig_ff[i] >= sig_ff[i + 1] and sig_ff[i] > 3]
 
-    # best_row_level, best_start_indexs = modify_row_level(filename)
+    # best_row_level, best_start_indexs = modify_row_level(filename,rhythm_code)
     base_frames = [x - (base_frames[0]-start_indexs[0]) for x in base_frames]
     base_frames_times = librosa.frames_to_time(base_frames)
     plt.vlines(base_frames_times, 0, np.max(sum_cols)/2, color='r', linestyle='solid')
