@@ -217,6 +217,39 @@ def parse_onset_code(onset_code):
             result.append(t)
     return result
 
+
+def get_onset_type(onset_frames,onset_code):
+
+    if len(onset_frames) == 0:
+        return []
+    #print("start_index is {},size is {}".format(start_indexs,len(start_indexs)))
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
+
+    #print("code is {},size is {}".format(code, len(code)))
+
+    total_length_no_last = np.sum(code)
+    real_total_length_no_last = onset_frames[-1] - onset_frames[0]
+    rate = real_total_length_no_last/total_length_no_last
+    code_dict = {}
+    for x in code:
+        code_dict[x] = int(x * rate)
+
+
+    types = []
+    for x in np.diff(onset_frames):
+        best_min = 100000
+        best_key = 1
+        for key in code_dict:
+            value = code_dict.get(key)
+            gap = np.abs(value - x)/value
+            if gap<best_min:
+                best_min = gap
+                best_key = key
+        types.append(best_key)
+    #print("types is {},size {}".format(types,len(types)))
+    return types
+
 if __name__ == "__main__":
     # y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
     filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
@@ -326,12 +359,16 @@ if __name__ == "__main__":
     pitch_code = get_code(type_index, 3)
 
     filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  # 应该给接近九分
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      100
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 应该有七分左右 74
-    #                  93
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  # 应该给接近九分
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 应该有七分左右 74
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 54
+    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  # 第一个节奏应该扣分，最后一个音没唱，应该没分  79
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
     # rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
     # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
+
 
 
 
@@ -341,9 +378,16 @@ if __name__ == "__main__":
     # plt.show()
     # plt.clf()
     rms,rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
-    print("max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
-
     start, end, total_length = get_start_end_length_by_max_index(max_indexs, onset_code)
+    print("max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
+    max_indexs.append(end)
+    print("max_indexs_diff is {},size is {}".format(np.diff(max_indexs), len(max_indexs)-1))
+    types = get_onset_type(max_indexs,onset_code)
+    print(types)
+    max_indexs_diff = np.diff(max_indexs)
+    max_diff = [max_indexs_diff[i]/max_indexs_diff[i-1] for i in range(1,len(max_indexs_diff))]
+    print("max_diff is {},size is {}".format(max_diff, len(max_diff)))
+
     #max_indexs = get_topN_rms_max_indexs_for_onset(filename, 10)
     times = librosa.frames_to_time(np.arange(len(rms)))
     plt.subplot(3,1,1)

@@ -602,55 +602,6 @@ def check_rms_max_by_dtw(max_indexs,base_frames,start_indexs):
         selected_max_indexs = [x for x in max_indexs if x not in del_maxs]
     return selected_max_indexs
 
-def get_onset_type(onset_frames,onset_code):
-
-    if len(onset_frames) == 0:
-        return []
-    #print("start_index is {},size is {}".format(start_indexs,len(start_indexs)))
-    code = parse_onset_code(onset_code)
-    code = [int(x) for x in code]
-
-    #print("code is {},size is {}".format(code, len(code)))
-
-    total_length_no_last = np.sum(code[:-1])
-    real_total_length_no_last = onset_frames[-1] - onset_frames[0]
-    rate = real_total_length_no_last/total_length_no_last
-    code_dict = {}
-    for x in range(125, 4000, 125):
-        code_dict[x] = int(x * rate)
-
-    width_3000 = int(3000 * rate)
-    width_2000 = int(2000 * rate)
-    width_1500 = int(1500 * rate)
-    width_1000 = int(1000 * rate)
-    width_750 = int(750 * rate)
-    width_500 = int(500 * rate)
-    width_375 = int(375 * rate)
-    width_250 = int(250 * rate)
-    width_125 = int(125 * rate)
-    types = []
-    for x in np.diff(onset_frames):
-        if np.abs(x - width_125) < width_125/2:
-            type = 125
-        elif np.abs(x - width_250) < width_250/2:
-            type = 250
-        elif np.abs(x - width_375) < width_375/2:
-            type = 375
-        elif np.abs(x - width_500) < width_500/2:
-            type = 500
-        elif np.abs(x - width_750) < width_750/2:
-            type = 750
-        elif np.abs(x - width_1000) < width_1000/2:
-            type = 1000
-        elif np.abs(x - width_1500) < width_1500/2:
-            type = 1500
-        elif np.abs(x - width_2000) < width_2000/2:
-            type = 2000
-        elif np.abs(x - width_3000) < width_3000 / 2:
-            type = 3000
-        types.append(type)
-    #print("types is {},size {}".format(types,len(types)))
-    return types
 
 def get_best_onset_types(start_indexs,onset_frames,onset_code):
 
@@ -811,7 +762,6 @@ if __name__ == "__main__":
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  # 可给接近满分                          100
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  # 应该给接近九分                        93 ????
 
-
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 可给满分                        100
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 可给满分                       100
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-3.wav', '[2000,250,250,250,250,1000;2000;500,500,1000]'  # 可给满分                       100
@@ -837,10 +787,30 @@ if __name__ == "__main__":
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
 
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 可给满分
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/17；57.wav','[500,500,250,250,250,250;500,250,250,1000;250,250,250,250,750,250;250,250,500,1000]'
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 可给满分
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 54
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 47
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 42
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 30
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 92
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 65
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 81
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 85
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 60
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 67
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 49
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-4074-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 86
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  #  66
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  #  89
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
     # rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
     # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     print("rhythm_code is {}".format(rhythm_code))
@@ -868,9 +838,9 @@ if __name__ == "__main__":
 
     start_indexs = get_cqt_start_indexs(filename)
     print("start_indexs is {} ,size {}".format(start_indexs, len(start_indexs)))
-    best_start_indexs = get_best_cqt_start_indexs_by_diff_level(filename,start, end,base_frames)
-    start_indexs = best_start_indexs
-    print("best_start_indexs is {} ,size {}".format(best_start_indexs, len(best_start_indexs)))
+    # best_start_indexs = get_best_cqt_start_indexs_by_diff_level(filename,start, end,base_frames)
+    # start_indexs = best_start_indexs
+    # print("best_start_indexs is {} ,size {}".format(best_start_indexs, len(best_start_indexs)))
     raw_start_indexs = start_indexs.copy()
     start_indexs_diff = np.diff(start_indexs)
 
@@ -953,8 +923,8 @@ if __name__ == "__main__":
     start_indexs_time = librosa.frames_to_time(start_indexs)
     max_indexs_time = librosa.frames_to_time(max_indexs)
     fake_onset_frames_time = librosa.frames_to_time(fake_onset_frames)
-    #plt.vlines(raw_start_indexs_time, 0, 84, color='w', linestyle='solid')
-    plt.vlines(start_indexs_time, 0,84, color='b', linestyle='solid')
+    plt.vlines(raw_start_indexs_time, 0, 84, color='w', linestyle='solid')
+    # plt.vlines(start_indexs_time, 0,84, color='b', linestyle='solid')
     #plt.vlines(max_indexs_time, 0, 84, color='r', linestyle='dashed')
     #plt.vlines(fake_onset_frames_time, 0, 84, color='black', linestyle='dashed')
 
