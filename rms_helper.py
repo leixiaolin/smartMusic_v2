@@ -1,132 +1,16 @@
 # -*- coding: UTF-8 -*-
-import librosa
-import matplotlib.pyplot as plt
 import librosa.display
-import numpy as np
+import scipy.signal as signal
+
+from LscHelper import *
+from base_helper import *
 from create_base import *
 from myDtw import *
-import scipy.signal as signal
-import os
+
 
 # 1. Get the file path to the included audio example
 # Sonify detected beat events
 # 定义加载语音文件并去掉两端静音的函数
-
-test_codes = np.array(['[1000,1000;2000;1000,500,500;2000]',
-                       '[2000;1000,1000;500,500,1000;2000]',
-                       '[1000,1000;500,500,1000;1000,1000;2000]',
-                       '[1000,--(1000);1000,--(1000);500,250,250,1000;--(1000),1000]',
-                       '[500;1000,500,1000,500;500,500,500,250,250,500,500;250,250,500,500,1000]',
-                       '[1000,--(1000);1000,--(1000);1000,-(500),500;1000,1000]',
-                       '[750,250,500,500,500,-(500);500,1000,500,500,-(500);750,250,500,500,500,-(500)]',
-                       '[500,1000,500,500,250,250;1000,500,750,250,500;3000]',
-                       '[500,500,500;1000,500;500,500,500;1500;500,500,500;1000,500;500;1000;1500]',
-                       '[500,500,1000;500,500;1000;375,125,250,250,375,125,250,250;500,500,1000]'])
-test_note_codes = np.array(['[3,3,3,3,3,3,3,5,1,2,3]',
-                            '[5,5,3,2,1,2,5,3,2]',
-                            '[5,5,3,2,1,2,2,3,2,6-,5-]',
-                            '[5,1+,7,1+,2+,1+,7,6,5,2,4,3,6,5]',
-                            '[3,6,7,1+,2+,1+,7,6,3]',
-                            '[1+,7,1+,2+,3+,2+,1+,7,6,7,1+,2+,7,1+,7,1+,2+,1+]',
-                            '[5,6,1+,6,2,3,1,6-,5-]',
-                            '[5,5,6,5,6,5,1,3,0,2,2,5-,2,1]',
-                            '[3,2,1,2,1,1,2,3,4,5,3,6,5,5,3]',
-                            '[3,4,5,1+,7,6,5]'])
-test_rhythm_codes = np.array(['[500,500,1000;500,500,1000;500,500,750,250;2000]',
-                              '[1000,1000;500,500,1000;1000,500,500; 2000]',
-                              '[1000,1000;500,500,1000;500,250,250,500,500;2000]',
-                              '[500,1000,500;250,250,250,250,500,500;500,500,500,500;2000]',
-                              '[1000;500,500,1000;500,500,500,500;2000]',
-                              '[500;500,500,500,500;500,500,500,500;500,500,500,500;250,250,250,250,500]',
-                              '[1000,750,250,2000;500,500,500,500,2000]',
-                              '[1000,1000,1000,500,500;1000,1000,1000,--(1000);1000,1000,1000;1000,4000]',
-                              '[1500,500,500,500;2500,500;1000,500,500,500,500;2500,500]',
-                              '[500,500;1500,500,500,500;2000]'])
-
-
-def get_code(index, type):
-    if type == 1:
-        code = test_codes[index]
-    if type == 2:
-        code = test_rhythm_codes[index]
-    if type == 3:
-        code = test_note_codes[index]
-    # code = code.replace(";", ',')
-    # code = code.replace("[", '')
-    # code = code.replace("]", '')
-    # code = [x for x in code.split(',')]
-    return code
-
-
-def get_onsets_index_by_filename(filename):
-    if filename.find("节奏10") >= 0 or filename.find("节奏十") >= 0 or filename.find("节奏题十") >= 0 or filename.find(
-            "节奏题10") >= 0 or filename.find("节10") >= 0:
-        return 9
-    elif filename.find("节奏1") >= 0 or filename.find("节奏一") >= 0 or filename.find("节奏题一") >= 0 or filename.find(
-            "节奏题1") >= 0 or filename.find("节1") >= 0:
-        return 0
-    elif filename.find("节奏2") >= 0 or filename.find("节奏二") >= 0 or filename.find("节奏题二") >= 0 or filename.find(
-            "节奏题2") >= 0 or filename.find("节2") >= 0:
-        return 1
-    elif filename.find("节奏3") >= 0 or filename.find("节奏三") >= 0 or filename.find("节奏题三") >= 0 or filename.find(
-            "节奏题3") >= 0 or filename.find("节3") >= 0:
-        return 2
-    elif filename.find("节奏4") >= 0 or filename.find("节奏四") >= 0 or filename.find("节奏题四") >= 0 or filename.find(
-            "节奏题4") >= 0 or filename.find("节4") >= 0:
-        return 3
-    elif filename.find("节奏5") >= 0 or filename.find("节奏五") >= 0 or filename.find("节奏题五") >= 0 or filename.find(
-            "节奏题5") >= 0 or filename.find("节5") >= 0:
-        return 4
-    elif filename.find("节奏6") >= 0 or filename.find("节奏六") >= 0 or filename.find("节奏题六") >= 0 or filename.find(
-            "节奏题6") >= 0 or filename.find("节6") >= 0:
-        return 5
-    elif filename.find("节奏7") >= 0 or filename.find("节奏七") >= 0 or filename.find("节奏题七") >= 0 or filename.find(
-            "节奏题7") >= 0 or filename.find("节7") >= 0:
-        return 6
-    elif filename.find("节奏8") >= 0 or filename.find("节奏八") >= 0 or filename.find("节奏题八") >= 0 or filename.find(
-            "节奏题8") >= 0 or filename.find("节8") >= 0:
-        return 7
-    elif filename.find("节奏9") >= 0 or filename.find("节奏九") >= 0 or filename.find("节奏题九") >= 0 or filename.find(
-            "节奏题9") >= 0 or filename.find("节9") >= 0:
-        return 8
-    else:
-        return -1
-
-
-def get_onsets_index_by_filename_rhythm(filename):
-    if filename.find("旋律10") >= 0 or filename.find("旋律十") >= 0 or filename.find("视唱十") >= 0 or filename.find(
-            "视唱10") >= 0 or filename.find("旋10") >= 0:
-        return 9
-    elif filename.find("旋律1") >= 0 or filename.find("旋律一") >= 0 or filename.find("视唱一") >= 0 or filename.find(
-            "视唱1") >= 0 or filename.find("旋1") >= 0:
-        return 0
-    elif filename.find("旋律2") >= 0 or filename.find("旋律二") >= 0 or filename.find("视唱二") >= 0 or filename.find(
-            "视唱2") >= 0 or filename.find("旋2") >= 0:
-        return 1
-    elif filename.find("旋律3") >= 0 or filename.find("旋律三") >= 0 or filename.find("视唱三") >= 0 or filename.find(
-            "视唱3") >= 0 or filename.find("旋3") >= 0:
-        return 2
-    elif filename.find("旋律4") >= 0 or filename.find("旋律四") >= 0 or filename.find("视唱四") >= 0 or filename.find(
-            "视唱4") >= 0 or filename.find("旋4") >= 0:
-        return 3
-    elif filename.find("旋律5") >= 0 or filename.find("旋律五") >= 0 or filename.find("视唱五") >= 0 or filename.find(
-            "视唱5") >= 0 or filename.find("旋5") >= 0:
-        return 4
-    elif filename.find("旋律6") >= 0 or filename.find("旋律六") >= 0 or filename.find("视唱六") >= 0 or filename.find(
-            "视唱6") >= 0 or filename.find("旋6") >= 0:
-        return 5
-    elif filename.find("旋律7") >= 0 or filename.find("旋律七") >= 0 or filename.find("视唱七") >= 0 or filename.find(
-            "视唱7") >= 0 or filename.find("旋7") >= 0:
-        return 6
-    elif filename.find("旋律8") >= 0 or filename.find("旋律八") >= 0 or filename.find("视唱八") >= 0 or filename.find(
-            "视唱8") >= 0 or filename.find("旋8") >= 0:
-        return 7
-    elif filename.find("旋律9") >= 0 or filename.find("旋律九") >= 0 or filename.find("视唱九") >= 0 or filename.find(
-            "视唱9") >= 0 or filename.find("旋9") >= 0:
-        return 8
-    else:
-        return -1
-
 
 def write_txt(content, filename, mode='w'):
     """保存txt数据
@@ -137,7 +21,7 @@ def write_txt(content, filename, mode='w'):
     """
     with open(filename, mode) as f:
         f.write(content)
-def get_rms_max_indexs_for_onset(filename):
+def get_rms_max_indexs_for_onset(filename,onset_code,threshold = 0.25):
     y, sr = librosa.load(filename)
     rms = librosa.feature.rmse(y=y)[0]
     rms = [x / np.std(rms) for x in rms]
@@ -145,24 +29,76 @@ def get_rms_max_indexs_for_onset(filename):
     rms = list(np.diff(rms))
     rms.insert(0,0)
 
-    # b, a = signal.butter(4, 0.1, analog=False)
-    # sig_ff = signal.filtfilt(b, a, rms)
+    b, a = signal.butter(8, 0.35, analog=False)
+    sig_ff = signal.filtfilt(b, a, rms)
 
     # Savitzky-Golay filter 平滑
-    from scipy.signal import savgol_filter
-    sig_ff = savgol_filter(rms, 5, 1)  # window size 51, polynomial order 3
+    # from scipy.signal import savgol_filter
+    # sig_ff = savgol_filter(rms, 5, 1)  # window size 51, polynomial order 3
+    # sig_ff = signal.medfilt(rms, 5)  # 二维中值滤波
     sig_ff = [x/np.std(sig_ff) for x in sig_ff]
     max_indexs = [i for i in range(1,len(sig_ff)-1) if sig_ff[i]>sig_ff[i-1] and sig_ff[i]>sig_ff[i+1] and sig_ff[i] > np.max(sig_ff)*0.15]
-    return rms_bak,rms,sig_ff,max_indexs
+    sig_ff_on_max_indexs = [sig_ff[x] for x in max_indexs]
+    topN_indexs = find_n_largest(a, 4)
+    top_index = sig_ff_on_max_indexs.index(np.max(sig_ff_on_max_indexs))
+    hline = np.mean([sig_ff_on_max_indexs[i] for i in range(len(sig_ff_on_max_indexs)) if i in topN_indexs and i != top_index]) * threshold
+    max_indexs = [i for i in range(1,len(sig_ff)-1) if sig_ff[i]>sig_ff[i-1] and sig_ff[i]>sig_ff[i+1] and sig_ff[i] > hline]
 
-def get_start_end_length_by_max_index(max_indexs,onset_code):
+
     code = parse_onset_code(onset_code)
     code = [int(x) for x in code]
-    last_length = int((max_indexs[-1] - max_indexs[0])*code[-1]/(np.sum(code[:-1])))
+    if code[-1] >= 2000:
+        width_last = len(rms) * code[-1] / np.sum(code)
+        max_indexs = [x for x in max_indexs if x < len(rms) - int(width_last * 0.4)]
+    else:
+        max_indexs = [x for x in max_indexs if x < len(rms) - 5]
+    # sig_ff_on_max_indexs = [sig_ff[x] for x in max_indexs]
+    # tmp = sig_ff_on_max_indexs.copy()
+    # tmp.sort()
+    # min_index = sig_ff_on_max_indexs.index(tmp[0])
+    # second_index = sig_ff_on_max_indexs.index(tmp[1])
+    # if sig_ff_on_max_indexs[second_index] - sig_ff_on_max_indexs[min_index] > np.std(sig_ff_on_max_indexs)*0.8:
+    #     max_indexs.remove(max_indexs[min_index])
+    return rms_bak,rms,sig_ff,max_indexs
+
+def get_best_max_index(filename,onset_code):
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
+    base_symbols = get_all_symbols(code)
+
+    rms, rms_diff, sig_ff, max_indexs_first = get_rms_max_indexs_for_onset(filename, onset_code,0.25)
+    start, end, total_length = get_start_end_length_by_max_index(max_indexs_first, filename)
+    max_indexs_first.append(end if end < len(rms) - 5 else len(rms) - 5)
+    types = get_onset_type(max_indexs_first, onset_code)
+    all_symbols_first = get_all_symbols(types)
+
+    rms, rms_diff, sig_ff, max_indexs_second = get_rms_max_indexs_for_onset(filename, onset_code, 0.55)
+    start, end, total_length = get_start_end_length_by_max_index(max_indexs_second, filename)
+    max_indexs_second.append(end if end < len(rms) - 5 else len(rms) - 5)
+    types = get_onset_type(max_indexs_second, onset_code)
+    all_symbols_second = get_all_symbols(types)
+
+    lcs_first = find_lcseque(base_symbols, all_symbols_first)
+    lcs_second = find_lcseque(base_symbols, all_symbols_second)
+    if len(lcs_first) >= len(lcs_second):
+        #print(11)
+        return max_indexs_first
+    else:
+        #print(22)
+        return max_indexs_second
+
+def get_start_end_length_by_max_index(max_indexs,filename):
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    rms_mean = np.mean(rms)
+    end = len(rms) -5
+    for i in range(len(rms)-5,20,-1):
+        if rms[i] > rms_mean * 0.1:
+            end = i
+            break
     start = max_indexs[0]
-    end = max_indexs[-1] + last_length
-    total_length = end - start
-    return start,end,total_length
+    total_frames_number = end - start
+    return start,end,total_frames_number
 
 
 def get_topN_rms_max_indexs_for_onset(filename,topN):
@@ -247,176 +183,130 @@ def get_onset_type(onset_frames,onset_code):
                 best_min = gap
                 best_key = key
         types.append(best_key)
+
+        # if best_key == 250:
+        #     current_index = len(types) - 1
+        #     if np.diff(onset_frames)[current_index] > code_dict.get(250):
+        #         code_dict[250] = int((np.diff(onset_frames)[-1] + code_dict.get(250))/2)
+        #         code_dict[500] = code_dict[250]
+                # 250 前面不为250的话，后面正常情况下应该为250，所以要在一定范围内修正结果
+        # if len(types) >=3:
+        #     if types[-3] != 250 and types[-2] == 250 and types[-1] == 500:
+        #         current_index = len(types) -1
+        #         if np.diff(onset_frames)[current_index] < np.diff(onset_frames)[current_index-1] * 1.5:
+        #             types[-1] = 250
+        # if len(types) >=4:
+        #     if types[-4] == 250 and types[-3] == 250 and types[-2] == 250 and types[-1] == 500:
+        #         current_index = len(types) -1
+        #         if np.diff(onset_frames)[current_index] < np.diff(onset_frames)[current_index-1] * 1.5:
+        #             types[-1] = 250
+        onset_frames_diff = np.diff(onset_frames)
+        maybe_wrong_indexs = [i for i in range(1,len(types)-1) if types[i-1] == 250 and types[i] == 500]
+        all_250 = [onset_frames_diff[i] for i in range(len(types)) if types[i] == 250]
+        all_250_mean = np.mean(all_250)
+        all_500 = [onset_frames_diff[i] for i in range(len(types)) if types[i] == 500 and i not in maybe_wrong_indexs]
+        all_500_mean = np.mean(all_500)
+        if len(maybe_wrong_indexs) > 0:
+            for i in maybe_wrong_indexs:
+                width_500 = onset_frames_diff[i]
+                if np.abs(width_500 - all_250_mean) < np.abs(width_500 - all_500_mean):
+                    types[i] = 250
+
     #print("types is {},size {}".format(types,len(types)))
     return types
+def get_all_symbols(types):
+    symbols = ''
+    for t in types:
+        s = get_type_symbol(t)
+        symbols = symbols + s
+    return symbols
 
-if __name__ == "__main__":
-    # y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律3.100分.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（9）（100）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律一（14）（95）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律五（3）（63）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏一（4）（96）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3王（80）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4文(75).wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8录音1(80).wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1.3(93).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律1_40312（95）.wav'
-    # filename = 'e:/test_image/m1/A/旋律1_40312（95）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律十（2）（80）.wav'
+def calculate_score(max_indexs,onset_code):
+    types = get_onset_type(max_indexs, onset_code)
+    #print(types)
+    all_symbols = get_all_symbols(types)
+    #print(all_symbols)
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
+    base_symbols = get_all_symbols(code)
+    #print(base_symbols)
+    lcs = find_lcseque(base_symbols, all_symbols)
+    each_symbol_score = 100/len(code)
+    total_score = int(len(lcs)*each_symbol_score)
 
-    # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律8录音3(95).wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/Archive/dada1.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
+    detail = get_matched_detail(base_symbols, all_symbols, lcs)
 
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律8.100分.mp3'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律7.100分.mp3'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律5.100分.mp3'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律六.5（100）.mp3'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律6.75分.mp3'
-    # filename =  'F:/项目/花城音乐项目/样式数据/1-2/旋律mp3/旋律1.40分.mp3'
+    ex_total = len(all_symbols) - len(lcs) -1
+    ex_rate = ex_total / len(base_symbols)
+    if len(all_symbols) > len(base_symbols):
+        if ex_rate > 0.4:                                # 节奏个数误差超过40%，总分不超过50分
+            total_score = total_score if total_score < 50 else 50
+            detail = detail + "，多唱节奏个数误差超过40%，总分不得超过50分"
+        elif ex_rate > 0.3:                             # 节奏个数误差超过30%，总分不超过65分（超过的）（30-40%）
+            total_score = total_score if total_score < 65 else 65
+            detail = detail + "，多唱节奏个数误差超过30%，总分不得超过65分"
+        elif ex_rate > 0.2:                             # 节奏个数误差超过20%，总分不超过80分（超过的）（20-30%）
+            total_score = total_score if total_score < 80 else 80
+            detail = detail + "，多唱节奏个数误差超过20%，总分不得超过80分"
+        elif ex_rate > 0:                                           # 节奏个数误差不超过20%，总分不超过90分（超过的）（0-20%）
+            total_score = total_score if total_score < 90 else 90
+            detail = detail + "，多唱节奏个数误差在（1-20%），总分不得超过90分"
+    return total_score,detail
 
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1.2(92).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1谭（98）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3.3(96).wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4谭（95）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律8录音3(95).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1谭（98）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋1王（98）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋8文(58).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋律四（1）（20）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4王（56）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4欧(25).wav'
+def get_matched_detail(base_symbols, all_symbols,lcs):
+    detail_list = np.zeros(len(base_symbols))
+    start_index = 0
+    for l in lcs:
+        index = base_symbols[start_index:].index(l)
+        detail_list[start_index + index] = 1
+        start_index = start_index + index + 1
+    str_detail_list = '识别的结果是：' + str(detail_list)
+    str_detail_list = str_detail_list.replace("1", "√")
+    str_detail_list = str_detail_list.replace("0", "×")
 
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律八（9）(90).wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律二（2）（90分）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律九（4）(95).wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三（2）（90分）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律四.1（100）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律四.3（100）.wav'
-    # # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律十（5）(50).wav'
-    # # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律七(5)（55）.wav'
-    # # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律1.90分.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律四.10（100）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三（3）（80分）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三（8）(80).wav'
-    # # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律二（2）（90分）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律三.10（100）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律一.6（100）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/1-2/旋律/旋律九（6）(50).wav'
+    ex_total = len(all_symbols) - len(lcs) -1
 
-    filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10.4(60).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1文(95).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏一（3）（90）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏十（1）（100）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1谭（96）.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4.1(95).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节奏三（1）（100）.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10.4(60).wav'
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 第1条
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条
-    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav','[2000;250,250,250,250,1000;2000;500,500,1000]'  # 第3条
-    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav','[1000,250,250,250,250;2000;1000,500,500;2000]'  # 第4条
-
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节10.1(97).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4熙(95).wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/12；98.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/1；100.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/10；84.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，90.wav'
-    filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，90.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，78.wav'
-    # filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/节奏/节奏3，80.wav'
-
-    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-1.wav','[1000,1000;500,250,250,500;1000,500,500;2000]'  # 第1条 这个可以给满分 90
-    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav','[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分  97
-    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav','[2000;250,250,250,250,1000;2000;500,500,1000]'  # 第3条 故意错一个，扣一分即可 89
-    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav','[1000,250,250,250,250;2000;1000,500,500;2000]'  # 第4条 故意错了两处，应该扣两分左右即可  85
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  #应该有七分左右 74
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题三.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  #应该接近满分 97
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  #可给满分 100
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分 100
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第一题.wav', '[1000,1000;500,250,250,1000;500,500,500,500;2000]'  #可给满分 89
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第二题.wav', '[1000,500,500;500,250,250,500;500,500,1000;2000]'  # 可给接近满分 90
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏一.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'  # 可给接近满分 71
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  # 可给接近满分 8?
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分 94
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分87
-
-    result_path = 'e:/test_image/n/'
-    plt.close()
-    type_index = get_onsets_index_by_filename(filename)
-    onset_code = get_code(type_index, 1)
-    rhythm_code = get_code(type_index, 2)
-    pitch_code = get_code(type_index, 3)
-
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  # 应该给接近九分
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      100
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  # 应该有七分左右 74
-
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4634-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 54
-    # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  # 第一个节奏应该扣分，最后一个音没唱，应该没分  79
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
-    # rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
-    # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
+    if len(all_symbols) > len(base_symbols):
+        str_detail_list = str_detail_list + "， 多唱节拍数有：" + str(ex_total)
+    return str_detail_list
 
 
-
-
-    print("rhythm_code is {}".format(rhythm_code))
-    print("pitch_code is {}".format(pitch_code))
-    # plt, total_score, onset_score, note_scroe, detail_content = draw_plt(filename, rhythm_code, pitch_code)
-    # plt.show()
-    # plt.clf()
-    rms,rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename)
-    start, end, total_length = get_start_end_length_by_max_index(max_indexs, onset_code)
-    print("max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
-    max_indexs.append(end)
-    print("max_indexs_diff is {},size is {}".format(np.diff(max_indexs), len(max_indexs)-1))
-    types = get_onset_type(max_indexs,onset_code)
-    print(types)
-    max_indexs_diff = np.diff(max_indexs)
-    max_diff = [max_indexs_diff[i]/max_indexs_diff[i-1] for i in range(1,len(max_indexs_diff))]
-    print("max_diff is {},size is {}".format(max_diff, len(max_diff)))
-
-    #max_indexs = get_topN_rms_max_indexs_for_onset(filename, 10)
+def draw_plt(filename,onset_code,rms,sig_ff,max_indexs,start,end):
+    # max_indexs = get_topN_rms_max_indexs_for_onset(filename, 10)
     times = librosa.frames_to_time(np.arange(len(rms)))
-    plt.subplot(3,1,1)
+    plt.clf()
+    plt.subplot(2, 1, 1)
+    #plt.rcParams['figure.figsize'] = (16, 8)  # 设置figure_size尺寸
+    plt.title(filename)
+    plt.xlabel("识别结果示意图")
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
     plt.plot(times, rms)
-    plt.plot(times, rms_diff)
+    # plt.plot(times, rms_diff)
     plt.plot(times, sig_ff)
+    #print(np.std(sig_ff))
+    sig_ff = [x if x > 0 else 0 for x in sig_ff]
+    sig_ff_on_max_indexs = [sig_ff[x] for x in max_indexs]
+    topN_indexs = find_n_largest(a, 4)
+    top_index = sig_ff_on_max_indexs.index(np.max(sig_ff_on_max_indexs))
+    hline = np.mean([sig_ff_on_max_indexs[i] for i in range(len(sig_ff_on_max_indexs)) if i in topN_indexs and i != top_index]) * 0.25
+    #print(hline)
+    #print(np.std(sig_ff))
     plt.xlim(0, np.max(times))
     max_index_times = librosa.frames_to_time(max_indexs)
     plt.vlines(max_index_times, 0, np.max(rms), color='r', linestyle='dashed')
     start_time = librosa.frames_to_time(start)
     end_time = librosa.frames_to_time(end)
-    plt.vlines(start_time, 0, np.max(rms)/2, color='b', linestyle='solid')
-    plt.vlines(end_time, 0, np.max(rms)/2, color='b', linestyle='solid')
+    plt.vlines(start_time, 0, np.max(rms) / 2, color='black', linestyle='solid')
+    plt.vlines(end_time, 0, np.max(rms) / 2, color='black', linestyle='solid')
+    plt.hlines(hline, 0, np.max(times), color='r', linestyle='dashed')
+    plt.hlines(0, 0, np.max(times), color='black', linestyle='solid')
 
-    plt.subplot(3,1,2)
-    base_frames = onsets_base_frames(onset_code, total_length)
+    plt.subplot(2, 1, 2)
+    plt.xlabel("标准节拍示意图")
+    base_frames = onsets_base_frames(onset_code, end-start)
     base_frames = [x - (base_frames[0] - max_indexs[0]) for x in base_frames]
     base_frames_times = librosa.frames_to_time(base_frames)
     plt.vlines(base_frames_times, 0, 10, color='r', linestyle='dashed')
     plt.xlim(0, np.max(times))
-
-    plt.subplot(3, 1,3)
-    #xc, yc = get_matched_onset_frames_compared(max_indexs, base_frames)
-    print("base_frames is {}, size {}".format(base_frames, len(base_frames)))
-    print("max_indexs is {}, size {}".format(max_indexs, len(max_indexs)))
-    xc,yc, path1, path2,loss_indexs = get_matched_frames(base_frames,max_indexs)
-    xc_times = librosa.frames_to_time(yc)
-    plt.vlines(xc_times, 0, 10, color='r', linestyle='dashed')
-    plt.xlim(0, np.max(times))
-
-
-    plt.show()
+    return plt

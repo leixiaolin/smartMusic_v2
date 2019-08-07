@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 import argparse
 import sys
-from rms_cqt_helper_for_note import *
+from pitch_helper import *
 import warnings
 warnings.simplefilter('ignore')
 
@@ -34,11 +34,11 @@ else:
     print("melody_code is {}".format(melody_code))
     #file_path = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4欧(95).wav'
     #file_code = '[19,60,92,128,161,178,197,230,263]'
-    total_score, onset_score, note_scroe,maybe_onset_frames, onsets_frames,detail_content = cal_score_onset_and_note(file_path,rhythm_code,melody_code)
-    print("total_score,onset_score, note_scroe is {},{},{}".format(total_score,onset_score, note_scroe))
+    total_score,  onsets_frames,detail_content = calcalate_total_score(file_path,rhythm_code,melody_code)
+    print("total_score, is {}".format(total_score))
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
-    content = 'total_score,onset_score, note_scroe is ' + str(total_score) + ' ' + str(onset_score) + ' ' + str(note_scroe)
+    content = 'total_score is ' + str(total_score)
     content += "\n"
     save_path = os.path.join(filepath,output_file)
     write_txt(content, save_path, mode='w')
@@ -47,3 +47,5 @@ else:
     write_txt(detail, save_path, mode='a')
     #python grade_xl_util.py F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav [1000,1000;500,500,1000;500,250,250,500,500;2000] [5,5,3,2,1,2,2,3,2,6-,5-]
     # python grade_xl_util.py F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/01，98.wav [500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000] [5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]
+    # python grade_xl_util.py F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-6.wav [1000,500,500;2000;250,250,500,500,500;2000] [6,5,3,6,3,5,3,2,1,6-]
+    # python grade_xl_util.py F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/test.wav [1000,250,250,250,250;2000;1000,500,500;2000] [1,3,5,1+,6,5,1,3,2,1]

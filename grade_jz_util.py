@@ -3,6 +3,7 @@ import argparse
 import sys
 #from find_mismatch import *
 from rms_cqt_helper import *
+from rms_helper import *
 import warnings
 warnings.simplefilter('ignore')
 
@@ -33,11 +34,14 @@ else:
     #file_path = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4欧(95).wav'
     #file_code = '[19,60,92,128,161,178,197,230,263]'
     #score, lost_score, ex_score, min_d, standard_y, recognize_y, onsets_frames_strength, detail_content = get_score_jz(file_path,rhythm_code)
-    score, lost_score, ex_score, min_d, standard_y, recognize_y, detail_content = get_score_for_onset_by_frame(file_path, rhythm_code)
-    print("score, lost_score, ex_score, min_d is {},{},{},{}".format(score, lost_score, ex_score, min_d))
+    # score, lost_score, ex_score, min_d, standard_y, recognize_y, detail_content = get_score_for_onset_by_frame(file_path, rhythm_code)
+    rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(file_path, rhythm_code)
+    max_indexs = get_best_max_index(file_path, rhythm_code)
+    score, detail_content = calculate_score(max_indexs, rhythm_code)
+    print("score is {}".format(score))
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
-    content = 'score, lost_score, ex_score, min_d is ' + str(score) + ' ' + str(lost_score) + str(ex_score) + ' '+ str(min_d)
+    content = 'score is ' + str(score)
     content +=  "\n"
     save_path = os.path.join(filepath,output_file)
     write_txt(content, save_path, mode='w')
