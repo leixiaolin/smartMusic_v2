@@ -213,7 +213,7 @@ def get_all_symbols_for_pitch_code(pitch_code):
     return result
 
 
-def get_onset_type(all_starts,rhythm_code,end):
+def get_onset_type(all_starts,rhythm_code,end,init_code_dict=None):
     onset_frames = all_starts.copy()
     onset_frames.append(end)
     if len(onset_frames) == 0:
@@ -224,7 +224,10 @@ def get_onset_type(all_starts,rhythm_code,end):
 
     #print("code is {},size is {}".format(code, len(code)))
 
-    code_dict = check_code_dict(all_starts, code)
+    if init_code_dict is None:
+        code_dict = check_code_dict(all_starts, code)
+    else:
+        code_dict = init_code_dict
     if code_dict is None:
         total_length_no_last = np.sum(code[0:-1])
         real_total_length_no_last = onset_frames[-1] - onset_frames[0]
@@ -320,10 +323,46 @@ def check_code_dict(all_starts,code):
             c = code_rates[j-1]
             d = code_rates[j]
             if a == c and b == d:
-                rate = sum(all_starts_diff[j-1:j+2])/sum(code[j-1:j+2])
+                rate = sum(all_starts_diff[i-1:i+2])/sum(code[j-1:j+2])
                 code_dict = get_code_dict(rate, code)
                 return code_dict
     return None
+
+def check_code_dict_with_start_end(all_starts,code,start,end):
+    all_starts_diff = np.diff(all_starts)
+    code_rates = []
+    for i in range(1,len(code)):
+        a = code[i-1]
+        b = code[i]
+        rate = round(b/a) if b > a else 1/round(a/b)
+        rate = round(rate,1)
+        code_rates.append(rate)
+
+    starts_rates = []
+    for i in range(1,len(all_starts_diff)):
+        a = all_starts_diff[i - 1]
+        b = all_starts_diff[i]
+        rate = round(b / a) if b > a else 1 / round(a / b)
+        rate = round(rate, 1)
+        starts_rates.append(rate)
+
+    for i in range(1,len(starts_rates)):
+        a = starts_rates[i-1]
+        b = starts_rates[i]
+        for j in range(1,len(code_rates)):
+            c = code_rates[j-1]
+            d = code_rates[j]
+            if a == c and b == d:
+                rate = sum(all_starts_diff[i-1:i+2])/sum(code[j-1:j+2])
+                base_length = (sum(code)) * rate
+                real_length = end -start
+                std_length = np.abs(1 -(real_length/base_length))
+                if std_length < 0.35:
+                    # print("real_length/base_length std is {}".format(std_length))
+                    code_dict = get_code_dict(rate, code)
+                    return code_dict
+    return None
+
 def get_code_dict(rate,code):
     code_dict = {}
     for x in code:
@@ -678,12 +717,15 @@ def check_max_indexs_by_heigths(filename,cqt_bak,max_indexs,code,end):
     # print("true_max_indexs is {},size {}".format(true_max_indexs, len(true_max_indexs)))
     for m in max_indexs:
         check_point = max_indexs.index(m)
-        check_result = check_max_indexs_rate(max_indexs.copy(),code,check_point)
-        # if np.max(heights[m-3:m+3]) - np.min(heights[m-3:m+3]) > 4 and (sig_ff[m] > np.max(sig_ff) * 0.4 and np.max(base_pitch[m-8:m+2]) - np.min(base_pitch[m-8:m+2]) > 1):
-        # if np.max(heights[m-3:m+3]) - np.min(heights[m-3:m+3]) > 4 and np.max(base_pitch[m-8:m+2]) - np.min(base_pitch[m-8:m+2]) > 1:
-        # if np.max(heights[m-3:m+3]) - np.min(heights[m-3:m+3]) > 4 and (np.max(base_pitch[m-8:m+2]) - np.min(base_pitch[m-8:m+2]) > 1 or check_result is True):
-        if m in true_max_indexs or (np.max(heights[m-3:m+3]) - np.min(heights[m-3:m+3]) > 4 and np.max(base_pitch[m-8:m+2]) - np.min(base_pitch[m-8:m+2]) > 1) or (np.max(heights[m-2:m+2]) - np.min(heights[m-2:m+2]) > 2 and check_result is True):
-            select_max_indexs.append(m)
+        heights_tmp = heights[m:]
+        tmp = list(heights_tmp).index(0)
+        if tmp > 10:
+            check_result = check_max_indexs_rate(max_indexs.copy(),code,check_point)
+            # if np.max(heights[m-3:m+3]) - np.min(heights[m-3:m+3]) > 4 and (sig_ff[m] > np.max(sig_ff) * 0.4 and np.max(base_pitch[m-8:m+2]) - np.min(base_pitch[m-8:m+2]) > 1):
+            # if np.max(heights[m-3:m+3]) - np.min(heights[m-3:m+3]) > 4 and np.max(base_pitch[m-8:m+2]) - np.min(base_pitch[m-8:m+2]) > 1:
+            # if np.max(heights[m-3:m+3]) - np.min(heights[m-3:m+3]) > 4 and (np.max(base_pitch[m-8:m+2]) - np.min(base_pitch[m-8:m+2]) > 1 or check_result is True):
+            if m in true_max_indexs or (np.max(heights[m-3:m+3]) - np.min(heights[m-3:m+3]) > 4 and np.max(base_pitch[m-8:m+2]) - np.min(base_pitch[m-8:m+2]) > 1) or (np.max(heights[m-2:m+2]) - np.min(heights[m-2:m+2]) > 2 and check_result is True):
+                select_max_indexs.append(m)
     # print("select_max_indexs is {},size {}".format(select_max_indexs, len(select_max_indexs)))
     return select_max_indexs
 
@@ -1013,7 +1055,12 @@ def get_onset_from_heights_v2(cqt,rhythm_code,filename):
     starts_with_blank = check_result
     # starts_with_blank = get_starts_by_height_gap(cqt)
     # print("1 starts_with_blank is {},size {}".format(starts_with_blank,len(starts_with_blank)))
-    onset_types, all_starts = get_onset_type(starts_with_blank, rhythm_code, end)
+    code = parse_rhythm_code(rhythm_code)
+    code = [int(x) for x in code]
+
+    # print("code is {},size is {}".format(code, len(code)))
+    code_dict = check_code_dict_with_start_end(starts_with_blank, code,start,end)
+    onset_types, all_starts = get_onset_type(starts_with_blank, rhythm_code, end,init_code_dict=code_dict)
     # print("==================================onset_types is {},size {} ========================================".format(onset_types, len(onset_types)))
     all_symbols = get_all_symbols(onset_types)
     # print("all_symbols is {},size {}".format(all_symbols, len(all_symbols)))
@@ -1024,7 +1071,7 @@ def get_onset_from_heights_v2(cqt,rhythm_code,filename):
         for n in range(8):
             all_starts = modify_onset_from_heights_v2(cqt, onset_types, all_starts, code,end)
             # print("2 starts_with_blank is {},size {}".format(all_starts, len(all_starts)))
-            onset_types, all_starts = get_onset_type(all_starts, rhythm_code, end)
+            onset_types, all_starts = get_onset_type(all_starts, rhythm_code, end,init_code_dict=code_dict)
             # if all_starts[0] - start > 10:
             #     all_starts.insert(0,start)
             #     all_starts.sort()
