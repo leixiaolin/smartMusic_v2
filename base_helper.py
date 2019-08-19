@@ -85,6 +85,8 @@ def get_all_note_type(base_pitch,first_type):
     if len(more_than_zero) < 1:
         return []
     first_pitch = more_than_zero[0]-1
+    pass_zero = [i for i in range(1,len(base_pitch)-1) if base_pitch[i] > 0 and base_pitch[i-1] == 0]
+    all_note_type_position = pass_zero.copy()
     all_note_types.append(first_type)
     all_note_type_position.append(list(base_pitch).index(more_than_zero[0]))
     for i in range(1,len(base_pitch)):
@@ -92,12 +94,13 @@ def get_all_note_type(base_pitch,first_type):
         b_pitch = base_pitch[i-1]
         if c_pitch != b_pitch and c_pitch > 0:
             c_note = get_note_type(c_pitch,first_pitch,first_type)
-            if c_note is not None:
+            if c_note is not None and i not in all_note_type_position:
                 all_note_types.append(c_note)
                 all_note_type_position.append(i)
-            else:
+            elif i not in all_note_type_position:
                 all_note_types.append(first_type)
                 all_note_type_position.append(i)
+    all_note_type_position.sort()
     return all_note_types,all_note_type_position
 if __name__ == '__main__':
     # for key in type_dict:

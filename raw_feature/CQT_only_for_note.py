@@ -130,15 +130,14 @@ def get_onsets_index_by_filename_rhythm(filename):
         return 8
     else:
         return -1
-
-def test_batch_samples():
-    files,rhythm_codes, pitch_codes = [],[],[]
+def init_test_data():
+    files, rhythm_codes, pitch_codes = [], [], []
 
     filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1089.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低  94      =======================
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1328.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #音准节奏均正确，给分偏低  95
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1328.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低  95
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
@@ -146,19 +145,19 @@ def test_batch_samples():
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #音准节奏均正确，给分偏低 90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低 90
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'          # 音准节奏均正确，给分偏低 90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低 90
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-8973.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #100  ========
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-8973.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 100  ========
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #故意把最后一个音唱错了，节奏全对,扣0.5左右即可 85
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  # 故意把最后一个音唱错了，节奏全对,扣0.5左右即可 85
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
@@ -170,159 +169,239 @@ def test_batch_samples():
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #  准确 96
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  # 准确 96
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #基本可给满分 59
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  # 基本可给满分 59
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #第一个节奏应该扣分，最后一个音没唱，应该没分  78
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  # 第一个节奏应该扣分，最后一个音没唱，应该没分  78
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100       =======================
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  # 100       =======================
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #100  ===========
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  # 100  ===========
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100      =======================
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  # 100      =======================
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #62  =======*******============?????????
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  # 62  =======*******============?????????
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100   ???????????==================
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  # 100   ???????????==================
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code  = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav', '[1000,1000;500,500,1000;500,250,250,500,500;2000]', '[5,5,3,2,1,2,2,3,2,6-,5-]'
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav', '[1000,1000;500,500,1000;500,250,250,500,500;2000]', '[5,5,3,2,1,2,2,3,2,6-,5-]'
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code  = 'F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/01，98.wav', '[500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000]', '[5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]'
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/01，98.wav', '[500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000]', '[5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]'
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/test.wav','[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #节奏全对，旋律错最后一个  90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/test.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
 
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #100
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  # 100
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #84
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  # 84
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #90
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  # 90
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  # 100
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-5.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]', '[3,3,1,3,4,5,5,6,7,1+]'  #92
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-5.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]', '[3,3,1,3,4,5,5,6,7,1+]'  # 92
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-6.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]', '[1+,7,6,5,4,5,4,3,2,1]'  #100
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-6.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]', '[1+,7,6,5,4,5,4,3,2,1]'  # 100
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-7.wav','[500,1000,500;2000;500,250,250,500,500;2000]', '[1,3,4,5,6,6,1+,7,6,1+]'  #88
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-7.wav', '[500,1000,500;2000;500,250,250,500,500;2000]', '[1,3,4,5,6,6,1+,7,6,1+]'  # 88
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
-    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-8.wav', '[500,1000,500;2000;500,500,500,250,250;2000]', '[1+,7,6,5,6,5,4,3,2,1]'  #94
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-8.wav', '[500,1000,500;2000;500,500,500,250,250;2000]', '[1+,7,6,5,6,5,4,3,2,1]'  # 94
     files.append(filename)
     rhythm_codes.append(rhythm_code)
     pitch_codes.append(pitch_code)
+
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #
+    files.append(filename)
+    rhythm_codes.append(rhythm_code)
+    pitch_codes.append(pitch_code)
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #
+    files.append(filename)
+    rhythm_codes.append(rhythm_code)
+    pitch_codes.append(pitch_code)
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #
+    files.append(filename)
+    rhythm_codes.append(rhythm_code)
+    pitch_codes.append(pitch_code)
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #
+    files.append(filename)
+    rhythm_codes.append(rhythm_code)
+    pitch_codes.append(pitch_code)
+
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #
+    files.append(filename)
+    rhythm_codes.append(rhythm_code)
+    pitch_codes.append(pitch_code)
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #
+    files.append(filename)
+    rhythm_codes.append(rhythm_code)
+    pitch_codes.append(pitch_code)
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #
+    files.append(filename)
+    rhythm_codes.append(rhythm_code)
+    pitch_codes.append(pitch_code)
+    filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #
+    files.append(filename)
+    rhythm_codes.append(rhythm_code)
+    pitch_codes.append(pitch_code)
+    return files, rhythm_codes, pitch_codes
+def test_batch_samples():
+    files, rhythm_codes, pitch_codes = init_test_data()
+
+    total_length = 0
 
     for filename, rhythm_code, pitch_code in zip(files,rhythm_codes,pitch_codes):
         print(filename)
 
-        total_score,all_starts, detail = calcalate_total_score(filename, rhythm_code,pitch_code)
+        # total_score,all_starts, detail = calcalate_total_score(filename, rhythm_code,pitch_code)
         # print("total_score is {}".format(total_score))
         # print("detail is {}".format(detail))
-        plt = draw_plt(filename,rhythm_code, pitch_code)
-        #plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '-' + str(total_score) + '-' + str(lost_score) + '-' + str(ex_score) + '-' + str(min_d) + '.jpg', bbox_inches='tight', pad_inches=0)
+        total_score, all_starts, detail = calcalate_total_score(filename, rhythm_code, pitch_code)
+        print("总分 is {}".format(total_score))
+        print("detail is {}".format(detail))
+        plt = draw_detail(filename, rhythm_code, pitch_code)
+        # plt.show()
+        if total_score < 80:
+            result_path = 'e:/test_image/n/'
+        else:
+            result_path = 'e:/test_image/n2/'
+            #plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '-' + str(total_score) + '-' + str(lost_score) + '-' + str(ex_score) + '-' + str(min_d) + '.jpg', bbox_inches='tight', pad_inches=0)
         plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '-' + str(total_score) + '分.jpg', bbox_inches='tight', pad_inches=0)
         plt.clf()
 
+        length = get_total_length(filename)
+        # print(length)
+        total_length = total_length + length
+    file_total = len(files)
+    each_length = total_length / file_total
+    # print("each_length is {}".format(each_length))
+
+def batch_draw_samples():
+    files, rhythm_codes, pitch_codes = init_test_data()
+
+    for filename, rhythm_code, pitch_code in zip(files,rhythm_codes,pitch_codes):
+        print(filename)
+
+        plt = draw_detail(filename, rhythm_code, pitch_code)
+        plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '.jpg', bbox_inches='tight', pad_inches=0)
+        plt.clf()
+
+
+
+def test_total_length(dir_list):
+    for dir in dir_list:
+        file_list = os.listdir(dir)
+        # shuffle(file_list)  # 将语音文件随机排列
+        #file_list = ['旋1王（98）.wav']
+        file_total = len(file_list)
+        total_length = 0
+        for filename in file_list:
+            if filename.find(".wav") > 0:
+                print(dir + filename)
+                tmp = get_total_length(dir + filename)
+                total_length = total_length + tmp
+        each_length = total_length/file_total
+        print("each_length is {}".format(each_length))
 result_path = 'e:/test_image/n/'
 #y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
 filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律2.1(80).wav'
@@ -346,53 +425,53 @@ type_index = get_onsets_index_by_filename_rhythm(filename)
 # onset_code = get_code(type_index, 1)
 rhythm_code = get_code(type_index, 2)
 pitch_code = get_code(type_index, 3)
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1089.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # 音准节奏均正确，给分偏低  94      =======================
-# filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1328.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #音准节奏均正确，给分偏低  95
-filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1586.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #100  95
-filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #音准节奏均正确，给分偏低 90
-# filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'          # 音准节奏均正确，给分偏低 90
-# filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-8973.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #100  ========
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1089.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # =======================
+filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1328.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #
+# filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1586.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #
+filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-2939.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #81
+filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'          #100
+filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-8973.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #100
 
 
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #故意把最后一个音唱错了，节奏全对,扣0.5左右即可 85
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  # 这一条故意唱错了两个音，节奏是对的，这个扣一分即可 72
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  # 这一条节奏不是太稳，但音高基本正确,9.5分是没问题的 93
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #72
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #82
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100
 
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #  准确 96
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #基本可给满分 59
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #第一个节奏应该扣分，最后一个音没唱，应该没分  78
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100       =======================
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #86
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  # 84
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #74
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  # 94
 
 
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #100  ===========
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #节奏全对，旋律错最后一个  90
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  # 100
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #94
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #100
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #84
 
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100      =======================
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #100
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #100
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #100
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  # 88
 
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #节奏全对，旋律错最后一个  90
-filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #节奏全对，旋律错最后一个  90
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #76
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #94
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'  #100
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #50
 
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #62  =======*******============?????????
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #节奏全对，旋律错最后一个  90
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #100
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6-]'  #  90
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-7.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #90
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #8
 
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #节奏全对，旋律错最后一个  90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100   ???????????==================
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #100
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #84
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  # 88
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100
 
-# filename, rhythm_code, pitch_code  = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav', '[1000,1000;500,500,1000;500,250,250,500,500;2000]', '[5,5,3,2,1,2,2,3,2,6-,5-]'
-# filename, rhythm_code, pitch_code  = 'F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/01，98.wav', '[500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000]', '[5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]'
+# filename, rhythm_code, pitch_code  = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav', '[1000,1000;500,500,1000;500,250,250,500,500;2000]', '[5,5,3,2,1,2,2,3,2,6-,5-]' # 67 背景噪声造成音高不准
+# filename, rhythm_code, pitch_code  = 'F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/01，98.wav', '[500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000]', '[5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]'  # 25 背景噪声太大
 
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/test.wav','[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #节奏全对，旋律错最后一个  90
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/test.wav','[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #94
 # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋4.4(0).wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2.3(95).wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋2.4(50).wav'
@@ -401,15 +480,26 @@ filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7
 # rhythm_code = get_code(type_index, 2)
 # pitch_code = get_code(type_index, 3)
 
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #100
-filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #84
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #90
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #38?????????????????????????????
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  #72???????????????????????? 倍频问题
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #62????????????????????????
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/小学8题20190805-9112-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #94????????????
 
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-5.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]', '[3,3,1,3,4,5,5,6,7,1+]'  #92
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-5.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]', '[3,3,1,3,4,5,5,6,7,1+]'  #100
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-6.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]', '[1+,7,6,5,4,5,4,3,2,1]'  #100
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-7.wav','[500,1000,500;2000;500,250,250,500,500;2000]', '[1,3,4,5,6,6,1+,7,6,1+]'  #88
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-7.wav','[500,1000,500;2000;500,250,250,500,500;2000]', '[1,3,4,5,6,6,1+,7,6,1+]'  #100
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-8.wav', '[500,1000,500;2000;500,500,500,250,250;2000]', '[1+,7,6,5,6,5,4,3,2,1]'  #94
+
+
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #74 静默区起始点的伪节拍引起的
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  # 84
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  # 72
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #68????????????????????????????? 将1000也判断为静默区
+
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #94
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  # 90
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #88
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #94
 
 def batch_test(dir_list):
     result_path = 'e:/test_image/n/'
@@ -457,15 +547,25 @@ if __name__ == '__main__':
     # print("note_score is {}".format(note_score))
     # print("detail is {}".format(detail))
     print(filename)
-    total_score,all_starts,detail = calcalate_total_score(filename, rhythm_code,pitch_code)
+    # total_score,all_starts,detail = calcalate_total_score(filename, rhythm_code,pitch_code)
     # print("总分 is {}".format(total_score))
     # print("detail is {}".format(detail))
+    length = get_total_length(filename)
+    # print(length)
 
-    my_plt = draw_plt(filename,rhythm_code, pitch_code)
-    plt.show()
+    # my_plt,total_score = draw_plt(filename,rhythm_code, pitch_code)
+    # plt.show()
+    total_score, all_starts, detail = calcalate_total_score(filename, rhythm_code, pitch_code)
+    print("总分 is {}".format(total_score))
+    print("detail is {}".format(detail))
+    detail = draw_detail(filename, rhythm_code, pitch_code)
+    detail.show()
 
-    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/']
+    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/','F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/','F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/','F:/项目/花城音乐项目/样式数据/3.19MP3/旋律/','F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/']
     # batch_test(dir_list)
 
     test_batch_samples()
 
+    # test_total_length(dir_list)
+
+    # batch_draw_samples();
