@@ -1,8 +1,16 @@
-# -*- coding: UTF-8 -*-
+          # -*- coding: UTF-8 -*-
 import numpy as np
 
 ##### https://blog.csdn.net/miner_zhu/article/details/81159902
 def my_find_lcseque(s1, s2): #s1 为标准字符串
+    if len(s1) == len(s2):
+        tmp = ''
+        positions = []
+        for i,x in enumerate(s1):
+            if x == s2[i]:
+                tmp = tmp + str(x)
+                positions.append(i)
+        return tmp,positions
     #先找最长公共子串
     lcsubstr, mmax = find_lcsubstr(s1, s2)
 
@@ -141,7 +149,8 @@ def find_lcsubstr(s1, s2):
 
 if __name__ == '__main__':
     a = 'EIIIICEGGC'
-    b = 'EIIGCEGC'
+    #b = 'EIIGCEGC'
+    b = 'EIIiGCEGcC'
     c = find_lcseque_for_note(a,b)
     s1,mmax = find_lcsubstr(a, b)
     print(a)

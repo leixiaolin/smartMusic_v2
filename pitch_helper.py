@@ -186,7 +186,9 @@ def get_all_notes_from_base_pitch_with_starts(all_starts,base_pitch,start,end):
             end = e
         some_base_pitch = base_pitch[start:end]
         some_base_pitch = [x for x in some_base_pitch if x > 0]
+        # print("some_base_pitch is {}".format(some_base_pitch))
         max_item, max_time = get_longest_note(some_base_pitch)
+        # print("max_item, max_time is {}, {}".format(max_item, max_time))
         # note = int(np.mean(some_base_pitch))
         note = max_item
         if note is not None:
@@ -1654,7 +1656,7 @@ def get_must_starts_on_highest_point_of_cqt(cqt):
                 tmp.append(x)
                 tmp.sort()
     # print("tmp is {}, size {}".format(tmp,len(tmp)))
-    tmp = [x for x in tmp if np.max(base_pitch[x:x+5]) != 0]
+    tmp = [x for x in tmp if np.max(base_pitch[x:x+10]) != 0]
     return tmp
 
 def find_2000_in_starts_on_highest_point(starts_on_highest_point,rhythm_code,start,end,length):
@@ -1804,7 +1806,7 @@ def modify_base_pitch(base_pitch):
         b = base_pitch[i+1]
         # if a == 11 and b == 30:
         #     print(b)
-        if a != 0 and b - a > 7:
+        if a != 0 and b - a > 7: # 后面比前面大
             tmp = base_pitch[i:]
             if len(tmp) > 0:
                 for j in range(1,len(tmp)):
@@ -1814,6 +1816,11 @@ def modify_base_pitch(base_pitch):
                         jump_point = i +j
                     else:
                         break
+        elif b!= 0 and a - b > 7: # 后面比前面小
+            tmp = base_pitch[:i]
+            for j in range(len(tmp)):
+                if np.min(tmp[j:]) - b > 7:
+                    result[j:i+1] = b
     return result
 
 def check_continue_down(base_pitch):
@@ -2179,8 +2186,9 @@ def get_miss_change_points_on_base_pitch(starts,change_points):
     for s in starts:
         offset = [np.abs(s - c) for c in change_points]
         offset_min = np.min(offset)
-        index = offset.index(offset_min)
-        mark_change_points.append(change_points[index])
+        if offset_min < 14:
+            index = offset.index(offset_min)
+            mark_change_points.append(change_points[index])
     miss_change_points = [x for x in change_points if x not in mark_change_points]
     return miss_change_points
 
@@ -2189,12 +2197,14 @@ def get_miss_starts_on_rms(starts,starts_from_rms_maybe):
     return miss_starts
 
 def get_miss_starts_on_heighest(starts,starts_on_highest_point):
-    miss_starts = []
-    for x in starts_on_highest_point:
-        offset = [np.abs(x - s) for s in starts]
+    mark_change_points = []
+    for s in starts:
+        offset = [np.abs(s - c) for c in starts_on_highest_point]
         offset_min = np.min(offset)
-        if offset_min > 20:
-            miss_starts.append(x)
+        if offset_min < 14:
+            index = offset.index(offset_min)
+            mark_change_points.append(starts_on_highest_point[index])
+    miss_starts = [x for x in starts_on_highest_point if x not in mark_change_points]
     return miss_starts
 
 def get_all_miss_points(starts,change_points,starts_from_rms_maybe,starts_on_highest_point):
@@ -2215,6 +2225,17 @@ def get_all_miss_points(starts,change_points,starts_from_rms_maybe,starts_on_hig
     return all_miss_points
 
 def add_best_miss_points(starts,base_pitch,change_points,starts_from_rms_maybe,starts_on_highest_point,rhythm_code,pitch_code,start, end,init_score):
+    starts_from_rms_maybe_tmp = []
+    for s in starts_from_rms_maybe: # 只取音高线上有变化的振幅节拍
+        a = s - 7 if s - 7 > start else start
+        b = s + 7 if s + 7 < end else end
+        base_pitch_tmp = base_pitch[a:b]
+        base_pitch_tmp_diff = np.diff(base_pitch_tmp)
+        base_pitch_tmp_diff = [x for x in base_pitch_tmp_diff if x != 0]
+        if len(base_pitch_tmp_diff) > 0:
+            starts_from_rms_maybe_tmp.append(s)
+    starts_from_rms_maybe = starts_from_rms_maybe_tmp
+
     all_miss_points = get_all_miss_points(starts.copy(), change_points, starts_from_rms_maybe, starts_on_highest_point)
     code = parse_rhythm_code(rhythm_code)
     code = [int(x) for x in code]
@@ -2277,6 +2298,56 @@ def add_best_miss_points(starts,base_pitch,change_points,starts_from_rms_maybe,s
     # print("best_starts is {}, size {}".format(best_starts,len(best_starts)))
     # print("add_best_miss_points best_score is {}".format(best_score))
     return best_starts
+
+def get_all_myabe_starts(filename,rhythm_code):
+    y, sr = librosa.load(filename)
+    # print("time is {}".format(time))
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    cqt_bak = CQT.copy()
+
+    CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
+    CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
+    start, end, length = get_start_and_end(CQT)
+    code = parse_rhythm_code(rhythm_code)
+    code = [int(x) for x in code]
+
+
+    base_pitch = get_base_pitch_from_cqt(CQT)
+    # print("base_pitch is {},size {}".format(base_pitch[316:], len(base_pitch)))
+    base_pitch = modify_base_pitch(base_pitch)  # 修正倍频问题
+    # print("base_pitch is {},size {}".format(base_pitch[316:],len(base_pitch)))
+    # base_pitch = filter_cqt(cqt_bak)
+    base_pitch_bak = base_pitch.copy()
+
+    # base_pitch = signal.medfilt(base_pitch, 11)  # 二维中值滤波
+
+    change_points = get_change_points_on_base_pitch(base_pitch)
+    change_points = modify_change_points_on_base_pitch(change_points)
+    if code[-1] == 2000:
+        change_points = [x for x in change_points if x > start - 5 and x < end - 20]
+
+    threshold = 0.15
+    starts_from_rms_maybe = get_starts_from_rms_by_threshold(filename, threshold)
+    select_starts_from_rms_maybe = []
+    for x in starts_from_rms_maybe:  # 去掉音高为0的伪节拍
+        if np.max(base_pitch[x:x + 5]) != 0:
+            select_starts_from_rms_maybe.append(x)
+    starts_from_rms_maybe = select_starts_from_rms_maybe
+    starts_from_rms_maybe_tmp = []
+    for s in starts_from_rms_maybe:  # 只取音高线上有变化的振幅节拍
+        a = s - 7 if s - 7 > start else start
+        b = s + 7 if s + 7 < end else end
+        base_pitch_tmp = base_pitch[a:b]
+        base_pitch_tmp_diff = np.diff(base_pitch_tmp)
+        base_pitch_tmp_diff = [x for x in base_pitch_tmp_diff if x != 0]
+        if len(base_pitch_tmp_diff) > 0:
+            starts_from_rms_maybe_tmp.append(s)
+    starts_from_rms_maybe = starts_from_rms_maybe_tmp
+
+    starts_on_highest_point = get_must_starts_on_highest_point_of_cqt(CQT)
+
+    return change_points,starts_from_rms_maybe,starts_on_highest_point
+
 
 def check_total_score(tests,base_pitch, rhythm_code, pitch_code, start, end):
     best_score = 0
@@ -2502,6 +2573,16 @@ def draw_detail(filename,rhythm_code,pitch_code):
             select_starts_from_rms_maybe.append(x)
     starts_from_rms_maybe = select_starts_from_rms_maybe
     starts_from_rms_maybe = [x for x in starts_from_rms_maybe if x not in starts_from_rms_must]
+    starts_from_rms_maybe_tmp = []
+    for s in starts_from_rms_maybe:  # 只取音高线上有变化的振幅节拍
+        a = s - 7 if s - 7 > start else start
+        b = s + 7 if s + 7 < end else end
+        base_pitch_tmp = base_pitch[a:b]
+        base_pitch_tmp_diff = np.diff(base_pitch_tmp)
+        base_pitch_tmp_diff = [x for x in base_pitch_tmp_diff if x != 0]
+        if len(base_pitch_tmp_diff) > 0:
+            starts_from_rms_maybe_tmp.append(s)
+    starts_from_rms_maybe = starts_from_rms_maybe_tmp
     starts_from_rms_maybe_time = librosa.frames_to_time(starts_from_rms_maybe)
     plt.vlines(starts_from_rms_maybe_time, 0, np.max(sig_ff) / 2, color='r', linestyle='dashed')
     plt.xlim(0, np.max(t))

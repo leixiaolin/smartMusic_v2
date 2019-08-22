@@ -254,17 +254,19 @@ def calculate_score(max_indexs,onset_code):
     return total_score,detail
 
 def get_matched_detail(base_symbols, all_symbols,lcs):
+
     detail_list = np.zeros(len(base_symbols))
-    start_index = 0
-    for l in lcs:
-        index = base_symbols[start_index:].index(l)
-        detail_list[start_index + index] = 1
-        start_index = start_index + index + 1
+    # start_index = 0
+    lcseque, positions = my_find_lcseque(base_symbols, all_symbols)
+    for index in positions:
+        # index = base_symbols[start_index:].index(l)
+        detail_list[index] = 1
+
     str_detail_list = '识别的结果是：' + str(detail_list)
     str_detail_list = str_detail_list.replace("1", "√")
     str_detail_list = str_detail_list.replace("0", "×")
 
-    ex_total = len(all_symbols) - len(lcs) -1
+    ex_total = len(all_symbols) - len(base_symbols)
 
     if len(all_symbols) > len(base_symbols):
         str_detail_list = str_detail_list + "， 多唱节拍数有：" + str(ex_total)
@@ -287,7 +289,7 @@ def draw_plt(filename,onset_code,rms,sig_ff,max_indexs,start,end):
     #print(np.std(sig_ff))
     sig_ff = [x if x > 0 else 0 for x in sig_ff]
     sig_ff_on_max_indexs = [sig_ff[x] for x in max_indexs]
-    topN_indexs = find_n_largest(a, 4)
+    topN_indexs = find_n_largest(sig_ff_on_max_indexs, 4)
     top_index = sig_ff_on_max_indexs.index(np.max(sig_ff_on_max_indexs))
     hline = np.mean([sig_ff_on_max_indexs[i] for i in range(len(sig_ff_on_max_indexs)) if i in topN_indexs and i != top_index]) * 0.25
     #print(hline)
