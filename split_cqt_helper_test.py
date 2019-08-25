@@ -11,123 +11,15 @@ import shutil
 from create_base import *
 from create_labels_files import *
 from myDtw import *
-from pitch_helper import get_all_myabe_starts
-
-
-def clear_dir(dis_dir):
-    # shutil.rmtree(dis_dir)
-    # os.mkdir(dis_dir)
-    delList = os.listdir(dis_dir)
-    for f in delList:
-        filePath = os.path.join(dis_dir, f)
-        if os.path.isfile(filePath):
-            os.remove(filePath)
-            print
-            filePath + " was removed!"
-
-
-def load_and_trim(path):
-    audio, sr = librosa.load(path)
-    energy = librosa.feature.rmse(audio)
-    frames = np.nonzero(energy >= np.max(energy) / 5)
-    indices = librosa.core.frames_to_samples(frames)[1]
-    audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
-
-    return audio, sr
-
-
-def load_and_trim_v2(path,offset,duration):
-    audio, sr = librosa.load(path, offset=offset, duration=duration)
-    energy = librosa.feature.rmse(audio)
-    frames = np.nonzero(energy >= np.max(energy) / 5)
-    indices = librosa.core.frames_to_samples(frames)[1]
-    audio = audio[indices[0]:indices[-1]] if indices.size else audio[0:0]
-
-    return audio, sr
-
-def cqt_split_and_save(filename,onset_frames,savepath):
-    y, sr = librosa.load(filename)
-    rms = librosa.feature.rmse(y=y)[0]
-    time = librosa.get_duration(filename=filename)
-    total_frames_number = len(rms)
-    print("time is {}".format(time))
-    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
-    w, h = CQT.shape
-    for i in range(0, len(onset_frames)):
-        half = 30
-        start = onset_frames[i] - half
-        if start < 0:
-            start = 0
-        end = onset_frames[i] + half
-        if end >= total_frames_number:
-            end = total_frames_number - 1
-        # y2 = [x if i> start and i<end else 0 for i,x in enumerate(y)]
-        CQT_sub = np.zeros(CQT.shape)
-        middle = int(h / 2)
-        offset = middle - onset_frames[i]
-        for j in range(int(start), int(end)):
-            CQT_sub[:, j + offset] = CQT[:, j]
-        # CQT = CQT_T
-        librosa.display.specshow(CQT_sub, y_axis='cqt_note', x_axis='time')
-        # y2 = [x for i,x in enumerate(y) if i> start and i<end]
-        # y2 = [0.03 if i> start and i<end else 0.02 for i,x in enumerate(y)]
-        # y2[int(len(y2) / 2)] = np.max(y)  # 让图片展示归一化
-        t = librosa.frames_to_time([middle], sr=sr)
-        plt.vlines(t, 0, sr, color='y', linestyle='--')  # 标出节拍位置
-        # y2 = np.array(y2)
-        # print("len(y2) is {}".format(len(y2)))
-
-        print("(end - start)*sr is {}".format((end - start) * sr))
-        # plt.show()
-        # plt.subplot(len(onset_times),1,i+1)
-        # y, sr = librosa.load(filename, offset=2.0, duration=3.0)
-        # librosa.display.waveplot(y2, sr=sr)
-        fig = matplotlib.pyplot.gcf()
-        # fig.set_size_inches(4, 4)
-        if "." in filename:
-            Filename = filename.split(".")[0]
-        plt.axis('off')
-        plt.axes().get_xaxis().set_visible(False)
-        plt.axes().get_yaxis().set_visible(False)
-        # plt.savefig(savepath + str(i + 1) + '.jpg', bbox_inches='tight', pad_inches=0)
-        plt.savefig(savepath + str(onset_frames[i]) + '.jpg', bbox_inches='tight', pad_inches=0)
-        plt.clf()
-
-def init_data(filename, rhythm_code,savepath):
-    clear_dir(savepath)
-    change_points, starts_from_rms_maybe, starts_on_highest_point = get_all_myabe_starts(filename, rhythm_code)
-    if len(starts_from_rms_maybe) > 0:
-        for s in starts_from_rms_maybe:
-            change_points.append(s)
-    if len(starts_on_highest_point) > 0:
-        for s in starts_on_highest_point:
-            change_points.append(s)
-    cqt_split_and_save(filename, change_points, savepath)
-
-def get_starts_by_overage(onset_frames):
-    select_starts = []
-    select_starts.append(onset_frames[0])
-    for i in range(1,len(onset_frames)):
-        if onset_frames[i] - onset_frames[i-1] < 8:
-            select_starts[-1] = int((select_starts[-1] + onset_frames[i])/2)
-        else:
-            select_starts.append(onset_frames[i])
-    return select_starts
+from pitch_helper import cqt_split_and_save
 
 
 savepath = 'e:/test_image/t/'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1.3(95).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1（二）(100).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1_40227（100）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏1林(70).wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2_40314（100）.wav'
-filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2_40409（98）.wav'
-# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2林(25).wav'
-# filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/节奏/节奏2语(85).wav'
-#filename = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节2罗（75）.wav'
+
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-01（95）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/旋律二（11）（60）.wav'
 # filename = 'F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/视唱1-02（90）.wav'
+filename = 'F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/旋律9，76.wav'
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1089.wav', '[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]', '[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'  # =======================
 # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1328.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'       #
 # filename,rhythm_code,pitch_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1586.wav','[500,500,500,500;500,500,500,500;500,500,1000;500,500;1000]','[1,2,3,1,1,2,3,1,3,4,5,3,4,5]'      #
@@ -223,9 +115,9 @@ if __name__ == "__main__":
     #plt.subplot(len(onset_times),1,1)
     plt.show()
 
+    # clear_dir(savepath)
     savepath = 'F:/项目/花城音乐项目/参考代码/tensorflow_models_nets-master/single_notes/data/test/'
     cqt_split_and_save(filename, onset_frames,savepath)
-    # clear_dir(savepath)
     # change_points, starts_from_rms_maybe, starts_on_highest_point = get_all_myabe_starts(filename, rhythm_code)
     # if len(starts_from_rms_maybe) > 0:
     #     for s in starts_from_rms_maybe:
