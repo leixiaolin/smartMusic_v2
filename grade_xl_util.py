@@ -34,7 +34,8 @@ else:
     print("melody_code is {}".format(melody_code))
     #file_path = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4欧(95).wav'
     #file_code = '[19,60,92,128,161,178,197,230,263]'
-    total_score,  onsets_frames,detail_content = calcalate_total_score(file_path,rhythm_code,melody_code)
+    # total_score,  onsets_frames,detail_content = calcalate_total_score(file_path,rhythm_code,melody_code)
+    total_score, onsets_frames, detail_content = calcalate_total_score_by_alexnet(file_path, rhythm_code, melody_code)
     print("total_score, is {}".format(total_score))
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'

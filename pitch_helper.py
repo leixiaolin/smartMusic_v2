@@ -609,6 +609,7 @@ def calculate_note_score_alexnet(pitch_code,threshold_score,all_starts,filename)
             else:
                 tmp.append(base_pitch[i])
         base_pitch = tmp
+    # print("base_pitch  is {} ,size {}".format(base_pitch, len(base_pitch)))
     note_types = get_all_note_type_for_alexnet(first_type,base_pitch)
     # print("note_types  is {} ,size {}".format(note_types, len(note_types)))
     all_symbols = get_all_symbols_for_note(note_types)
@@ -1423,8 +1424,8 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     # print("onset_score is {}".format(onset_score))
     # print("detail is {}".format(detail))
     threshold_score = 60
-    # note_score, note_detail = calculate_note_score(pitch_code,threshold_score,all_starts,base_pitch,start,end)
-    note_score, note_detail = calculate_note_score_alexnet(pitch_code, threshold_score, all_starts, filename)
+    note_score, note_detail = calculate_note_score(pitch_code,threshold_score,all_starts,base_pitch,start,end)
+    # note_score, note_detail = calculate_note_score_alexnet(pitch_code, threshold_score, all_starts, filename)
     # print("note_score is {}".format(note_score))
     # print("detail is {}".format(detail))
     total_score = onset_score + note_score

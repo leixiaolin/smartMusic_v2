@@ -92,7 +92,7 @@ def get_starts_by_alexnet(filename, rhythm_code, savepath = dirs + '/data/test/'
     correct_list.sort()
 
     onset_frames = correct_list
-    print("onset_frames is {}, size {}".format(onset_frames,len(onset_frames)))
+    # print("onset_frames is {}, size {}".format(onset_frames,len(onset_frames)))
 
     onset_frames_by_overage = get_starts_by_overage(onset_frames)
 
