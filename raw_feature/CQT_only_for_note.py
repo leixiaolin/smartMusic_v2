@@ -512,7 +512,7 @@ filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  # 88
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190712-4290-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #100
 
-# filename, rhythm_code, pitch_code  = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav', '[1000,1000;500,500,1000;500,250,250,500,500;2000]', '[5,5,3,2,1,2,2,3,2,6-,5-]' # 67 背景噪声造成音高不准
+filename, rhythm_code, pitch_code  = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav', '[1000,1000;500,500,1000;500,250,250,500,500;2000]', '[5,5,3,2,1,2,2,3,2,6-,5-]' # 67 背景噪声造成音高不准
 # filename, rhythm_code, pitch_code  = 'F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/01，98.wav', '[500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000]', '[5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]'  # 25 背景噪声太大
 
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/test.wav','[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #94
@@ -535,8 +535,8 @@ filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.05MP3/旋律/中学8题20190805-6858-8.wav', '[500,1000,500;2000;500,500,500,250,250;2000]', '[1+,7,6,5,6,5,4,3,2,1]'  #94
 
 
-filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #74 静默区起始点的伪节拍引起的
-filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  # 84
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]', '[3,1,5,5,6,5,1+,6,3,5]'  #74 静默区起始点的伪节拍引起的
+# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  # 84
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  # 72
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190809-3492-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #68????????????????????????????? 将1000也判断为静默区
 
@@ -544,6 +544,7 @@ filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-6.wav', '[1000,500,500;2000;250,250,500,500,500;2000]', '[6,5,3,6,3,5,3,2,1,6]'  # 90
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-7.wav','[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6]'  #88
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/小学8题20190812-6117-8.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]', '[1,3,5,1+,6,5,1,3,2,1]'  #94
+# filename, rhythm_code, pitch_code = '/home/lei/bot-rating/data/test/xl-3-80.wav', '[1000,1000;500,500,1000;500,250,250,500,500;2000]'  '[5,5,3,2,1,2,2,3,2,6-,5-]'
 
 def batch_test(dir_list):
     result_path = 'e:/test_image/n/'
@@ -603,17 +604,17 @@ if __name__ == '__main__':
     total_score, all_starts, detail = calcalate_total_score_by_alexnet(filename, rhythm_code, pitch_code)
     print("总分 is {}".format(total_score))
     print("detail is {}".format(detail))
-    print("======================finally all_starts is {},size {}".format(all_starts, len(all_starts)))
-    print("all_starts_diff is {},size {}".format(np.diff(all_starts), len(all_starts) - 1))
+    # print("======================finally all_starts is {},size {}".format(all_starts, len(all_starts)))
+    # print("all_starts_diff is {},size {}".format(np.diff(all_starts), len(all_starts) - 1))
     # detail = draw_detail(filename, rhythm_code, pitch_code)
     detail = draw_by_alexnet(filename, rhythm_code, pitch_code)
     detail.show()
-    base_pitch,base_pitchs = get_base_pitch_by_cqt_and_starts(filename, all_starts)
-    print("base_pitch is {}, size {}".format(base_pitch,len(base_pitch)))
-    plt.plot(base_pitchs[0])
-    plt.show()
-
-    dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/','F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/','F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/','F:/项目/花城音乐项目/样式数据/3.19MP3/旋律/','F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/']
+    # base_pitch,base_pitchs = get_base_pitch_by_cqt_and_starts(filename, all_starts)
+    # print("base_pitch is {}, size {}".format(base_pitch,len(base_pitch)))
+    # plt.plot(base_pitchs[0])
+    # plt.show()
+    #
+    # dir_list = ['F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/','F:/项目/花城音乐项目/样式数据/8.12MP3/旋律/','F:/项目/花城音乐项目/样式数据/2.27MP3/旋律/','F:/项目/花城音乐项目/样式数据/3.19MP3/旋律/','F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/']
     # batch_test(dir_list)
 
     # test_batch_samples()

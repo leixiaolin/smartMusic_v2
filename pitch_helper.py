@@ -5,6 +5,7 @@ from base_helper import *
 from LscHelper import *
 from create_base import *
 from single_notes.predict_one_onset_alexnet import get_starts_by_alexnet
+from split_path_helper import get_split_pic_save_path
 
 
 def get_start_and_end(cqt):
@@ -237,6 +238,25 @@ def get_all_pitch_type(CQT, first_type,rhythm_code,pitch_code,filename):
 
 def get_all_pitch_type_from_base_pitch_with_starts(first_type,all_starts,base_pitch,start,end):
     all_notes = get_all_notes_from_base_pitch_with_starts(all_starts,base_pitch,start,end)
+    # print("all_notes is {} ,size {}".format(all_notes,len(all_notes)))
+    if len(all_notes) < 1:
+        return []
+    first_pitch = all_notes[0]
+    first_symbol = get_note_symbol(first_type)
+    all_note_type = []
+    all_note_type.append(first_symbol)
+    for i in range(1,len(all_notes)):
+        c_pitch = all_notes[i]
+        b_pitch = all_notes[i-1]
+        c_note = get_note_type(c_pitch, first_pitch, first_type)
+        if c_note is not None and b_pitch is not None:
+            all_note_type.append(c_note)
+        else:
+            all_note_type.append(first_type)
+    return all_note_type
+
+def get_all_note_type_for_alexnet(first_type,base_pitch):
+    all_notes = base_pitch
     # print("all_notes is {} ,size {}".format(all_notes,len(all_notes)))
     if len(all_notes) < 1:
         return []
@@ -532,6 +552,64 @@ def calculate_note_score(pitch_code,threshold_score,all_starts,base_pitch,start,
     else:
         first_type = pitch_code[1]
     note_types = get_all_pitch_type_from_base_pitch_with_starts(first_type,all_starts,base_pitch,start,end)
+    # print("note_types  is {} ,size {}".format(note_types, len(note_types)))
+    all_symbols = get_all_symbols_for_note(note_types)
+    # print("all_symbols  is {} ,size {}".format(all_symbols,len(all_symbols)))
+    #print(all_symbols)
+    code = parse_pitch_code(pitch_code)
+    # print("pitch_code is {} ,size {}".format(code, len(code)))
+    # base_symbols = get_all_symbols_for_note(code)
+    base_symbols = get_all_symbols_for_pitch_code(pitch_code)
+    # print("base_symbols is {} ,size {}".format(base_symbols, len(base_symbols)))
+    # print("2 all_symbols  is {} ,size {}".format(all_symbols, len(all_symbols)))
+    all_symbols = modify_pitch(base_symbols, all_symbols)
+    # print("3 all_symbols  is {} ,size {}".format(all_symbols, len(all_symbols)))
+    #print(base_symbols)
+    lcs = find_lcseque_for_note(base_symbols, all_symbols)
+    each_symbol_score = threshold_score/len(code)
+    total_score = int(len(lcs)*each_symbol_score)
+
+    detail = get_matched_detail(base_symbols, all_symbols, lcs)
+
+    ex_total = len(all_symbols) - len(lcs) -1
+    ex_rate = ex_total / len(base_symbols)
+    if len(all_symbols) > len(base_symbols):
+        if ex_rate > 0.4:                                # 节奏个数误差超过40%，总分不超过50分
+            total_score = total_score if total_score < threshold_score*0.50 else threshold_score*0.50
+            detail = detail + "，多唱节奏个数误差超过40%，总分不得超过50分"
+        elif ex_rate > 0.3:                             # 节奏个数误差超过30%，总分不超过65分（超过的）（30-40%）
+            total_score = total_score if total_score < threshold_score*0.65 else threshold_score*0.65
+            detail = detail + "，多唱节奏个数误差超过30%，总分不得超过65分"
+        elif ex_rate > 0.2:                             # 节奏个数误差超过20%，总分不超过80分（超过的）（20-30%）
+            total_score = total_score if total_score < threshold_score*0.80 else threshold_score*0.80
+            detail = detail + "，多唱节奏个数误差超过20%，总分不得超过80分"
+        elif ex_rate > 0:                                           # 节奏个数误差不超过20%，总分不超过90分（超过的）（0-20%）
+            total_score = total_score if total_score < threshold_score*0.90 else threshold_score*0.90
+            detail = detail + "，多唱节奏个数误差在（1-20%），总分不得超过90分"
+    return int(total_score),detail
+
+def calculate_note_score_alexnet(pitch_code,threshold_score,all_starts,filename):
+    if pitch_code[2] == '-' or pitch_code[2] == '+':
+        first_type = pitch_code[1:3]
+    else:
+        first_type = pitch_code[1]
+    base_pitch, base_pitchs = get_base_pitch_by_cqt_and_starts(filename, all_starts)
+    tmp = []
+    if len(base_pitch) > 1:  # 处理倍频的问题
+        if np.abs(base_pitch[0] - base_pitch[1]) >= 8: #第一个节拍倍频问题
+            if base_pitch[0] < base_pitch[1]:
+                tmp.append(base_pitch[0])
+            else:
+                tmp.append(base_pitch[1])
+        else:
+            tmp.append(base_pitch[0])
+        for i in range(1,len(base_pitch)):#之后的节拍倍频问题
+            if np.abs(base_pitch[i] - tmp[-1]) >= 8:
+                tmp.append(base_pitch[i] - 12)
+            else:
+                tmp.append(base_pitch[i])
+        base_pitch = tmp
+    note_types = get_all_note_type_for_alexnet(first_type,base_pitch)
     # print("note_types  is {} ,size {}".format(note_types, len(note_types)))
     all_symbols = get_all_symbols_for_note(note_types)
     # print("all_symbols  is {} ,size {}".format(all_symbols,len(all_symbols)))
@@ -1314,7 +1392,9 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     code = parse_rhythm_code(rhythm_code)
     code = [int(x) for x in code]
     # onset_types, all_starts = get_onset_from_heights_v3(cqt, rhythm_code,pitch_code,filename)
-    savepath = 'E:/t/'  # 保存要测试的目录
+    # savepath = 'E:/t/'  # 保存要测试的目录
+    # savepath = '/home/lei/bot-rating/split_pic'
+    savepath = get_split_pic_save_path()
     init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_types, all_starts,base_pitch = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
 
@@ -1343,7 +1423,8 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     # print("onset_score is {}".format(onset_score))
     # print("detail is {}".format(detail))
     threshold_score = 60
-    note_score, note_detail = calculate_note_score(pitch_code,threshold_score,all_starts,base_pitch,start,end)
+    # note_score, note_detail = calculate_note_score(pitch_code,threshold_score,all_starts,base_pitch,start,end)
+    note_score, note_detail = calculate_note_score_alexnet(pitch_code, threshold_score, all_starts, filename)
     # print("note_score is {}".format(note_score))
     # print("detail is {}".format(detail))
     total_score = onset_score + note_score
@@ -2107,9 +2188,15 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     code = parse_rhythm_code(rhythm_code)
     code = [int(x) for x in code]
 
-    savepath = 'E:/t/'  # 保存要测试的目录
+    # savepath = 'E:/t/'  # 保存要测试的目录
+    # savepath = '/home/lei/bot-rating/split_pic'
+    savepath = get_split_pic_save_path()
     init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_frames, onset_frames_by_overage = get_starts_by_alexnet(filename, rhythm_code, savepath)
+    #如果没包括起始点
+    if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 8:
+        onset_frames_by_overage.append(start)
+        onset_frames_by_overage.sort()
     all_starts = onset_frames_by_overage
     code_dict = get_code_dict_by_min_diff(all_starts, code, start, end)
     onset_types, all_starts = get_onset_type_by_code_dict(all_starts, rhythm_code, end, code_dict)
@@ -2493,7 +2580,7 @@ def cqt_split_and_save(filename,onset_frames,savepath):
     rms = librosa.feature.rmse(y=y)[0]
     time = librosa.get_duration(filename=filename)
     total_frames_number = len(rms)
-    print("time is {}".format(time))
+    # print("time is {}".format(time))
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     w, h = CQT.shape
     for i in range(0, len(onset_frames)):
@@ -2539,9 +2626,16 @@ def cqt_split_and_save(filename,onset_frames,savepath):
 def init_data(filename, rhythm_code,savepath):
     clear_dir(savepath)
     change_points, starts_from_rms_maybe, starts_on_highest_point = get_all_myabe_starts(filename, rhythm_code)
+    tmp = []
+    if len(change_points) > 0:
+        for c in change_points:
+            tmp.append(c)
+    change_points = tmp.copy()
     if len(starts_from_rms_maybe) > 0:
         for s in starts_from_rms_maybe:
+            change_points.append(s - 2)
             change_points.append(s)
+            change_points.append(s + 2)
     if len(starts_on_highest_point) > 0:
         for s in starts_on_highest_point:
             change_points.append(s+3)
@@ -2821,10 +2915,20 @@ def draw_detail(filename,rhythm_code,pitch_code):
     return plt
 
 def draw_by_alexnet(filename,rhythm_code,pitch_code):
-    savepath = 'E:/t/'  # 保存要测试的目录
+    # savepath = 'E:/t/'  # 保存要测试的目录
+    savepath = get_split_pic_save_path()
     init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_frames, onset_frames_by_overage = get_starts_by_alexnet(filename, rhythm_code, savepath)
+    # 如果没包括起始点
+    y, sr = librosa.load(filename)
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
+    CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
 
+    start, end, length = get_start_and_end(CQT)
+    if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 8:
+        onset_frames_by_overage.append(start)
+        onset_frames_by_overage.sort()
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     plt.subplot(3, 1, 1)

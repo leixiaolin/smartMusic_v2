@@ -7,7 +7,7 @@ import pdb
 import os
 from datetime import datetime
 import slim.nets.resnet_v2 as resnet
-from create_tf_record import *
+from single_notes.create_tf_record import *
 import tensorflow.contrib.slim as slim
 
 
