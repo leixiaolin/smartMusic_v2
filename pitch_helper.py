@@ -1396,7 +1396,7 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     # savepath = 'E:/t/'  # 保存要测试的目录
     # savepath = '/home/lei/bot-rating/split_pic'
     savepath = get_split_pic_save_path()
-    init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
+    # init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_types, all_starts,base_pitch = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
 
     #如果个数相等，修正偏差大于500的节拍
@@ -1424,9 +1424,13 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     # print("onset_score is {}".format(onset_score))
     # print("detail is {}".format(detail))
     threshold_score = 60
-    note_score, note_detail = calculate_note_score(pitch_code,threshold_score,all_starts,base_pitch,start,end)
-    # note_score, note_detail = calculate_note_score_alexnet(pitch_code, threshold_score, all_starts, filename)
-    # print("note_score is {}".format(note_score))
+    note_score1, note_detail1 = calculate_note_score(pitch_code,threshold_score,all_starts,base_pitch,start,end)
+    note_score2, note_detail2 = calculate_note_score_alexnet(pitch_code, threshold_score, all_starts, filename)
+    if note_score1 > note_score2:
+        note_score,note_detail = note_score1, note_detail1
+    else:
+        note_score, note_detail = note_score2, note_detail2
+        # print("note_score is {}".format(note_score))
     # print("detail is {}".format(detail))
     total_score = onset_score + note_score
     # print("总分 is {}".format(total_score))
@@ -2191,6 +2195,7 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
 
     # savepath = 'E:/t/'  # 保存要测试的目录
     # savepath = '/home/lei/bot-rating/split_pic'
+
     savepath = get_split_pic_save_path()
     init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_frames, onset_frames_by_overage = get_starts_by_alexnet(filename, rhythm_code, savepath)
@@ -2198,6 +2203,14 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 8:
         onset_frames_by_overage.append(start)
         onset_frames_by_overage.sort()
+    #判断是否包括了必选节拍
+    starts_from_rms_must = get_must_starts(filename, 1.75)
+    starts_from_rms_must = [ x for x in starts_from_rms_must if x > start-5 and x < end]
+    for s in starts_from_rms_must:
+        offset = [np.abs(s - o) for o in onset_frames_by_overage]
+        if np.min(offset) >= 8:
+            onset_frames_by_overage.append(s)
+    onset_frames_by_overage.sort()
     all_starts = onset_frames_by_overage
     code_dict = get_code_dict_by_min_diff(all_starts, code, start, end)
     onset_types, all_starts = get_onset_type_by_code_dict(all_starts, rhythm_code, end, code_dict)
@@ -2930,9 +2943,22 @@ def draw_by_alexnet(filename,rhythm_code,pitch_code):
     if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 8:
         onset_frames_by_overage.append(start)
         onset_frames_by_overage.sort()
+
+    # 判断是否包括了必选节拍
+    starts_from_rms_must = get_must_starts(filename, 1.75)
+    starts_from_rms_must = [x for x in starts_from_rms_must if x > start - 5 and x < end]
+    for s in starts_from_rms_must:
+        offset = [np.abs(s - o) for o in onset_frames_by_overage]
+        if np.min(offset) >= 8:
+            onset_frames_by_overage.append(s)
+    onset_frames_by_overage.sort()
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     plt.subplot(3, 1, 1)
+    plt.title(filename)
+    plt.xlabel("识别结果示意图")
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
     librosa.display.specshow(CQT, x_axis='time')
     w, h = CQT.shape
 

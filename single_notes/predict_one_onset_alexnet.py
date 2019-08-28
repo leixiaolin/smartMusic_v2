@@ -101,11 +101,35 @@ def get_starts_by_alexnet(filename, rhythm_code, savepath = dirs + '/data/test/'
 
 def get_starts_by_overage(onset_frames):
     select_starts = []
-    select_starts.append(onset_frames[0])
+    tmp = onset_frames.copy()
+    tmp.append(0)
+    tmp.sort()
+    tmp_diff = np.diff(tmp)
 
-    for i in range(1,len(onset_frames)):
-        if onset_frames[i] - onset_frames[i-1] <= 6:
-            select_starts[-1] = int((select_starts[-1] + onset_frames[i])/2)
-        else:
-            select_starts.append(onset_frames[i])
+    last = 0
+    for i in range(0,len(tmp_diff)):
+        if onset_frames[i] - last >= 5:
+            if i == 0:
+                if tmp_diff[i] >= 5 and tmp_diff[i + 1] >= 5:
+                    select_starts.append(onset_frames[i])
+                    last = onset_frames[i]
+            elif i < len(tmp_diff)-1:
+                if tmp_diff[i-1] > tmp_diff[i] and tmp_diff[i+1] >= tmp_diff[i]:
+                    select_starts.append(onset_frames[i])
+                    last = onset_frames[i]
+                elif tmp_diff[i] >=5 and tmp_diff[i+1] >= 5:
+                    select_starts.append(onset_frames[i])
+                    last = onset_frames[i]
+            else:
+                if tmp_diff[i] > 10:
+                    select_starts.append(onset_frames[i])
+                    last = onset_frames[i]
     return select_starts
+    # select_starts.append(onset_frames[0])
+    #
+    # for i in range(1,len(onset_frames)):
+    #     if onset_frames[i] - onset_frames[i-1] <= 6:
+    #         select_starts[-1] = int((select_starts[-1] + onset_frames[i])/2)
+    #     else:
+    #         select_starts.append(onset_frames[i])
+    # return select_starts
