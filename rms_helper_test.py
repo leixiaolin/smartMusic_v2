@@ -475,6 +475,7 @@ if __name__ == "__main__":
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
 
     filename,onset_code = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav','[1000,1000;2000;1000,500,500;2000]'
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/8.28MP3/节奏/5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'
 
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
@@ -486,9 +487,18 @@ if __name__ == "__main__":
     rms,rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename,onset_code)
     max_indexs = get_best_max_index(filename, onset_code)
     start, end, total_length = get_start_end_length_by_max_index(max_indexs, filename)
-    print("end is{},total_length".format(end,total_length))
+    print("end is{},total_length is {} v is {}".format(end,total_length,8000/total_length))
     print("max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
-
+    types = get_onset_type(max_indexs, onset_code)
+    index_diff = np.diff(max_indexs)
+    print("index_diff is {},size is {}".format(index_diff, len(index_diff)))
+    vs = [int(types[i])/index_diff[i] for i in range(len(index_diff))]
+    print("vs is {},size is {}".format(vs, len(vs)))
+    print("vs mean is {}".format(np.mean(vs)))
+    print("types is {},size is {}".format(types, len(types)))
+    types_tmp = [int(d * np.mean(vs)) for d in index_diff]
+    print("types_tmp is {},size is {}".format(types_tmp, len(types_tmp)))
+    print("code is {},size is {}".format(code, len(code)))
 
 
     print("========================================================================")
@@ -500,4 +510,4 @@ if __name__ == "__main__":
 
     draw_pic.show()
 
-    test_batch_samples()
+    # test_batch_samples()
