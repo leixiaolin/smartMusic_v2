@@ -35,9 +35,14 @@ else:
     #file_code = '[19,60,92,128,161,178,197,230,263]'
     #score, lost_score, ex_score, min_d, standard_y, recognize_y, onsets_frames_strength, detail_content = get_score_jz(file_path,rhythm_code)
     # score, lost_score, ex_score, min_d, standard_y, recognize_y, detail_content = get_score_for_onset_by_frame(file_path, rhythm_code)
-    rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(file_path, rhythm_code)
+    # rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(file_path, rhythm_code)
     max_indexs = get_best_max_index(file_path, rhythm_code)
-    score, detail_content = calculate_score(max_indexs, rhythm_code)
+    start, end, total_length = get_start_end_length_by_max_index(max_indexs, file_path)
+    max_indexs = [x for x in max_indexs if x > start - 5 and x < end - 5]
+    max_indexs.append(end)
+    max_indexs.sort()
+    # print("max_indexs is {}".format(max_indexs))
+    score, detail_content = calculate_score(max_indexs, rhythm_code,end)
     print("score is {}".format(score))
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
@@ -48,3 +53,4 @@ else:
     detail = detail_content
     write_txt(detail, save_path, mode='a')
     #python grade_jz_util.py F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav [1000,1000;2000;1000,500,500;2000]
+    #python grade_jz_util.py F:/项目/花城音乐项目/样式数据/8.28MP3/节奏/5.wav [1000,1000;500,250,250,1000;1000,500,500;2000]

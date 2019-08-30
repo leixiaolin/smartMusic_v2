@@ -237,15 +237,16 @@ def calculate_score(max_indexs,onset_code,end):
     # lcs = find_lcseque(base_symbols, all_symbols)
     offset_detail = ''
 
+    offset_threshold = 180
     types, real_types = get_offset_for_each_onsets_by_speed(max_indexs, onset_code,end)
-    offset_indexs = [i for i in range(len(types)-1) if np.abs(types[i] - real_types[i]) > 125]    # 找出偏差大于125的节拍
+    offset_indexs = [i for i in range(len(types)-1) if np.abs(types[i] - real_types[i]) > offset_threshold]    # 找出偏差大于125的节拍
     if len(offset_indexs) > 0:
         str_tmp = list(all_symbols)
         for i in offset_indexs:
             str_tmp[i]  = '0'
         all_symbols = ''.join(str_tmp)
         offset_values = [np.abs(types[i] - real_types[i]) for i in range(len(types))]
-        offset_detail = "。判定音符类型为 {}，实际音符为 {}，偏差值为 {}，其中大于125的也都会被视为错误节拍（不包括最后一个节拍）".format(types, real_types, offset_values)
+        offset_detail = "。判定音符类型为 {}，实际音符为 {}，偏差值为 {}，其中大于{}的也都会被视为错误节拍（不包括最后一个节拍）".format(types, real_types, offset_values,offset_threshold)
 
     lcs, positions = my_find_lcseque(base_symbols, all_symbols)
     each_symbol_score = 100 / len(code)
