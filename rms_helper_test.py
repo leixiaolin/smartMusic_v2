@@ -311,11 +311,41 @@ def test_batch_samples():
         total_score, detail = calculate_score(max_indexs, onset_code)
         print("total_score is {}".format(total_score))
         print("detail is {}".format(detail))
+        print("")
         plt = draw_plt(filename,onset_code,rms,sig_ff,max_indexs,start,end)
         #plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '-' + str(total_score) + '-' + str(lost_score) + '-' + str(ex_score) + '-' + str(min_d) + '.jpg', bbox_inches='tight', pad_inches=0)
         plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '-' + str(total_score) + '分.jpg', bbox_inches='tight', pad_inches=0)
         plt.clf()
 
+
+def test_all(dir):
+    file_list = os.listdir(dir)
+    for filename in file_list:
+        filename = dir + filename
+        print(filename)
+        if filename.find('1.wav') >= 0:
+            onset_code = '[1000,1000;500,250,250,1000;1000,500,500;2000]'
+        if filename.find('2.wav') >= 0:
+            onset_code =  '[1000,500,500;2000;250,250,500,500,500;2000]'
+        if filename.find('3.wav') >= 0:
+            onset_code = '[2000;250,250,250,250,1000;2000;500,500,1000]'
+        if filename.find('4.wav') >= 0:
+            onset_code = '[1000,250,250,250,250;2000;1000,500,500;2000]'
+        rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename, onset_code)
+        max_indexs = get_best_max_index(filename, onset_code)
+        # print("0 max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
+        start, end, total_length = get_start_end_length_by_max_index(max_indexs, filename)
+        max_indexs = [x for x in max_indexs if x > start - 5 and x < end - 5]
+        max_indexs.append(end)
+        max_indexs.sort()
+        total_score, detail = calculate_score(max_indexs, onset_code,end)
+        print("total_score is {}".format(total_score))
+        print("detail is {}".format(detail))
+        print("")
+        plt = draw_plt(filename,onset_code,rms,sig_ff,max_indexs,start,end)
+        #plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '-' + str(total_score) + '-' + str(lost_score) + '-' + str(ex_score) + '-' + str(min_d) + '.jpg', bbox_inches='tight', pad_inches=0)
+        plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '-' + str(total_score) + '分.jpg', bbox_inches='tight', pad_inches=0)
+        plt.clf()
 
 if __name__ == "__main__":
     # y, sr = load_and_trim('F:/项目/花城音乐项目/样式数据/ALL/旋律/1.31MP3/旋律1.100分.wav')
@@ -438,16 +468,16 @@ if __name__ == "__main__":
     filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-2.wav','[1000,500,500;2000;250,250,500,500,500;2000]'  # 第2条 基本上可以是满分                      100
     filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav','[2000;250,250,250,250,1000;2000;500,500,1000]'  # 第3条 故意错一个，扣一分即可               89?86
     filename,onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-4.wav','[1000,250,250,250,250;2000;1000,500,500;2000]'  # 第4条 故意错了两处，应该扣两分左右即可     94?87
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  #应该有七分左右                     78
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题三.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  #应该接近满分                       98
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  #可给满分                           100
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分                        100
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第一题.wav', '[1000,1000;500,250,250,1000;500,500,500,500;2000]'  #可给满分                         100
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第二题.wav', '[1000,500,500;500,250,250,500;500,500,1000;2000]'  #可给接近满分                      90
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏一.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'  #可给接近满分                         94
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  #可给接近满分                         97 ?????
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分                          100
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分                        93
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题一.wav', '[1000,1000;500,250,250,500;1000,500,500;2000]'  #应该有七分左右                     78
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/小学8题20190625-2251 节拍题三.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  #应该接近满分                       98
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  #可给满分                           100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-4154 节拍题三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分                        100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第一题.wav', '[1000,1000;500,250,250,1000;500,500,500,500;2000]'  #可给满分                         100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/录音题E20190701-9528 第二题.wav', '[1000,500,500;500,250,250,500;500,500,1000;2000]'  #可给接近满分                      90
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏一.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'  #可给接近满分                         94
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏二.wav', '[1000,1000;1500,500;500,250,250,500,500;2000]'  #可给接近满分                         97 ?????
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏三.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'  #可给接近满分                          100
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.01MP3/旋律/中学8题20190701-1547 节奏四.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'  #应该给接近九分                        93
 
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 可给满分                        100
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.12MP3/旋律/小学8题20190702-2647-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 可给满分                       100
@@ -474,8 +504,13 @@ if __name__ == "__main__":
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6285-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
 
-    filename,onset_code = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav','[1000,1000;2000;1000,500,500;2000]'
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/8.28MP3/节奏/5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'
+    # filename,onset_code = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav','[1000,1000;2000;1000,500,500;2000]'
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/8.28MP3/节奏/5.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-9728-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/小学8题20190718-9728-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  #
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/中学8题20190701-1547-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'
 
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
@@ -484,25 +519,31 @@ if __name__ == "__main__":
     # plt.clf()
     code = parse_onset_code(onset_code)
     code = [int(x) for x in code]
-    rms,rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename,onset_code)
+    rms,rms_diff, sig_ff, _ = get_rms_max_indexs_for_onset(filename,onset_code)
     max_indexs = get_best_max_index(filename, onset_code)
+    # print("0 max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
     start, end, total_length = get_start_end_length_by_max_index(max_indexs, filename)
-    print("end is{},total_length is {} v is {}".format(end,total_length,8000/total_length))
-    print("max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
-    types = get_onset_type(max_indexs, onset_code)
-    index_diff = np.diff(max_indexs)
-    print("index_diff is {},size is {}".format(index_diff, len(index_diff)))
-    vs = [int(types[i])/index_diff[i] for i in range(len(index_diff))]
-    print("vs is {},size is {}".format(vs, len(vs)))
-    print("vs mean is {}".format(np.mean(vs)))
-    print("types is {},size is {}".format(types, len(types)))
-    types_tmp = [int(d * np.mean(vs)) for d in index_diff]
-    print("types_tmp is {},size is {}".format(types_tmp, len(types_tmp)))
-    print("code is {},size is {}".format(code, len(code)))
+    max_indexs = [x for x in max_indexs if x > start - 5 and x < end - 5]
+    max_indexs.append(end)
+    max_indexs.sort()
+    # print("end is{},total_length is {} v is {}".format(end,total_length,8000/total_length))
+    # print("1 max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
+    # types, real_types = get_offset_for_each_onsets_by_speed(max_indexs, onset_code)
+    # offset_indexs = [i for i in range(len(types)) if np.abs(types[i] - real_types[i]) > 125]
+    # types = get_onset_type(max_indexs, onset_code)
+    # index_diff = np.diff(max_indexs)
+    # print("index_diff is {},size is {}".format(index_diff, len(index_diff)))
+    # vs = [int(types[i])/index_diff[i] for i in range(len(index_diff))]
+    # print("vs is {},size is {}".format(vs, len(vs)))
+    # print("vs mean is {}".format(np.mean(vs)))
+    # print("types is {},size is {}".format(types, len(types)))
+    # types_tmp = [int(d * np.mean(vs)) for d in index_diff]
+    # print("types_tmp is {},size is {}".format(types_tmp, len(types_tmp)))
+    # print("code is {},size is {}".format(code, len(code)))
 
 
     print("========================================================================")
-    total_score, detail = calculate_score(max_indexs, onset_code)
+    total_score, detail = calculate_score(max_indexs, onset_code,end)
     print("total_score is {}".format(total_score))
     print("detail is {}".format(detail))
     plt.clf()
@@ -511,3 +552,5 @@ if __name__ == "__main__":
     draw_pic.show()
 
     # test_batch_samples()
+    dir = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/'
+    test_all(dir)

@@ -55,7 +55,7 @@ def my_find_lcseque(s1, s2): #s1 为标准字符串
                 indexs = [i for i in range(len(after_s1)) if after_s1[i] == b]
                 if len(indexs)>0:
                     for x in indexs:
-                        if x+split_point+len(lcsubstr)  not in positions:
+                        if x+split_point+len(lcsubstr)  not in positions and x+split_point+len(lcsubstr) > positions[-1]:
                             positions.append(x+split_point+len(lcsubstr))
                             break
     tmp = []
@@ -150,14 +150,14 @@ def find_lcsubstr(s1, s2):
 if __name__ == '__main__':
     a = 'EIIIICEGGC'
     #b = 'EIIGCEGC'
-    b = 'EIIiGCEGcC'
-    c = find_lcseque_for_note(a,b)
-    s1,mmax = find_lcsubstr(a, b)
+    b = '0EIIIIEEGGC'
+    # c = find_lcseque_for_note(a,b)
+    # s1,mmax = find_lcsubstr(a, b)
     print(a)
     print(b)
-    print(c)
-    print(s1)
-    print(mmax)
+    # print(c)
+    # print(s1)
+    # print(mmax)
 
     lcseque, positions = my_find_lcseque(a, b)
     print(lcseque)

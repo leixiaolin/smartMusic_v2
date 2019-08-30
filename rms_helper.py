@@ -21,7 +21,7 @@ def write_txt(content, filename, mode='w'):
     """
     with open(filename, mode) as f:
         f.write(content)
-def get_rms_max_indexs_for_onset(filename,onset_code,threshold = 0.25):
+def get_rms_max_indexs_for_onset(filename,onset_code,threshold = 0.45):
     y, sr = librosa.load(filename)
     rms = librosa.feature.rmse(y=y)[0]
     rms = [x / np.std(rms) for x in rms]
@@ -42,8 +42,11 @@ def get_rms_max_indexs_for_onset(filename,onset_code,threshold = 0.25):
     topN_indexs = find_n_largest(a, 4)
     top_index = sig_ff_on_max_indexs.index(np.max(sig_ff_on_max_indexs))
     hline = np.mean([sig_ff_on_max_indexs[i] for i in range(len(sig_ff_on_max_indexs)) if i in topN_indexs and i != top_index]) * threshold
+    # print("1 hline is {}".format(hline))
     max_indexs = [i for i in range(1,len(sig_ff)-1) if sig_ff[i]>sig_ff[i-1] and sig_ff[i]>sig_ff[i+1] and sig_ff[i] > hline]
-
+    sig_ff_on_max_indexs = [sig_ff[x] for x in max_indexs]
+    # print("sig_ff_on_max_indexs is {}, size {}".format(sig_ff_on_max_indexs,len(sig_ff_on_max_indexs)))
+    # print("-1 max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
 
     code = parse_onset_code(onset_code)
     code = [int(x) for x in code]
@@ -66,16 +69,16 @@ def get_best_max_index(filename,onset_code):
     code = [int(x) for x in code]
     base_symbols = get_all_symbols(code)
 
-    rms, rms_diff, sig_ff, max_indexs_first = get_rms_max_indexs_for_onset(filename, onset_code,0.25)
+    rms, rms_diff, sig_ff, max_indexs_first = get_rms_max_indexs_for_onset(filename, onset_code,0.4)
     start, end, total_length = get_start_end_length_by_max_index(max_indexs_first, filename)
     max_indexs_first.append(end if end < len(rms) - 5 else len(rms) - 5)
-    types = get_onset_type(max_indexs_first, onset_code)
+    types = get_onset_type(max_indexs_first, onset_code,end)
     all_symbols_first = get_all_symbols(types)
 
     rms, rms_diff, sig_ff, max_indexs_second = get_rms_max_indexs_for_onset(filename, onset_code, 0.55)
     start, end, total_length = get_start_end_length_by_max_index(max_indexs_second, filename)
     max_indexs_second.append(end if end < len(rms) - 5 else len(rms) - 5)
-    types = get_onset_type(max_indexs_second, onset_code)
+    types = get_onset_type(max_indexs_second, onset_code,end)
     all_symbols_second = get_all_symbols(types)
 
     lcs_first = find_lcseque(base_symbols, all_symbols_first)
@@ -154,7 +157,7 @@ def parse_onset_code(onset_code):
     return result
 
 
-def get_onset_type(onset_frames,onset_code):
+def get_onset_type(onset_frames,onset_code,end):
 
     if len(onset_frames) == 0:
         return []
@@ -165,7 +168,8 @@ def get_onset_type(onset_frames,onset_code):
     #print("code is {},size is {}".format(code, len(code)))
 
     total_length_no_last = np.sum(code)
-    real_total_length_no_last = onset_frames[-1] - onset_frames[0]
+    # real_total_length_no_last = onset_frames[-1] - onset_frames[0]
+    real_total_length_no_last = end - onset_frames[0]
     rate = real_total_length_no_last/total_length_no_last
     code_dict = {}
     for x in code:
@@ -221,20 +225,34 @@ def get_all_symbols(types):
         symbols = symbols + s
     return symbols
 
-def calculate_score(max_indexs,onset_code):
-    types = get_onset_type(max_indexs, onset_code)
-    #print(types)
+def calculate_score(max_indexs,onset_code,end):
+    types = get_onset_type(max_indexs, onset_code,end)
+    # print(types)
     all_symbols = get_all_symbols(types)
     #print(all_symbols)
     code = parse_onset_code(onset_code)
     code = [int(x) for x in code]
     base_symbols = get_all_symbols(code)
     #print(base_symbols)
-    lcs = find_lcseque(base_symbols, all_symbols)
-    each_symbol_score = 100/len(code)
-    total_score = int(len(lcs)*each_symbol_score)
+    # lcs = find_lcseque(base_symbols, all_symbols)
+    offset_detail = ''
+
+    types, real_types = get_offset_for_each_onsets_by_speed(max_indexs, onset_code,end)
+    offset_indexs = [i for i in range(len(types)-1) if np.abs(types[i] - real_types[i]) > 125]    # 找出偏差大于125的节拍
+    if len(offset_indexs) > 0:
+        str_tmp = list(all_symbols)
+        for i in offset_indexs:
+            str_tmp[i]  = '0'
+        all_symbols = ''.join(str_tmp)
+        offset_values = [np.abs(types[i] - real_types[i]) for i in range(len(types))]
+        offset_detail = "。判定音符类型为 {}，实际音符为 {}，偏差值为 {}，其中大于125的也都会被视为错误节拍（不包括最后一个节拍）".format(types, real_types, offset_values)
+
+    lcs, positions = my_find_lcseque(base_symbols, all_symbols)
+    each_symbol_score = 100 / len(code)
+    total_score = int(len(lcs) * each_symbol_score)
 
     detail = get_matched_detail(base_symbols, all_symbols, lcs)
+    detail = detail + offset_detail
 
     ex_total = len(all_symbols) - len(lcs) -1
     ex_rate = ex_total / len(base_symbols)
@@ -272,6 +290,21 @@ def get_matched_detail(base_symbols, all_symbols,lcs):
         str_detail_list = str_detail_list + "， 多唱节拍数有：" + str(ex_total)
     return str_detail_list
 
+def get_offset_for_each_onsets_by_speed(max_indexs, onset_code,end):
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
+    types = get_onset_type(max_indexs, onset_code,end)
+    index_diff = np.diff(max_indexs)
+    vs = [int(types[i]) / index_diff[i] for i in range(len(index_diff))]
+    real_types = [int(d * np.mean(vs)) for d in index_diff]
+    # print("index_diff is {},size is {}".format(index_diff, len(index_diff)))
+    # print("vs is {},size is {}".format(vs, len(vs)))
+    # print("vs mean is {}".format(np.mean(vs)))
+    # print("types is {},size is {}".format(types, len(types)))
+    # print("real_types is {},size is {}".format(real_types, len(real_types)))
+    # print("code is {},size is {}".format(code, len(code)))
+    return types,real_types
+
 
 def draw_plt(filename,onset_code,rms,sig_ff,max_indexs,start,end):
     # max_indexs = get_topN_rms_max_indexs_for_onset(filename, 10)
@@ -292,6 +325,7 @@ def draw_plt(filename,onset_code,rms,sig_ff,max_indexs,start,end):
     topN_indexs = find_n_largest(sig_ff_on_max_indexs, 4)
     top_index = sig_ff_on_max_indexs.index(np.max(sig_ff_on_max_indexs))
     hline = np.mean([sig_ff_on_max_indexs[i] for i in range(len(sig_ff_on_max_indexs)) if i in topN_indexs and i != top_index]) * 0.25
+    # print("2 hline is {}".format(hline))
     #print(hline)
     #print(np.std(sig_ff))
     plt.xlim(0, np.max(times))
