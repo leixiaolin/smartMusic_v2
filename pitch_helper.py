@@ -1112,15 +1112,30 @@ def get_onset_from_heights(cqt,threshold,rhythm_code):
     return onset_types,all_starts
 
 
-def calculate_onset_score_from_symbols(base_symbols, all_symbols,threshold_score):
+def calculate_onset_score_from_symbols(base_symbols, all_symbols,starts, onset_types,threshold_score):
     # print("base_symbols is {},size {}".format(base_symbols, len(base_symbols)))
     # print("all_symbols is {},size {}".format(all_symbols, len(all_symbols)))
     #print(base_symbols)
+
+    offset_detail = ''
+
+    offset_threshold = 180
+    types, real_types = get_offset_for_each_onsets_by_speed(starts, onset_types)
+    offset_indexs = [i for i in range(len(types) - 1) if np.abs(types[i] - real_types[i]) > offset_threshold]  # 找出偏差大于125的节拍
+    if len(offset_indexs) > 0:
+        str_tmp = list(all_symbols)
+        for i in offset_indexs:
+            str_tmp[i] = '0'
+        all_symbols = ''.join(str_tmp)
+        offset_values = [np.abs(types[i] - real_types[i]) for i in range(len(types))]
+        offset_detail = "。判定音符类型为 {}，实际音符为 {}，偏差值为 {}，其中大于{}的也都会被视为错误节拍（不包括最后一个节拍）".format(types, real_types, offset_values, offset_threshold)
+
     lcs = find_lcseque(base_symbols, all_symbols)
     each_symbol_score = threshold_score/len(base_symbols)
     total_score = int(len(lcs)*each_symbol_score)
 
     detail = get_matched_detail(base_symbols, all_symbols, lcs)
+    detail = detail + offset_detail
 
     ex_total = len(all_symbols) - len(base_symbols)
     ex_rate = ex_total / len(base_symbols)
@@ -1138,6 +1153,18 @@ def calculate_onset_score_from_symbols(base_symbols, all_symbols,threshold_score
             total_score = total_score if total_score < threshold_score*0.90 else threshold_score*0.90
             detail = detail + "，多唱节奏个数误差在（1-20%），总分不得超过总分的0.90"
     return int(total_score),detail
+
+def get_offset_for_each_onsets_by_speed(max_indexs, types):
+    index_diff = np.diff(max_indexs)
+    vs = [int(types[i]) / index_diff[i] for i in range(len(index_diff))]
+    real_types = [int(d * np.mean(vs)) for d in index_diff]
+    # print("index_diff is {},size is {}".format(index_diff, len(index_diff)))
+    # print("vs is {},size is {}".format(vs, len(vs)))
+    # print("vs mean is {}".format(np.mean(vs)))
+    # print("types is {},size is {}".format(types, len(types)))
+    # print("real_types is {},size is {}".format(real_types, len(real_types)))
+    # print("code is {},size is {}".format(code, len(code)))
+    return types,real_types
 
 def get_wrong_symbols_in_all_symbols(all_symbols,lcs):
     positions = []
@@ -1420,7 +1447,10 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     all_symbols = modify_onset_when_small_change(code, onset_types,base_symbols, all_symbols)
     # print("all_symbols  is {} ,all_symbols {}".format(all_symbols, len(all_symbols)))
     # print("base_symbols  is {} ,base_symbols {}".format(base_symbols, len(base_symbols)))
-    onset_score, onset_detail = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
+    onset_frames = all_starts.copy()
+    onset_frames.append(end)
+    onset_frames.sort()
+    onset_score, onset_detail = calculate_onset_score_from_symbols(base_symbols, all_symbols, onset_frames,onset_types, threshold_score)
     # print("onset_score is {}".format(onset_score))
     # print("detail is {}".format(detail))
     threshold_score = 60
@@ -2181,7 +2211,7 @@ def get_all_starts_by_optimal(filename, rhythm_code,pitch_code):
     return onset_types, all_starts, base_pitch
 
 def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
-    onset_types, all_starts, base_pitch = get_all_starts_by_steps(filename, rhythm_code)
+    # onset_types, all_starts, base_pitch = get_all_starts_by_steps(filename, rhythm_code)
     # print("onset_types  is {} ,size {}".format(onset_types, len(onset_types)))
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
@@ -2189,7 +2219,9 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
 
     start, end, length = get_start_and_end(CQT)
-
+    base_pitch = get_base_pitch_from_cqt(CQT)  # 获取音高线
+    # print("base_pitch is {},size {}".format(base_pitch[56:65], len(base_pitch)))
+    base_pitch = modify_base_pitch(base_pitch)  # 修正音高线上的倍频问题
     code = parse_rhythm_code(rhythm_code)
     code = [int(x) for x in code]
 
@@ -2255,7 +2287,7 @@ def get_onset_type_by_code_dict(all_starts,rhythm_code,end,code_dict):
             best_key = 500
         elif 750 in code and  x <= 36:
             best_key = 750
-        elif 1000 in code and  x <= 50:
+        elif 1000 in code and  x <= 60:
             best_key = 1000
         elif 1500 in code and  x <= 70:
             best_key = 1500

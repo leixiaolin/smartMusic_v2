@@ -82,7 +82,7 @@ def get_starts_by_alexnet(filename, rhythm_code, savepath = dirs + '/data/test/'
 
     for image_name in image_list:
         image_path = image_dir + image_name
-        image_path = image_path.replace("\\",os.altsep).replace("/",os.altsep)
+        # image_path = image_path.replace("\\",os.altsep).replace("/",os.altsep)
         # print(image_path)
         pre_label = predict(models_path, image_path, labels_filename, class_nums, data_format)
         if pre_label == label:
