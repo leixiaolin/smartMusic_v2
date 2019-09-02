@@ -1116,11 +1116,13 @@ def calculate_onset_score_from_symbols(base_symbols, all_symbols,starts, onset_t
     # print("base_symbols is {},size {}".format(base_symbols, len(base_symbols)))
     # print("all_symbols is {},size {}".format(all_symbols, len(all_symbols)))
     #print(base_symbols)
+    print("2 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
 
     offset_detail = ''
 
     offset_threshold = 180
     types, real_types = get_offset_for_each_onsets_by_speed(starts, onset_types)
+    print("3 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
     offset_indexs = [i for i in range(len(types) - 1) if np.abs(types[i] - real_types[i]) > offset_threshold]  # 找出偏差大于125的节拍
     if len(offset_indexs) > 0:
         str_tmp = list(all_symbols)
@@ -1425,13 +1427,13 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     savepath = get_split_pic_save_path()
     # init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_types, all_starts,base_pitch = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
-
+    print("1 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
     #如果个数相等，修正偏差大于500的节拍
-    if len(onset_types) == len(code):
-        for i in range(len(onset_types)):
-            o = onset_types[i]
-            if np.abs(o - code[i]) <= 500:
-                onset_types[i] = code[i]
+    # if len(onset_types) == len(code):
+    #     for i in range(len(onset_types)):
+    #         o = onset_types[i]
+    #         if np.abs(o - code[i]) <= 500:
+    #             onset_types[i] = code[i]
     # print("finally==========onset_types is {},size {}".format(onset_types, len(onset_types)))
     # print("finally==========all_starts is {},size {}".format(np.diff(all_starts), len(onset_types)-1))
 
@@ -2244,12 +2246,13 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
             onset_frames_by_overage.append(s)
     onset_frames_by_overage.sort()
     all_starts = onset_frames_by_overage
-    code_dict = get_code_dict_by_min_diff(all_starts, code, start, end)
-    onset_types, all_starts = get_onset_type_by_code_dict(all_starts, rhythm_code, end, code_dict)
+    # code_dict = get_code_dict_by_min_diff(all_starts, code, start, end)
+    # onset_types, all_starts = get_onset_type_by_code_dict(all_starts, rhythm_code, end, code_dict)
+    onset_types, all_starts = get_onset_type_for_alexnet(all_starts, rhythm_code, end)
     if code[-1] - onset_types[-1] <= 1000:
         onset_types[-1] = code[-1]  # 最后一个节拍，由于人的习惯不会唱全，所以都识别为标准节拍
     # print("finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
-    # print("finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
+    print("finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
     return onset_types, all_starts, base_pitch
 
 def get_code_dict_by_min_diff(select_starts, code, start, end):
@@ -2365,6 +2368,52 @@ def get_onset_type_by_code_dict_without_modify(all_starts,rhythm_code,end,code_d
             best_key = 4000
 
         types.append(best_key)
+    return types,all_starts
+
+def get_onset_type_for_alexnet(all_starts,rhythm_code,end):
+    onset_frames = all_starts.copy()
+    onset_frames.append(end)
+    if len(onset_frames) == 0:
+        return [],[]
+    #print("start_index is {},size is {}".format(start_indexs,len(start_indexs)))
+    code = parse_rhythm_code(rhythm_code)
+    code = [int(x) for x in code]
+    onset_types = [0.5,1,2,4,8]
+    d = np.diff(onset_frames)
+
+    gap250 = [x for x in d if x < 20]
+    gap500 = [x for x in d if x > 20 and x < 35]
+    type250 = np.mean(gap250)
+    type500 = np.mean(gap500)
+    threshold = 0
+    if len(gap250) > 0:
+        threshold = type250
+        onset_types = [1, 2, 4, 8]
+    elif len(gap500) > 0:
+        threshold = type500
+        onset_types = [0.5, 1, 2, 4]
+    if threshold == 0:
+        return [],[]
+
+    rate = [x / threshold for x in d]
+
+    types = []
+    for x in rate:
+        offset = [np.abs(x - o) for o in onset_types]
+        min_index = offset.index(np.min(offset))
+        if threshold == type250:
+            type_names = [250, 500, 1000, 2000]
+            best_key = type_names[min_index]
+        elif threshold == type500:
+            type_names = [500, 1000, 2000]
+            best_key = type_names[min_index]
+
+        types.append(best_key)
+    # print(np.sum(types))
+    if np.abs(np.sum(types) - 4000) < np.abs(np.sum(types) - 8000):
+        types = [x *2 for x in types]
+    elif np.abs(np.sum(types) - 16000) < np.abs(np.sum(types) - 8000):
+        types = [int(x *0.5) for x in types]
     return types,all_starts
 
 def check_onset_score_from_starts(select_starts,rhythm_code,end):
@@ -2684,6 +2733,7 @@ def init_data(filename, rhythm_code,savepath):
             change_points.append(s + 2)
     if len(starts_on_highest_point) > 0:
         for s in starts_on_highest_point:
+            change_points.append(s)
             change_points.append(s+3)
     cqt_split_and_save(filename, change_points, savepath)
 
