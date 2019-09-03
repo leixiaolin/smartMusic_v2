@@ -3,6 +3,7 @@ import librosa.display
 from base_helper import *
 from create_base import *
 from pitch_helper import *
+import time
 
 
 # 1. Get the file path to the included audio example
@@ -547,7 +548,7 @@ filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/7
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav', '[1000,1000;500,500,1000;500,250,250,500,500;2000]', '[5,5,3,2,1,2,2,3,2,6-,5-]'
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.28MP3/旋律/4.wav', '[500,1000,500;2000;500,500,500,250,250;2000]', '[1+,7,6,5,6,5,4,3,2,1]'
 # filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.28MP3/旋律/8.wav', '[500,1000,500;2000;500,250,250,500,500;2000]', '[1,3,4,5,6,6,1+,7,6,1+]'
-# filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.28MP3/旋律/10.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'
+filename, rhythm_code, pitch_code = 'F:/项目/花城音乐项目/样式数据/8.28MP3/旋律/10.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]', '[6,5,6,3,5,6,3,2,1,6-]'
 
 def batch_test(dir_list):
     result_path = 'e:/test_image/n/'
@@ -604,10 +605,12 @@ if __name__ == '__main__':
     # my_plt,total_score = draw_plt(filename,rhythm_code, pitch_code)
     # plt.show()
     # total_score, all_starts, detail = calcalate_total_score(filename, rhythm_code, pitch_code)
+    start = time.clock()
     total_score, all_starts, detail = calcalate_total_score_by_alexnet(filename, rhythm_code, pitch_code)
+    print("time used is {}".format(time.clock() - start))
     print("总分 is {}".format(total_score))
     print("detail is {}".format(detail))
-    print("======================finally all_starts is {},size {}".format(all_starts, len(all_starts)))
+    # print("======================finally all_starts is {},size {}".format(all_starts, len(all_starts)))
     # print("all_starts_diff is {},size {}".format(np.diff(all_starts), len(all_starts) - 1))
     # detail = draw_detail(filename, rhythm_code, pitch_code)
     detail = draw_by_alexnet(filename, rhythm_code, pitch_code)

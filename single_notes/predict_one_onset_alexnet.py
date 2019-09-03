@@ -79,23 +79,31 @@ def get_starts_by_alexnet(filename, rhythm_code, savepath = dirs + '/data/test/'
     image_list = os.listdir(image_dir)
     error_list = []
     correct_list = []
+    all_indexs = get_indexs_from_filename(image_list)
+    c = 0
 
-    for image_name in image_list:
+    for i in all_indexs:
+        image_name = str(i) + ".jpg"
         image_path = image_dir + image_name
+        index = int(image_name.split('.jpg')[0])
         # image_path = image_path.replace("\\",os.altsep).replace("/",os.altsep)
-        # print(image_path)
-        pre_label = predict(models_path, image_path, labels_filename, class_nums, data_format)
-        if pre_label == label:
-            correct_list.append(int(image_name.split('.jpg')[0]))
-        else:
-            error_list.append(image_name)
+        # print("index is {}".format(index))
+        if c == 0 or index > c:
+        # if True:
+            pre_label = predict(models_path, image_path, labels_filename, class_nums, data_format)
+            if pre_label == label:
+                correct_list.append(index)
+                c,middle_position = get_last_nearly_index(index, all_indexs)
+                # print("=============")
+            else:
+                error_list.append(image_name)
     correct_list.sort()
 
     onset_frames = correct_list
-    # print("onset_frames is {}, size {}".format(onset_frames,len(onset_frames)))
+    # print("predict correst onset_frames is {}, size {}".format(onset_frames,len(onset_frames)))
 
     onset_frames_by_overage = get_starts_by_overage(onset_frames)
-
+    # print("predict correst onset_frames_by_overage is {}, size {}".format(onset_frames_by_overage, len(onset_frames_by_overage)))
     return onset_frames,onset_frames_by_overage
 
 
@@ -133,3 +141,21 @@ def get_starts_by_overage(onset_frames):
     #     else:
     #         select_starts.append(onset_frames[i])
     # return select_starts
+
+def get_indexs_from_filename(image_list):
+    correct_list = []
+    for image_name in image_list:
+        correct_list.append(int(image_name.split('.jpg')[0]))
+    correct_list.sort()
+    return correct_list
+
+def get_last_nearly_index(current_index,correct_list):
+    c = 0
+    if current_index in correct_list:
+        position = correct_list.index(current_index)
+        for p in range(position+1,len(correct_list)):
+            if correct_list[p] - correct_list[p-1] <= 4:
+                c = correct_list[p]
+            else:
+                break
+    return c,int((current_index + c)*0.5)

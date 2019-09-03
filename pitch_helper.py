@@ -1116,13 +1116,13 @@ def calculate_onset_score_from_symbols(base_symbols, all_symbols,starts, onset_t
     # print("base_symbols is {},size {}".format(base_symbols, len(base_symbols)))
     # print("all_symbols is {},size {}".format(all_symbols, len(all_symbols)))
     #print(base_symbols)
-    print("2 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
+    # print("2 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
 
     offset_detail = ''
 
     offset_threshold = 180
     types, real_types = get_offset_for_each_onsets_by_speed(starts, onset_types)
-    print("3 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
+    # print("3 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
     offset_indexs = [i for i in range(len(types) - 1) if np.abs(types[i] - real_types[i]) > offset_threshold]  # 找出偏差大于125的节拍
     if len(offset_indexs) > 0:
         str_tmp = list(all_symbols)
@@ -1427,7 +1427,7 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     savepath = get_split_pic_save_path()
     # init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_types, all_starts,base_pitch = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
-    print("1 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
+    # print("1 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
     #如果个数相等，修正偏差大于500的节拍
     # if len(onset_types) == len(code):
     #     for i in range(len(onset_types)):
@@ -2248,11 +2248,13 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     all_starts = onset_frames_by_overage
     # code_dict = get_code_dict_by_min_diff(all_starts, code, start, end)
     # onset_types, all_starts = get_onset_type_by_code_dict(all_starts, rhythm_code, end, code_dict)
+    # print("0 finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
     onset_types, all_starts = get_onset_type_for_alexnet(all_starts, rhythm_code, end)
     if code[-1] - onset_types[-1] <= 1000:
         onset_types[-1] = code[-1]  # 最后一个节拍，由于人的习惯不会唱全，所以都识别为标准节拍
     # print("finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
-    print("finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
+    # print("finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
+    # print("finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
     return onset_types, all_starts, base_pitch
 
 def get_code_dict_by_min_diff(select_starts, code, start, end):
