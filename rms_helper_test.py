@@ -495,7 +495,7 @@ if __name__ == "__main__":
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-5668-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100 ?????
 
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 100
-    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'  # 100
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 100
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-6249-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'  # 100
 
@@ -512,6 +512,9 @@ if __name__ == "__main__":
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  #
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/中学8题20190701-1547-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav', '[1000,1000;2000;1000,500,500;2000]'
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/9.04MP3/节奏/1.wav', '[500,250,250,500,500;1500,500;1000,1000;2000]'
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/9.04MP3/节奏/3.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/9.04MP3/节奏/4.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'
 
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
@@ -529,6 +532,7 @@ if __name__ == "__main__":
     max_indexs.sort()
     # print("end is{},total_length is {} v is {}".format(end,total_length,8000/total_length))
     print("1 max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
+    print("1 max_indexs_diff is {},size is {}".format(np.diff(max_indexs), len(max_indexs)-1))
     # types, real_types = get_offset_for_each_onsets_by_speed(max_indexs, onset_code)
     # offset_indexs = [i for i in range(len(types)) if np.abs(types[i] - real_types[i]) > 125]
     # types = get_onset_type(max_indexs, onset_code)
@@ -554,4 +558,4 @@ if __name__ == "__main__":
 
     # test_batch_samples()
     dir = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/'
-    # test_all(dir)
+    test_all(dir)
