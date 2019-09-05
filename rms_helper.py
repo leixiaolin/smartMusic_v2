@@ -226,11 +226,13 @@ def get_onset_type_by_opt(onset_frames,onset_code,end):
     best_total = 1000000
     best_types = []
     best_speed = 0
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
 
     for i in range(len(onset_frames)):
         start_index = i
         end_index = i + 4
-        if end_index < len(onset_frames):
+        if end_index < len(onset_frames) and end_index < len(code):
             types,spend = get_onset_type_by_part(onset_frames, onset_code, end, start_index)
             if np.abs(np.sum(types) - 8000) < best_total:
                 best_types = types
@@ -329,10 +331,10 @@ def calculate_score(max_indexs,onset_code,end):
     offset_threshold = 180
     types, real_types = get_offset_for_each_onsets_by_speed(max_indexs, onset_code,end)
     # types, real_types = get_offset_for_each_onsets_with_speed(max_indexs, onset_code,end,best_speed)
-    baseline_offset = [np.abs(types[i] - real_types[i]) for i in range(len(types)) if types[i] == np.min(code)]
+    baseline_offset = [np.abs(types[i] - real_types[i]) for i in range(len(types)) if types[i] == np.min(types)]
     baseline_offset = np.min(baseline_offset) #基准偏差
     # 找出偏差大于125的节拍，判断是要减掉基准偏差
-    offset_indexs = [i for i in range(len(types)-1) if np.abs(types[i] - real_types[i]) > baseline_offset * int(types[i]/np.min(code)) and np.abs(types[i] - real_types[i]) - baseline_offset * int(types[i]/np.min(code))  > offset_threshold]
+    offset_indexs = [i for i in range(len(types)-1) if np.abs(types[i] - real_types[i]) > baseline_offset * int(types[i]/np.min(types)) and np.abs(types[i] - real_types[i]) - baseline_offset * int(types[i]/np.min(types))  > offset_threshold]
     if len(offset_indexs) > 0:
         str_tmp = list(all_symbols)
         for i in offset_indexs:

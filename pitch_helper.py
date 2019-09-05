@@ -1123,7 +1123,11 @@ def calculate_onset_score_from_symbols(base_symbols, all_symbols,starts, onset_t
     offset_threshold = 180
     types, real_types = get_offset_for_each_onsets_by_speed(starts, onset_types)
     # print("3 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
-    offset_indexs = [i for i in range(len(types) - 1) if np.abs(types[i] - real_types[i]) > offset_threshold]  # 找出偏差大于125的节拍
+    # offset_indexs = [i for i in range(len(types) - 1) if np.abs(types[i] - real_types[i]) > offset_threshold]  # 找出偏差大于125的节拍
+    baseline_offset = [np.abs(types[i] - real_types[i]) for i in range(len(types)) if types[i] == np.min(types)]
+    baseline_offset = np.min(baseline_offset) #基准偏差
+    # 找出偏差大于125的节拍，判断是要减掉基准偏差
+    offset_indexs = [i for i in range(len(types)-1) if np.abs(types[i] - real_types[i]) > baseline_offset * int(types[i]/np.min(types)) and np.abs(types[i] - real_types[i]) - baseline_offset * int(types[i]/np.min(types))  > offset_threshold]
     if len(offset_indexs) > 0:
         str_tmp = list(all_symbols)
         for i in offset_indexs:
@@ -2249,7 +2253,8 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     # code_dict = get_code_dict_by_min_diff(all_starts, code, start, end)
     # onset_types, all_starts = get_onset_type_by_code_dict(all_starts, rhythm_code, end, code_dict)
     # print("0 finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
-    onset_types, all_starts = get_onset_type_for_alexnet(all_starts, rhythm_code, end)
+    # onset_types, all_starts = get_onset_type_for_alexnet(all_starts, rhythm_code, end)
+    onset_types, all_starts,speed = get_onset_type_by_opt(all_starts, rhythm_code, end)
     if code[-1] - onset_types[-1] <= 1000:
         onset_types[-1] = code[-1]  # 最后一个节拍，由于人的习惯不会唱全，所以都识别为标准节拍
     # print("finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
@@ -2417,6 +2422,97 @@ def get_onset_type_for_alexnet(all_starts,rhythm_code,end):
     elif np.abs(np.sum(types) - 16000) < np.abs(np.sum(types) - 8000):
         types = [int(x *0.5) for x in types]
     return types,all_starts
+
+def get_onset_type_by_opt(onset_frames,onset_code,end):
+
+    if len(onset_frames) == 0:
+        return []
+    best_total = 1000000
+    best_types = []
+    best_speed = 0
+    code = parse_rhythm_code(onset_code)
+    code = [int(x) for x in code]
+
+    for i in range(len(onset_frames)):
+        start_index = i
+        end_index = i + 4
+        if end_index < len(onset_frames) and end_index < len(code):
+            types,spend = get_onset_type_by_part(onset_frames, onset_code, end, start_index)
+            if np.abs(np.sum(types) - 8000) < best_total:
+                best_types = types
+                best_total = np.abs(np.sum(types) - 8000)
+                best_speed = spend
+    return best_types,onset_frames,best_speed
+
+def get_onset_type_by_part(all_starts,onset_code,end,start_index):
+    onset_frames = all_starts.copy()
+    onset_frames.append(end)
+    if len(onset_frames) == 0:
+        return []
+    #print("start_index is {},size is {}".format(start_indexs,len(start_indexs)))
+    code = parse_rhythm_code(onset_code)
+    code = [int(x) for x in code]
+
+    end_index = start_index + 4
+    #print("code is {},size is {}".format(code, len(code)))
+    if len(onset_frames) > 5:
+        total_length_no_last = np.sum(code[start_index:end_index])
+        # real_total_length_no_last = onset_frames[-1] - onset_frames[0]
+        real_total_length_no_last = onset_frames[end_index] - onset_frames[start_index]
+
+    else:
+        total_length_no_last = np.sum(code)
+        # real_total_length_no_last = onset_frames[-1] - onset_frames[0]
+        real_total_length_no_last = end - onset_frames[0]
+    rate = real_total_length_no_last/total_length_no_last
+    spend = total_length_no_last/real_total_length_no_last
+    code_dict = {}
+    for x in code:
+        code_dict[x] = int(x * rate)
+
+
+    types = []
+    for x in np.diff(onset_frames):
+        best_min = 100000
+        best_key = 1
+        for key in code_dict:
+            value = code_dict.get(key)
+            gap = np.abs(value - x)/value
+            if gap<best_min:
+                best_min = gap
+                best_key = key
+        types.append(best_key)
+
+        # if best_key == 250:
+        #     current_index = len(types) - 1
+        #     if np.diff(onset_frames)[current_index] > code_dict.get(250):
+        #         code_dict[250] = int((np.diff(onset_frames)[-1] + code_dict.get(250))/2)
+        #         code_dict[500] = code_dict[250]
+                # 250 前面不为250的话，后面正常情况下应该为250，所以要在一定范围内修正结果
+        # if len(types) >=3:
+        #     if types[-3] != 250 and types[-2] == 250 and types[-1] == 500:
+        #         current_index = len(types) -1
+        #         if np.diff(onset_frames)[current_index] < np.diff(onset_frames)[current_index-1] * 1.5:
+        #             types[-1] = 250
+        # if len(types) >=4:
+        #     if types[-4] == 250 and types[-3] == 250 and types[-2] == 250 and types[-1] == 500:
+        #         current_index = len(types) -1
+        #         if np.diff(onset_frames)[current_index] < np.diff(onset_frames)[current_index-1] * 1.5:
+        #             types[-1] = 250
+        onset_frames_diff = np.diff(onset_frames)
+        maybe_wrong_indexs = [i for i in range(1,len(types)-1) if types[i-1] == 250 and types[i] == 500]
+        all_250 = [onset_frames_diff[i] for i in range(len(types)) if types[i] == 250]
+        all_250_mean = np.mean(all_250)
+        all_500 = [onset_frames_diff[i] for i in range(len(types)) if types[i] == 500 and i not in maybe_wrong_indexs]
+        all_500_mean = np.mean(all_500)
+        if len(maybe_wrong_indexs) > 0:
+            for i in maybe_wrong_indexs:
+                width_500 = onset_frames_diff[i]
+                if np.abs(width_500 - all_250_mean) < np.abs(width_500 - all_500_mean):
+                    types[i] = 250
+
+    #print("types is {},size {}".format(types,len(types)))
+    return types,spend
 
 def check_onset_score_from_starts(select_starts,rhythm_code,end):
     onset_types, all_starts = get_onset_type_by_code_dict_without_modify(select_starts, rhythm_code, end, None)
