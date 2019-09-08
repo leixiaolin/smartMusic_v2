@@ -343,7 +343,7 @@ def calculate_score(max_indexs,onset_code,end):
         offset_values = [np.abs(types[i] - real_types[i]) if np.abs(types[i] - real_types[i]) < baseline_offset * int(types[i]/np.min(code)) else np.abs(types[i] - real_types[i]) - baseline_offset * int(types[i]/np.min(code))  for i in range(len(types))]
         offset_detail = "。判定音符类型为 {}，实际音符为 {}，偏差值为 {}，其中大于{}的也都会被视为错误节拍（不包括最后一个节拍）".format(types, real_types, offset_values,offset_threshold)
 
-    lcs, positions = my_find_lcseque(base_symbols, all_symbols)
+    lcs, positions,raw_positions = my_find_lcseque(base_symbols, all_symbols)
     each_symbol_score = 100 / len(code)
     total_score = int(len(lcs) * each_symbol_score)
 
@@ -371,7 +371,7 @@ def get_matched_detail(base_symbols, all_symbols,lcs):
 
     detail_list = np.zeros(len(base_symbols))
     # start_index = 0
-    lcseque, positions = my_find_lcseque(base_symbols, all_symbols)
+    lcseque, positions,raw_positions = my_find_lcseque(base_symbols, all_symbols)
     for index in positions:
         # index = base_symbols[start_index:].index(l)
         detail_list[index] = 1

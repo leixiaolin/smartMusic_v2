@@ -2,8 +2,8 @@
 
 # 让代码仅仅运行在CPU下,一定要放在import tensorflow或keras等之前，否则不起作用。去掉则会在gpu在运行
 import os
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #意为使用cpu
+#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  #意为使用cpu
 
 # 设置路径
 # 获取指定路径下的文件
@@ -113,19 +113,22 @@ def get_starts_by_overage(onset_frames):
     tmp.append(0)
     tmp.sort()
     tmp_diff = np.diff(tmp)
+    threshold = 5
+    if len(onset_frames) > 0 and onset_frames[-1] > 600:
+        threshold = 15
 
     last = 0
     for i in range(0,len(tmp_diff)):
-        if onset_frames[i] - last >= 5:
+        if onset_frames[i] - last >= threshold:
             if i == 0:
-                if tmp_diff[i] >= 5 and tmp_diff[i + 1] >= 5:
+                if tmp_diff[i] >= threshold and tmp_diff[i + 1] >= threshold:
                     select_starts.append(onset_frames[i])
                     last = onset_frames[i]
             elif i < len(tmp_diff)-1:
                 if tmp_diff[i-1] > tmp_diff[i] and tmp_diff[i+1] >= tmp_diff[i]:
                     select_starts.append(onset_frames[i])
                     last = onset_frames[i]
-                elif tmp_diff[i] >=5 and tmp_diff[i+1] >= 5:
+                elif tmp_diff[i] >= threshold and tmp_diff[i+1] >= threshold:
                     select_starts.append(onset_frames[i])
                     last = onset_frames[i]
             else:

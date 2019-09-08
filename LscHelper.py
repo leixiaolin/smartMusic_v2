@@ -10,9 +10,12 @@ def my_find_lcseque(s1, s2): #s1 为标准字符串
             if x == s2[i]:
                 tmp = tmp + str(x)
                 positions.append(i)
-        return tmp,positions
+        return tmp,positions,positions
     #先找最长公共子串
-    lcsubstr, mmax = find_lcsubstr(s1, s2)
+    if s1[:3] == s2[:3]:
+        lcsubstr = s1[:3]
+    else:
+        lcsubstr, mmax = find_lcsubstr(s1, s2)
 
     #然后以最长公共子串位置切分s1
     split_point = s1.index(lcsubstr)
@@ -20,7 +23,12 @@ def my_find_lcseque(s1, s2): #s1 为标准字符串
     after_s1 = s1[split_point:]
 
     # 然后以最长公共子串位置切分s2
-    split_point = s2.index(lcsubstr)
+    split_points = find_all(lcsubstr,s2)
+    offset = [np.abs(s - split_point) for s in split_points]
+    min_index = offset.index(np.min(offset))
+    split_point = split_points[min_index]
+    split_point2 = split_point
+    # split_point = s2.index(lcsubstr)
     before_s2 = s2[:split_point]
     after_s2 = s2[split_point:]
     before_lcseque = ''
@@ -34,6 +42,7 @@ def my_find_lcseque(s1, s2): #s1 为标准字符串
     lcseque = before_lcseque + after_lcseque
 
     positions = []
+    raw_positions = []
     if len(before_lcseque) > 0:
         for b in before_lcseque:
             indexs = [i for i in range(len(before_s1)) if before_s1[i] == b]
@@ -42,6 +51,18 @@ def my_find_lcseque(s1, s2): #s1 为标准字符串
                     if x not in positions:
                         positions.append(x)
                         break
+            indexs = [i for i in range(len(before_s2)) if before_s2[i] == b]
+            if len(indexs) > 0:
+                if len(positions) > 0 and positions[-1] in indexs:
+                    raw_positions.append(x)
+                else:
+                    for x in indexs:
+                        if len(raw_positions) == 0:
+                            raw_positions.append(x)
+                            break
+                        elif x not in raw_positions and x > raw_positions[-1]:
+                            raw_positions.append(x)
+                            break
 
     if len(after_lcseque) > 0:
         split_point = s1.index(lcsubstr)
@@ -50,13 +71,16 @@ def my_find_lcseque(s1, s2): #s1 为标准字符串
             for i in range(len(lcsubstr)):
                 index = split_point + i
                 positions.append(index)
+                index = split_point2 + i
+                raw_positions.append(index)
             after_s2 = after_s2[len(lcsubstr):] #取公共子串后面的内容
-            for b in after_s2:
-                indexs = [i for i in range(len(after_s1)) if after_s1[i] == b]
+            for i,b in enumerate(after_s2):
+                indexs = [n for n in range(len(after_s1)) if after_s1[n] == b and n < i + 3]
                 if len(indexs)>0:
                     for x in indexs:
                         if x+split_point+len(lcsubstr)  not in positions and x+split_point+len(lcsubstr) > positions[-1]:
                             positions.append(x+split_point+len(lcsubstr))
+                            raw_positions.append(i + len(lcsubstr))
                             break
     tmp = []
     for i in range(len(positions)-1):
@@ -64,7 +88,7 @@ def my_find_lcseque(s1, s2): #s1 为标准字符串
                 tmp.append(positions[i])
     tmp.append(positions[-1])
     positions = tmp
-    return lcseque,positions
+    return lcseque,positions,raw_positions
 
 def find_lcseque(s1, s2):   
      # 生成字符串长度加1的0矩阵，m用来保存对应位置匹配的结果  
@@ -147,10 +171,23 @@ def find_lcsubstr(s1, s2):
                     p=i+1
     return s1[p-mmax:p],mmax   #返回最长子串及其长度
 
+def find_all(sub, s):
+    index_list = []
+    index = s.find(sub)
+    while index != -1:
+        index_list.append(index)
+        index = s.find(sub, index + 1)
+
+    if len(index_list) > 0:
+        return index_list
+    else:
+        return -1
+
+
 if __name__ == '__main__':
-    a = 'EIIIICEGGC'
+    a = 'GEGEIGGGIIC'
     #b = 'EIIGCEGC'
-    b = '0EIIIIEEGGC'
+    b = 'GEGCGGGIIC'
     # c = find_lcseque_for_note(a,b)
     # s1,mmax = find_lcsubstr(a, b)
     print(a)
@@ -159,6 +196,7 @@ if __name__ == '__main__':
     # print(s1)
     # print(mmax)
 
-    lcseque, positions = my_find_lcseque(a, b)
+    lcseque, positions,raw_positions = my_find_lcseque(a, b)
     print(lcseque)
     print(positions)
+    print(raw_positions)

@@ -195,8 +195,10 @@ def get_all_notes_from_base_pitch_with_starts(all_starts,base_pitch,start,end):
         # note = int(np.mean(some_base_pitch))
         note = max_item
         if note is not None:
-            if len(all_notes) > 0 and note - all_notes[-1] > 10:
+            if len(all_notes) > 0 and note - all_notes[-1] >= 7:    #大于之前的
                 note = note -12
+            elif len(all_notes) > 0 and all_notes[-1] - note >= 7:     # 小于之前的
+                all_notes[-1] = all_notes[-1] -12
             all_notes.append(note)
     return all_notes
 
@@ -527,7 +529,7 @@ def calculate_onset_score(all_starts,end,rhythm_code,threshold_score):
     each_symbol_score = threshold_score/len(code)
     total_score = int(len(lcs)*each_symbol_score)
 
-    detail = get_matched_detail(base_symbols, all_symbols, lcs)
+    detail,detail_list,raw_positions = get_matched_detail(base_symbols, all_symbols, lcs)
 
     ex_total = len(all_symbols) - len(lcs) -1
     ex_rate = ex_total / len(base_symbols)
@@ -569,7 +571,7 @@ def calculate_note_score(pitch_code,threshold_score,all_starts,base_pitch,start,
     each_symbol_score = threshold_score/len(code)
     total_score = int(len(lcs)*each_symbol_score)
 
-    detail = get_matched_detail(base_symbols, all_symbols, lcs)
+    detail,detail_list,raw_positions = get_matched_detail(base_symbols, all_symbols, lcs)
 
     ex_total = len(all_symbols) - len(lcs) -1
     ex_rate = ex_total / len(base_symbols)
@@ -628,7 +630,7 @@ def calculate_note_score_alexnet(pitch_code,threshold_score,all_starts,filename)
     each_symbol_score = threshold_score/len(code)
     total_score = int(len(lcs)*each_symbol_score)
 
-    detail = get_matched_detail(base_symbols, all_symbols, lcs)
+    detail,detail_list,raw_positions = get_matched_detail(base_symbols, all_symbols, lcs)
 
     ex_total = len(all_symbols) - len(lcs) -1
     ex_rate = ex_total / len(base_symbols)
@@ -664,7 +666,7 @@ def get_all_symbols_for_note(types):
 def get_matched_detail(base_symbols, all_symbols,lcs):
     detail_list = np.zeros(len(base_symbols))
     # start_index = 0
-    lcseque, positions = my_find_lcseque(base_symbols, all_symbols)
+    lcseque, positions,raw_positions = my_find_lcseque(base_symbols, all_symbols)
     for index in positions:
         # index = base_symbols[start_index:].index(l)
         detail_list[index] = 1
@@ -677,7 +679,7 @@ def get_matched_detail(base_symbols, all_symbols,lcs):
 
     if len(all_symbols) > len(base_symbols):
         str_detail_list = str_detail_list + "， 多唱节拍数有：" + str(ex_total)
-    return str_detail_list
+    return str_detail_list,detail_list,raw_positions
 
 def modify_pitch(base_symbols, all_symbols):
     result = ''
@@ -1140,7 +1142,7 @@ def calculate_onset_score_from_symbols(base_symbols, all_symbols,starts, onset_t
     each_symbol_score = threshold_score/len(base_symbols)
     total_score = int(len(lcs)*each_symbol_score)
 
-    detail = get_matched_detail(base_symbols, all_symbols, lcs)
+    detail,detail_list,raw_positions = get_matched_detail(base_symbols, all_symbols, lcs)
     detail = detail + offset_detail
 
     ex_total = len(all_symbols) - len(base_symbols)
@@ -1158,7 +1160,7 @@ def calculate_onset_score_from_symbols(base_symbols, all_symbols,starts, onset_t
         elif ex_rate > 0:                                           # 节奏个数误差不超过20%，总分不超过90分（超过的）（0-20%）
             total_score = total_score if total_score < threshold_score*0.90 else threshold_score*0.90
             detail = detail + "，多唱节奏个数误差在（1-20%），总分不得超过总分的0.90"
-    return int(total_score),detail
+    return int(total_score),detail,detail_list,raw_positions
 
 def get_offset_for_each_onsets_by_speed(max_indexs, types):
     index_diff = np.diff(max_indexs)
@@ -1405,7 +1407,7 @@ def calcalate_total_score(filename, rhythm_code,pitch_code):
     all_symbols = modify_onset_when_small_change(code, onset_types,base_symbols, all_symbols)
     # print("all_symbols  is {} ,all_symbols {}".format(all_symbols, len(all_symbols)))
     # print("base_symbols  is {} ,base_symbols {}".format(base_symbols, len(base_symbols)))
-    onset_score, onset_detail = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
+    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
     # print("onset_score is {}".format(onset_score))
     # print("detail is {}".format(detail))
     threshold_score = 60
@@ -1430,8 +1432,10 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     # savepath = '/home/lei/bot-rating/split_pic'
     savepath = get_split_pic_save_path()
     # init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
-    onset_types, all_starts,base_pitch = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
+    onset_types, all_starts,base_pitch,change_points = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
     # print("1 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
+    # print("1 finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
+    # print("1 finally change_points is {}, size {}".format(change_points, len(change_points)))
     #如果个数相等，修正偏差大于500的节拍
     # if len(onset_types) == len(code):
     #     for i in range(len(onset_types)):
@@ -1456,7 +1460,12 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     onset_frames = all_starts.copy()
     onset_frames.append(end)
     onset_frames.sort()
-    onset_score, onset_detail = calculate_onset_score_from_symbols(base_symbols, all_symbols, onset_frames,onset_types, threshold_score)
+    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols, onset_frames,onset_types, threshold_score)
+    # print("detail_list is {}".format(detail_list))
+    # print("raw_positions is {}".format(raw_positions))
+    # 如果个数少于标准个数
+    if len(onset_frames) < len(code):
+        pass
     # print("onset_score is {}".format(onset_score))
     # print("detail is {}".format(detail))
     threshold_score = 60
@@ -1470,9 +1479,13 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     # print("detail is {}".format(detail))
     total_score = onset_score + note_score
     # print("总分 is {}".format(total_score))
-    detail = "节奏" + onset_detail + "。 旋律" + note_detail
+    detail = "旋律" + note_detail + "。节奏" + onset_detail
     return total_score,all_starts,detail
 
+def add_loss_by_positions(detail_list,raw_positions,onset_types, all_starts,base_pitch,change_points):
+    for i,x in enumerate(detail_list):
+        if x == 0 and detail_list[i+1] == 0: # 连续错误
+           start = i - len([0 for i in range(detail_list[:i])])
 def check_total_score_from_starts_and_base_pitch(all_starts,base_pitch,rhythm_code,pitch_code, start, end):
     code = parse_rhythm_code(rhythm_code)
     code = [int(x) for x in code]
@@ -1502,7 +1515,7 @@ def check_total_score_from_starts_and_base_pitch(all_starts,base_pitch,rhythm_co
     # all_symbols = modify_onset_when_small_change(code, onset_types, base_symbols, all_symbols)
     # print("all_symbols  is {} ,all_symbols {}".format(all_symbols, len(all_symbols)))
     # print("base_symbols  is {} ,base_symbols {}".format(base_symbols, len(base_symbols)))
-    onset_score, onset_detail = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
+    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
     threshold_score = 60
     note_score, note_detail = calculate_note_score(pitch_code, threshold_score, all_starts, base_pitch, start, end)
     # print("note_score is {}".format(note_score))
@@ -1871,7 +1884,7 @@ def check_onset_score(cqt,select_starts,rhythm_code,pitch_code,code_dict):
 
     all_symbols = modify_onset_when_small_change(code, onset_types, base_symbols, all_symbols)
 
-    onset_score, onset_detail = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
+    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
     return onset_score
 
 def add_loss_rms(filename,maybe,select_starts):
@@ -1941,7 +1954,7 @@ def get_must_starts(filename,threshold):
     starts_on_highest_point = get_must_starts_on_highest_point_of_cqt(CQT)
     for x in starts_on_rms:
         offset = [np.abs(x - s) for s in starts_on_highest_point]
-        if np.min(offset) < 20:
+        if np.min(offset) < 30:
             starts.append(x)
     starts.sort()
     return starts
@@ -2189,7 +2202,7 @@ def get_all_starts_by_optimal(filename, rhythm_code,pitch_code):
     # print("base_symbols  is {} ,size {}".format(base_symbols, len(base_symbols)))
     all_symbols = modify_onset_when_small_change(code, onset_types, base_symbols, all_symbols)
     # print("all_symbols  is {} ,size {}".format(all_symbols, len(all_symbols)))
-    lcseque, positions = my_find_lcseque(base_symbols, all_symbols)
+    lcseque, positions,raw_positions = my_find_lcseque(base_symbols, all_symbols)
     loss_positions = [i for i in range(len(code)) if i not in positions]
     # print("loss_positions is {}, size {}".format(loss_positions, len(loss_positions)))
     onset_score, all_starts = check_onset_score_from_starts(all_starts, rhythm_code, end)
@@ -2221,8 +2234,8 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     # print("onset_types  is {} ,size {}".format(onset_types, len(onset_types)))
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
-    CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
     CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
+    CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
 
     start, end, length = get_start_and_end(CQT)
     base_pitch = get_base_pitch_from_cqt(CQT)  # 获取音高线
@@ -2235,15 +2248,28 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     # savepath = '/home/lei/bot-rating/split_pic'
 
     savepath = get_split_pic_save_path()
-    init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
+    change_points = init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_frames, onset_frames_by_overage = get_starts_by_alexnet(filename, rhythm_code, savepath)
     #如果没包括起始点
-    if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 8:
-        onset_frames_by_overage.append(start)
-        onset_frames_by_overage.sort()
+    if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 15:
+        rms = librosa.feature.rmse(y=y)[0]
+        rms = [x / np.std(rms) for x in rms]
+        rms = list(np.diff(rms))
+        rms.insert(0, 0)
+        b, a = signal.butter(8, 0.5, analog=False)
+        sig_ff = signal.filtfilt(b, a, rms)
+        sig_ff = [x / np.std(sig_ff) for x in sig_ff]
+        # print("asfdasdfadsfas {}".format(sig_ff[start:start+3]))
+        # 如果起始点的振幅大于0.9才算真正的起始点
+        s = start - 4 if start - 4 > 0 else 0
+        sig_ff_tmp = sig_ff[s:start+4]
+        if np.max(sig_ff_tmp) > 0.9:
+            onset_frames_by_overage.append(start)
+            onset_frames_by_overage.sort()
     #判断是否包括了必选节拍
     starts_from_rms_must = get_must_starts(filename, 1.75)
     starts_from_rms_must = [ x for x in starts_from_rms_must if x > start-5 and x < end]
+    # print("starts_from_rms_must is {}".format(starts_from_rms_must))
     for s in starts_from_rms_must:
         offset = [np.abs(s - o) for o in onset_frames_by_overage]
         if np.min(offset) >= 8:
@@ -2260,7 +2286,30 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     # print("finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
     # print("finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
     # print("finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
-    return onset_types, all_starts, base_pitch
+    if len(code) > len(all_starts) and len(code) - len(all_starts) <= 2: #如果个数小于标准个数2个之内
+        for i,a in enumerate(all_starts):
+            if onset_types[i] == 500 and code[i] == 250:
+                mb = [x for x in change_points if x > a + 5 and x < all_starts[i+1]-5]
+                if len(mb) > 0:
+                    tmp = a + int((all_starts[i+1] -a)*0.5)
+                    all_starts.append(tmp)
+                    all_starts.sort()
+                break
+        if len(all_starts) < len(code):
+            for i in range(-1,0-len(all_starts) + 2,-1):
+                if onset_types[i] == 500 and code[i] == 250:
+                    a = all_starts[i-1]
+                    mb = [x for x in change_points if x > a + 5 and x < all_starts[i] - 5]
+                    if len(mb) > 0:
+                        tmp = a + int((all_starts[i] - a) * 0.5)
+                        all_starts.append(tmp)
+                        all_starts.sort()
+                        break
+        onset_types, all_starts, speed = get_onset_type_by_opt(all_starts, rhythm_code, end)
+        if code[-1] - onset_types[-1] <= 1000:
+            onset_types[-1] = code[-1]  # 最后一个节拍，由于人的习惯不会唱全，所以都识别为标准节拍
+    # print("======finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
+    return onset_types, all_starts, base_pitch,change_points
 
 def get_code_dict_by_min_diff(select_starts, code, start, end):
     select_starts_diff = np.diff(select_starts)
@@ -2530,7 +2579,7 @@ def check_onset_score_from_starts(select_starts,rhythm_code,end):
     # all_symbols = modify_onset_when_small_change(code, onset_types, base_symbols, all_symbols)
     # print("all_symbols  is {} ,all_symbols {}".format(all_symbols, len(all_symbols)))
     # print("base_symbols  is {} ,base_symbols {}".format(base_symbols, len(base_symbols)))
-    onset_score, onset_detail = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
+    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
     # print("check_onset_score_from_starts onset_score  is {}".format(onset_score))
     return onset_score,all_starts
 
@@ -2834,6 +2883,7 @@ def init_data(filename, rhythm_code,savepath):
             change_points.append(s)
             change_points.append(s+3)
     cqt_split_and_save(filename, change_points, savepath)
+    return change_points
 
 def get_base_pitch_by_cqt_and_starts(filename,starts):
     y, sr = librosa.load(filename)
@@ -3120,9 +3170,21 @@ def draw_by_alexnet(filename,rhythm_code,pitch_code):
     CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
 
     start, end, length = get_start_and_end(CQT)
-    if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 8:
-        onset_frames_by_overage.append(start)
-        onset_frames_by_overage.sort()
+    if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 15:
+        rms = librosa.feature.rmse(y=y)[0]
+        rms = [x / np.std(rms) for x in rms]
+        rms = list(np.diff(rms))
+        rms.insert(0, 0)
+        b, a = signal.butter(8, 0.5, analog=False)
+        sig_ff = signal.filtfilt(b, a, rms)
+        sig_ff = [x / np.std(sig_ff) for x in sig_ff]
+        # print("asfdasdfadsfas {}".format(sig_ff[start:start+3]))
+        # 如果起始点的振幅大于0.9才算真正的起始点
+        s = start - 4 if start - 4 > 0 else 0
+        sig_ff_tmp = sig_ff[s:start + 4]
+        if np.max(sig_ff_tmp) > 0.9:
+            onset_frames_by_overage.append(start)
+            onset_frames_by_overage.sort()
 
     # 判断是否包括了必选节拍
     starts_from_rms_must = get_must_starts(filename, 1.75)
@@ -3132,6 +3194,29 @@ def draw_by_alexnet(filename,rhythm_code,pitch_code):
         if np.min(offset) >= 8:
             onset_frames_by_overage.append(s)
     onset_frames_by_overage.sort()
+
+    all_starts = onset_frames_by_overage.copy()
+    code = parse_rhythm_code(rhythm_code)
+    code = [int(x) for x in code]
+    onset_types, all_starts, speed = get_onset_type_by_opt(all_starts, rhythm_code, end)
+    if code[-1] - onset_types[-1] <= 1000:
+        onset_types[-1] = code[-1]  # 最后一个节拍，由于人的习惯不会唱全，所以都识别为标准节拍
+    if len(code) > len(all_starts) and len(code) - len(all_starts) <= 2:  # 如果个数小于标准个数2个之内
+        for i, a in enumerate(all_starts):
+            if onset_types[i] == 500 and code[i] == 250:
+                tmp = a + int((all_starts[i + 1] - a) * 0.5)
+                all_starts.append(tmp)
+                all_starts.sort()
+                break
+        if len(all_starts) < len(code):
+            for i in range(-1, 0 - len(all_starts) + 2, -1):
+                if onset_types[i] == 500 and code[i] == 250:
+                    a = all_starts[i - 1]
+                    tmp = a + int((all_starts[i] - a) * 0.5)
+                    all_starts.append(tmp)
+                    all_starts.sort()
+                    break
+    onset_frames = all_starts
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     plt.subplot(3, 1, 1)
@@ -3179,7 +3264,7 @@ def draw_by_alexnet(filename,rhythm_code,pitch_code):
     plt.plot(t, base_pitch)
     plt.xlim(0, np.max(t))
     plt.ylim(0, 84)
-    change_points_time = librosa.frames_to_time(onset_frames_by_overage)
+    change_points_time = librosa.frames_to_time(onset_frames)
     plt.vlines(change_points_time, 0, 40, color='b', linestyle='dashed')
 
     return plt
