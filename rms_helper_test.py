@@ -516,6 +516,8 @@ if __name__ == "__main__":
     filename, onset_code = 'F:/项目/花城音乐项目/样式数据/9.04MP3/节奏/3.wav', '[500,1000,500;2000;500,250,250,500,500;2000]'
     filename, onset_code = 'F:/项目/花城音乐项目/样式数据/9.04MP3/节奏/4.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  # 92
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/9.08MP3/节奏/xj2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/9.08MP3/节奏/zj4.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'
 
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
@@ -559,4 +561,4 @@ if __name__ == "__main__":
 
     # test_batch_samples()
     dir = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/'
-    test_all(dir)
+    # test_all(dir)
