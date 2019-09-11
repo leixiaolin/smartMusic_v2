@@ -78,6 +78,12 @@ def my_find_lcseque(s1, s2): #s1 为标准字符串
                 indexs = [n for n in range(len(after_s1)) if after_s1[n] == b and n < i + 3]
                 if len(indexs)>0:
                     for x in indexs:
+                        if after_s1[x:] == after_s2[i:]: #如果后面的字符都能匹配上
+                            if x+split_point+len(lcsubstr)  not in positions and x+split_point+len(lcsubstr) > positions[-1]:
+                                positions.append(x+split_point+len(lcsubstr))
+                                raw_positions.append(i + len(lcsubstr))
+                                break
+                    for x in indexs:
                         if x+split_point+len(lcsubstr)  not in positions and x+split_point+len(lcsubstr) > positions[-1]:
                             positions.append(x+split_point+len(lcsubstr))
                             raw_positions.append(i + len(lcsubstr))
@@ -185,9 +191,9 @@ def find_all(sub, s):
 
 
 if __name__ == '__main__':
-    a = 'GEGEIGGGIIC'
+    a = 'GEGCGGGIIC'
     #b = 'EIIGCEGC'
-    b = 'GEGCGGGIIC'
+    b = 'GEGCEGIIC'
     # c = find_lcseque_for_note(a,b)
     # s1,mmax = find_lcsubstr(a, b)
     print(a)

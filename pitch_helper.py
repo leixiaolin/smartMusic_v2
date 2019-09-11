@@ -195,9 +195,9 @@ def get_all_notes_from_base_pitch_with_starts(all_starts,base_pitch,start,end):
         # note = int(np.mean(some_base_pitch))
         note = max_item
         if note is not None:
-            if len(all_notes) > 0 and note - all_notes[-1] >= 7:    #大于之前的
+            if len(all_notes) > 0 and note - all_notes[-1] >= 8:    #大于之前的
                 note = note -12
-            elif len(all_notes) > 0 and all_notes[-1] - note >= 7:     # 小于之前的
+            elif len(all_notes) > 0 and all_notes[-1] - note >= 8:     # 小于之前的
                 all_notes[-1] = all_notes[-1] -12
             all_notes.append(note)
     return all_notes
@@ -240,7 +240,7 @@ def get_all_pitch_type(CQT, first_type,rhythm_code,pitch_code,filename):
 
 def get_all_pitch_type_from_base_pitch_with_starts(first_type,all_starts,base_pitch,start,end):
     all_notes = get_all_notes_from_base_pitch_with_starts(all_starts,base_pitch,start,end)
-    # print("all_notes is {} ,size {}".format(all_notes,len(all_notes)))
+    print("all_notes is {} ,size {}".format(all_notes,len(all_notes)))
     if len(all_notes) < 1:
         return []
     first_pitch = all_notes[0]

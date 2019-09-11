@@ -64,18 +64,59 @@ def get_rms_max_indexs_for_onset(filename,onset_code,threshold = 0.45):
     #     max_indexs.remove(max_indexs[min_index])
     return rms_bak,rms,sig_ff,max_indexs
 
+def get_rms_max_indexs_for_find_loss(filename,onset_code,hline= 0.2):
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    rms = [x / np.std(rms) for x in rms]
+    rms_bak = rms.copy();
+    rms = list(np.diff(rms))
+    rms.insert(0,0)
+
+    b, a = signal.butter(8, 0.35, analog=False)
+    sig_ff = signal.filtfilt(b, a, rms)
+
+    # Savitzky-Golay filter 平滑
+    # from scipy.signal import savgol_filter
+    # sig_ff = savgol_filter(rms, 5, 1)  # window size 51, polynomial order 3
+    # sig_ff = signal.medfilt(rms, 5)  # 二维中值滤波
+    sig_ff = [x/np.std(sig_ff) for x in sig_ff]
+
+    # print("1 hline is {}".format(hline))
+    max_indexs = [i for i in range(1,len(sig_ff)-1) if sig_ff[i]>sig_ff[i-1] and sig_ff[i]>sig_ff[i+1] and sig_ff[i] > hline]
+    sig_ff_on_max_indexs = [sig_ff[x] for x in max_indexs]
+    # print("sig_ff_on_max_indexs is {}, size {}".format(sig_ff_on_max_indexs,len(sig_ff_on_max_indexs)))
+    # print("-1 max_indexs is {},size is {}".format(max_indexs, len(max_indexs)))
+
+    code = parse_onset_code(onset_code)
+    code = [int(x) for x in code]
+    if code[-1] >= 2000:
+        width_last = len(rms) * code[-1] / np.sum(code)
+        max_indexs = [x for x in max_indexs if x < len(rms) - int(width_last * 0.4)]
+    else:
+        max_indexs = [x for x in max_indexs if x < len(rms) - 5]
+    # sig_ff_on_max_indexs = [sig_ff[x] for x in max_indexs]
+    # tmp = sig_ff_on_max_indexs.copy()
+    # tmp.sort()
+    # min_index = sig_ff_on_max_indexs.index(tmp[0])
+    # second_index = sig_ff_on_max_indexs.index(tmp[1])
+    # if sig_ff_on_max_indexs[second_index] - sig_ff_on_max_indexs[min_index] > np.std(sig_ff_on_max_indexs)*0.8:
+    #     max_indexs.remove(max_indexs[min_index])
+    return rms_bak,rms,sig_ff,max_indexs
+
 def get_best_max_index(filename,onset_code):
     code = parse_onset_code(onset_code)
     code = [int(x) for x in code]
     base_symbols = get_all_symbols(code)
 
     rms, rms_diff, sig_ff, max_indexs_first = get_rms_max_indexs_for_onset(filename, onset_code,0.4)
+    max_indexs_first_bak = max_indexs_first.copy()
     start, end, total_length = get_start_end_length_by_max_index(max_indexs_first, filename)
     max_indexs_first.append(end if end < len(rms) - 5 else len(rms) - 5)
     types = get_onset_type(max_indexs_first, onset_code,end)
     all_symbols_first = get_all_symbols(types)
 
     rms, rms_diff, sig_ff, max_indexs_second = get_rms_max_indexs_for_onset(filename, onset_code, 0.55)
+    max_indexs_second_bak = max_indexs_second.copy()
     start, end, total_length = get_start_end_length_by_max_index(max_indexs_second, filename)
     max_indexs_second.append(end if end < len(rms) - 5 else len(rms) - 5)
     types = get_onset_type(max_indexs_second, onset_code,end)
@@ -84,11 +125,35 @@ def get_best_max_index(filename,onset_code):
     lcs_first = find_lcseque(base_symbols, all_symbols_first)
     lcs_second = find_lcseque(base_symbols, all_symbols_second)
     if len(lcs_first) >= len(lcs_second):
-        #print(11)
-        return max_indexs_first
+        if len(max_indexs_first_bak) < len(code) and len(code) - len(max_indexs_first_bak) == 1:
+            lcs, positions, raw_positions = my_find_lcseque(base_symbols, all_symbols_first)
+            check_status = [positions[i] for i in range(len(positions)-3) if positions[i] - positions[i-1] == 1 and positions[i+1] - positions[i] == 3 and positions[i+2] - positions[i+1] == 1]
+            if len(check_status) == 1:
+                start_point = check_status[0] + 1
+                rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_find_loss(filename, onset_code, 0.1)
+                select_added = [m for m in max_indexs if m > max_indexs_first[start_point] and m < max_indexs_first[start_point +1]]
+                if len(select_added) > 0 :
+                    max_indexs_first.append(select_added[0])
+                    max_indexs_first.sort()
+            return max_indexs_first
+        else:
+            #print(11)
+            return max_indexs_first
     else:
-        #print(22)
-        return max_indexs_second
+        if len(max_indexs_second_bak) < len(code) and len(code) - len(max_indexs_second_bak) == 1:
+            lcs, positions, raw_positions = my_find_lcseque(base_symbols, all_symbols_second)
+            check_status = [i for i in range(len(positions)-3) if positions[i] - positions[i-1] == 1 and positions[i+1] - positions[i] == 3 and positions[i+2] - positions[i+1] == 1]
+            if len(check_status) == 1:
+                start_point = check_status[0] + 1
+                rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_find_loss(filename, onset_code, 0.1)
+                select_added = [m for m in max_indexs if m > max_indexs_second[start_point] and m < max_indexs_second[start_point +1]]
+                if len(select_added) > 0 :
+                    max_indexs_second.append(select_added[0])
+                    max_indexs_second.sort()
+            return max_indexs_second
+        else:
+            #print(22)
+            return max_indexs_second
 
 def get_start_end_length_by_max_index(max_indexs,filename):
     y, sr = librosa.load(filename)
