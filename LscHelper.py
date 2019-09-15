@@ -44,14 +44,14 @@ def my_find_lcseque(s1, s2): #s1 为标准字符串
     positions = []
     raw_positions = []
     if len(before_lcseque) > 0:
-        for b in before_lcseque:
-            indexs = [i for i in range(len(before_s1)) if before_s1[i] == b]
+        for i,b in enumerate(before_lcseque):
+            indexs = [n for n in range(len(before_s1)) if before_s1[n] == b and n < i + 4]
             if len(indexs) > 0:
                 for x in indexs:
                     if x not in positions:
                         positions.append(x)
                         break
-            indexs = [i for i in range(len(before_s2)) if before_s2[i] == b]
+            indexs = [n for n in range(len(before_s2)) if before_s2[n] == b  and n < i + 4]
             if len(indexs) > 0:
                 if len(positions) > 0 and positions[-1] in indexs:
                     raw_positions.append(x)
