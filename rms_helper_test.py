@@ -308,7 +308,7 @@ def test_batch_samples():
         rms, rms_diff, sig_ff, max_indexs = get_rms_max_indexs_for_onset(filename, onset_code)
         max_indexs = get_best_max_index(filename, onset_code)
         start, end, total_length = get_start_end_length_by_max_index(max_indexs, filename)
-        total_score, detail = calculate_score(max_indexs, onset_code)
+        total_score, detail = calculate_score(max_indexs, onset_code,end)
         print("total_score is {}".format(total_score))
         print("detail is {}".format(detail))
         print("")
@@ -522,7 +522,7 @@ if __name__ == "__main__":
     filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-4.wav', '[1000,250,250,250,250;2000;1000,500,500;2000]'
     filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'
     filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190718-7649-2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'
+    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'  # 通过前后比例修正的例子
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/小学8题20190702-2647-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'  #
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/中学8题20190701-1547-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节1.2(100).wav', '[1000,1000;2000;1000,500,500;2000]'
@@ -532,7 +532,7 @@ if __name__ == "__main__":
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/7.18MP3/旋律/小学8题20190717-4856-1.wav', '[1000,1000;500,250,250,1000;1000,500,500;2000]'
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-3.wav', '[2000;250,250,250,250,1000;2000;500,500,1000]'
     # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/9.08MP3/节奏/xj2.wav', '[1000,500,500;2000;250,250,500,500,500;2000]'
-    filename, onset_code = 'F:/项目/花城音乐项目/样式数据/9.08MP3/节奏/zj4.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'
+    # filename, onset_code = 'F:/项目/花城音乐项目/样式数据/9.08MP3/节奏/zj4.wav', '[500,1000,500;2000;500,500,500,250,250;2000]'
 
     print("rhythm_code is {}".format(rhythm_code))
     print("pitch_code is {}".format(pitch_code))
@@ -576,4 +576,4 @@ if __name__ == "__main__":
 
     # test_batch_samples()
     dir = 'F:/项目/花城音乐项目/样式数据/2019MP3/节奏/'
-    # test_all(dir)
+    test_all(dir)

@@ -240,7 +240,7 @@ def get_all_pitch_type(CQT, first_type,rhythm_code,pitch_code,filename):
 
 def get_all_pitch_type_from_base_pitch_with_starts(first_type,all_starts,base_pitch,start,end):
     all_notes = get_all_notes_from_base_pitch_with_starts(all_starts,base_pitch,start,end)
-    print("all_notes is {} ,size {}".format(all_notes,len(all_notes)))
+    # print("all_notes is {} ,size {}".format(all_notes,len(all_notes)))
     if len(all_notes) < 1:
         return []
     first_pitch = all_notes[0]
@@ -1114,12 +1114,11 @@ def get_onset_from_heights(cqt,threshold,rhythm_code):
     return onset_types,all_starts
 
 
-def calculate_onset_score_from_symbols(base_symbols, all_symbols,starts, onset_types,threshold_score):
+def calculate_onset_score_from_symbols(base_symbols, all_symbols,code,starts, onset_types,threshold_score):
     # print("base_symbols is {},size {}".format(base_symbols, len(base_symbols)))
     # print("all_symbols is {},size {}".format(all_symbols, len(all_symbols)))
     #print(base_symbols)
     # print("2 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
-
     offset_detail = ''
 
     offset_threshold = 180
@@ -1138,7 +1137,11 @@ def calculate_onset_score_from_symbols(base_symbols, all_symbols,starts, onset_t
         offset_values = [np.abs(types[i] - real_types[i]) for i in range(len(types))]
         offset_detail = "。判定音符类型为 {}，实际音符为 {}，偏差值为 {}，其中大于{}的也都会被视为错误节拍（不包括最后一个节拍）".format(types, real_types, offset_values, offset_threshold)
 
-    lcs = find_lcseque(base_symbols, all_symbols)
+    # lcs = find_lcseque(base_symbols, all_symbols)
+    lcs, positions, raw_positions = my_find_lcseque(base_symbols, all_symbols)
+    if np.abs(len(code) - len(starts)) <= 1:
+        all_symbols = check_with_before_and_after_rate(code, starts, positions, raw_positions, base_symbols, all_symbols)
+        lcs, positions, raw_positions = my_find_lcseque(base_symbols, all_symbols)
     each_symbol_score = threshold_score/len(base_symbols)
     total_score = int(len(lcs)*each_symbol_score)
 
@@ -1161,6 +1164,30 @@ def calculate_onset_score_from_symbols(base_symbols, all_symbols,starts, onset_t
             total_score = total_score if total_score < threshold_score*0.90 else threshold_score*0.90
             detail = detail + "，多唱节奏个数误差在（1-20%），总分不得超过总分的0.90"
     return int(total_score),detail,detail_list,raw_positions
+
+def check_with_before_and_after_rate(code,starts,positions,raw_positions,base_symbols,all_symbols):
+    symbols_list = list(all_symbols)
+    for i,p in enumerate(positions):
+        if i < len(positions) -2 and  positions[i+1] - p > 1: # 有错误的节拍
+            wrong_p = p + 1
+            wrong_code_on_p = code[wrong_p]
+            wrong_code_before = code[wrong_p -1]
+            wrong_code_after = code[wrong_p + 1]
+            rate_code_before = wrong_code_before/wrong_code_on_p
+            rate_code_after = wrong_code_on_p/wrong_code_after
+
+            wrong_raw_p = raw_positions[i] + 1
+            wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
+            wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
+            wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
+            rate_width_before = wrong_raw_width_before/wrong_raw_width_p
+            rate_width_after = wrong_raw_width_p/wrong_raw_width_after
+
+            if np.abs(rate_code_before - rate_width_before) < rate_code_before * 0.25 and np.abs(rate_code_after - rate_width_after) < rate_code_after * 0.25:
+                symbols_list[wrong_raw_p] = base_symbols[wrong_p]
+
+    all_symbols = "".join(symbols_list)
+    return all_symbols
 
 def get_offset_for_each_onsets_by_speed(max_indexs, types):
     index_diff = np.diff(max_indexs)
@@ -1460,7 +1487,7 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     onset_frames = all_starts.copy()
     onset_frames.append(end)
     onset_frames.sort()
-    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols, onset_frames,onset_types, threshold_score)
+    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols,code, onset_frames,onset_types, threshold_score)
     # print("detail_list is {}".format(detail_list))
     # print("raw_positions is {}".format(raw_positions))
     # 如果个数少于标准个数
