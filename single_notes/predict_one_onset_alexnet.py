@@ -25,7 +25,7 @@ import tensorflow.contrib.slim as slim
 7、运行predict_one_onset_alexnet，进行预测
 predict an image
 '''
-def  predict(models_path,image_path,labels_filename,labels_nums, data_format):
+def  predict(models_path,labels_nums, image_dir):
     #[batch_size, resize_height, resize_width, depths] = data_format
     resize_height = 224  # 指定存储图片高度
     resize_width = 224  # 指定存储图片宽度
@@ -48,15 +48,34 @@ def  predict(models_path,image_path,labels_filename,labels_nums, data_format):
     saver = tf.train.Saver()
     saver.restore(sess, models_path)
 
+    image_list = os.listdir(image_dir)
+    error_list = []
+    correct_list = []
+    all_indexs = get_indexs_from_filename(image_list)
+    c = 0
 
-
-    im=read_image(image_path,resize_height,resize_width,normalization=True)
-    im=im[np.newaxis,:]
-    pre_score,pre_label = sess.run([score,class_id], feed_dict={input_images:im})
+    for i in all_indexs:
+        image_name = str(i) + ".jpg"
+        image_path = image_dir + image_name
+        index = int(image_name.split('.jpg')[0])
+        # image_path = image_path.replace("\\",os.altsep).replace("/",os.altsep)
+        # print("index is {}".format(index))
+        if c == 0 or index > c:
+        # if True:
+            im = read_image(image_path, resize_height, resize_width, normalization=True)
+            im = im[np.newaxis, :]
+            pre_score, pre_label = sess.run([score, class_id], feed_dict={input_images: im})
+            if pre_label == 1:
+                correct_list.append(index)
+                c,middle_position = get_last_nearly_index(index, all_indexs)
+                # print("=============")
+            else:
+                error_list.append(image_name)
+    correct_list.sort()
 
     sess.close()
 
-    return pre_label[0]
+    return correct_list
 
 def get_starts_by_alexnet(filename, rhythm_code, savepath = dirs + '/data/test/'):
     # init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
@@ -74,30 +93,8 @@ def get_starts_by_alexnet(filename, rhythm_code, savepath = dirs + '/data/test/'
     yes和no分开批量测试
     '''
     image_dir = savepath  # 选择要测试的目录
-    label = 1  # yes是1 no是0
-    # image_path = image_dir + '130.png'
-    image_list = os.listdir(image_dir)
-    error_list = []
-    correct_list = []
-    all_indexs = get_indexs_from_filename(image_list)
-    c = 0
 
-    for i in all_indexs:
-        image_name = str(i) + ".jpg"
-        image_path = image_dir + image_name
-        index = int(image_name.split('.jpg')[0])
-        # image_path = image_path.replace("\\",os.altsep).replace("/",os.altsep)
-        # print("index is {}".format(index))
-        if c == 0 or index > c:
-        # if True:
-            pre_label = predict(models_path, image_path, labels_filename, class_nums, data_format)
-            if pre_label == label:
-                correct_list.append(index)
-                c,middle_position = get_last_nearly_index(index, all_indexs)
-                # print("=============")
-            else:
-                error_list.append(image_name)
-    correct_list.sort()
+    correct_list = predict(models_path, class_nums, image_dir)
 
     onset_frames = correct_list
     # print("predict correst onset_frames is {}, size {}".format(onset_frames,len(onset_frames)))
