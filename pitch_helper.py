@@ -2277,6 +2277,7 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     savepath = get_split_pic_save_path()
     change_points = init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_frames, onset_frames_by_overage = get_starts_by_alexnet(filename, rhythm_code, savepath)
+    onset_frames_by_overage = [x for x in onset_frames_by_overage if x > start - 5 and x < end]
     #如果没包括起始点
     if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 15:
         rms = librosa.feature.rmse(y=y)[0]
@@ -2930,7 +2931,7 @@ def get_base_pitch_by_cqt_and_starts(filename,starts):
             h1,w1 = cols_cqt.shape
             pitchs = np.zeros(h)
             for n in range(h1):
-                row_sum = sum(cols_cqt[n,])
+                row_sum = sum(cols_cqt[n,])/w1
                 pitchs[n] = row_sum
             # print("pitchs is {}, size {}".format(pitchs,len(pitchs)))
             base_pitchs.append(pitchs)
@@ -2938,7 +2939,10 @@ def get_base_pitch_by_cqt_and_starts(filename,starts):
     if len(base_pitchs) > 0:
         for b in base_pitchs:
             index = list(b).index(np.max(b))
-            base_pitch.append(index)
+            indexs = [i for i in range(5,len(b)-5) if b[i] > b[i-5] + 10 and b[i] > b[i+5]+10 and i > 10 and b[i] > -36]
+            if len(indexs) > 0:
+                index = indexs[0]
+                base_pitch.append(index)
     return base_pitch,base_pitchs
 
 def draw_plt(filename,rhythm_code, pitch_code):
@@ -3197,6 +3201,7 @@ def draw_by_alexnet(filename,rhythm_code,pitch_code):
     CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
 
     start, end, length = get_start_and_end(CQT)
+    onset_frames_by_overage = [x for x in onset_frames_by_overage if x > start - 5 and x < end]
     if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 15:
         rms = librosa.feature.rmse(y=y)[0]
         rms = [x / np.std(rms) for x in rms]
@@ -3254,6 +3259,7 @@ def draw_by_alexnet(filename,rhythm_code,pitch_code):
     librosa.display.specshow(CQT, x_axis='time')
     w, h = CQT.shape
 
+    # print("draw finally onset_frames is {}, size {}".format(onset_frames, len(onset_frames)))
     onset_times = librosa.frames_to_time(onset_frames, sr=sr)
     plt.vlines(onset_times, 0, sr, color='y', linestyle='--')
 
