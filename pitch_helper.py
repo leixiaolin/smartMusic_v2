@@ -1167,16 +1167,16 @@ def calculate_onset_score_from_symbols(base_symbols, all_symbols,code,starts, on
 
 def check_with_before_and_after_rate(code,starts,positions,raw_positions,base_symbols,all_symbols):
     symbols_list = list(all_symbols)
-    for i,p in enumerate(positions):
-        if i < len(positions) -2 and  positions[i+1] - p > 1: # 有错误的节拍
-            wrong_p = p + 1
+    for i in range(1,len(code)-1):
+        if i not in positions: # 有错误的节拍
+            wrong_p = i
             wrong_code_on_p = code[wrong_p]
             wrong_code_before = code[wrong_p -1]
             wrong_code_after = code[wrong_p + 1]
             rate_code_before = wrong_code_before/wrong_code_on_p
             rate_code_after = wrong_code_on_p/wrong_code_after
 
-            wrong_raw_p = raw_positions[i] + 1
+            wrong_raw_p = i # 同一位置比较
             wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
             wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
             wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
@@ -1184,7 +1184,33 @@ def check_with_before_and_after_rate(code,starts,positions,raw_positions,base_sy
             rate_width_after = wrong_raw_width_p/wrong_raw_width_after
 
             if np.abs(rate_code_before - rate_width_before) < rate_code_before * 0.25 and np.abs(rate_code_after - rate_width_after) < rate_code_after * 0.25:
-                symbols_list[wrong_raw_p] = base_symbols[wrong_p]
+                symbols_list[wrong_p] = base_symbols[wrong_p]
+                continue
+
+
+            wrong_raw_p = i - 1 # 与前一位置比较
+            if wrong_raw_p - 1 >= 0: #不要越界
+                wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
+                wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
+                wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
+                rate_width_before = wrong_raw_width_before/wrong_raw_width_p
+                rate_width_after = wrong_raw_width_p/wrong_raw_width_after
+
+                if np.abs(rate_code_before - rate_width_before) < rate_code_before * 0.25 and np.abs(rate_code_after - rate_width_after) < rate_code_after * 0.25:
+                    symbols_list[wrong_p] = base_symbols[wrong_p]
+                    continue
+
+            wrong_raw_p = i + 1 # 与后一位置比较
+            if wrong_raw_p + 2 <= len(starts) -1: #不要越界
+                wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
+                wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
+                wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
+                rate_width_before = wrong_raw_width_before/wrong_raw_width_p
+                rate_width_after = wrong_raw_width_p/wrong_raw_width_after
+
+                if np.abs(rate_code_before - rate_width_before) < rate_code_before * 0.25 and np.abs(rate_code_after - rate_width_after) < rate_code_after * 0.25:
+                    symbols_list[wrong_p] = base_symbols[wrong_p]
+                    continue
 
     all_symbols = "".join(symbols_list)
     return all_symbols
