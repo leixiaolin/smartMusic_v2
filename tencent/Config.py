@@ -15,7 +15,7 @@ class Config:
     SECRETID = 'AKIDFH4h5FHCLQHuwrexNYTFk00RbW3QhR5U'
     APPID = '1251471683'
     # 我们会将识别结果通过Post方式发送至这个URL。用户需要先搭建好自己的用于接收post数据的服务。
-    CALLBACK_URL = "http://www.gzzaihua.com/demo"
+    CALLBACK_URL = "http://www.gzzaihua.com/asr"
          
     # ------------- optional，根据自身需求配置值 ---------------
     # 识别引擎 8k_0 or 16k_0 or 8k_6

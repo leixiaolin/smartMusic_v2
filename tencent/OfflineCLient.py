@@ -20,6 +20,6 @@ Config.config.SOURCE_TYPE = 1
 # ......
 audio_url = "https://ruskin-1256085166.cos.ap-guangzhou.myqcloud.com/test.wav"
 audio_url = "http://qiniu.sgjkzx.com/1212.wav"
-audio_url = "http://qiniu.sgjkzx.com/3333.wav"
+# audio_url = "http://qiniu.sgjkzx.com/3333.wav"
 result = offlineSdk.task_process(audio_url)
 print (result)
