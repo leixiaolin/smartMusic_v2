@@ -1167,16 +1167,16 @@ def calculate_onset_score_from_symbols(base_symbols, all_symbols,code,starts, on
 
 def check_with_before_and_after_rate(code,starts,positions,raw_positions,base_symbols,all_symbols):
     symbols_list = list(all_symbols)
-    for i,p in enumerate(positions):
-        if i < len(positions) -2 and  positions[i+1] - p > 1: # 有错误的节拍
-            wrong_p = p + 1
+    for i in range(1,len(code)-1):
+        if i not in positions: # 有错误的节拍
+            wrong_p = i
             wrong_code_on_p = code[wrong_p]
             wrong_code_before = code[wrong_p -1]
             wrong_code_after = code[wrong_p + 1]
             rate_code_before = wrong_code_before/wrong_code_on_p
             rate_code_after = wrong_code_on_p/wrong_code_after
 
-            wrong_raw_p = raw_positions[i] + 1
+            wrong_raw_p = i # 同一位置比较
             wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
             wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
             wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
@@ -1184,7 +1184,33 @@ def check_with_before_and_after_rate(code,starts,positions,raw_positions,base_sy
             rate_width_after = wrong_raw_width_p/wrong_raw_width_after
 
             if np.abs(rate_code_before - rate_width_before) < rate_code_before * 0.25 and np.abs(rate_code_after - rate_width_after) < rate_code_after * 0.25:
-                symbols_list[wrong_raw_p] = base_symbols[wrong_p]
+                symbols_list[wrong_p] = base_symbols[wrong_p]
+                continue
+
+
+            wrong_raw_p = i - 1 # 与前一位置比较
+            if wrong_raw_p - 1 >= 0: #不要越界
+                wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
+                wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
+                wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
+                rate_width_before = wrong_raw_width_before/wrong_raw_width_p
+                rate_width_after = wrong_raw_width_p/wrong_raw_width_after
+
+                if np.abs(rate_code_before - rate_width_before) < rate_code_before * 0.25 and np.abs(rate_code_after - rate_width_after) < rate_code_after * 0.25:
+                    symbols_list[wrong_p] = base_symbols[wrong_p]
+                    continue
+
+            wrong_raw_p = i + 1 # 与后一位置比较
+            if wrong_raw_p + 2 <= len(starts) -1: #不要越界
+                wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
+                wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
+                wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
+                rate_width_before = wrong_raw_width_before/wrong_raw_width_p
+                rate_width_after = wrong_raw_width_p/wrong_raw_width_after
+
+                if np.abs(rate_code_before - rate_width_before) < rate_code_before * 0.25 and np.abs(rate_code_after - rate_width_after) < rate_code_after * 0.25:
+                    symbols_list[wrong_p] = base_symbols[wrong_p]
+                    continue
 
     all_symbols = "".join(symbols_list)
     return all_symbols
@@ -2277,6 +2303,7 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     savepath = get_split_pic_save_path()
     change_points = init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_frames, onset_frames_by_overage = get_starts_by_alexnet(filename, rhythm_code, savepath)
+    onset_frames_by_overage = [x for x in onset_frames_by_overage if x > start - 5 and x < end]
     #如果没包括起始点
     if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 15:
         rms = librosa.feature.rmse(y=y)[0]
@@ -2930,7 +2957,7 @@ def get_base_pitch_by_cqt_and_starts(filename,starts):
             h1,w1 = cols_cqt.shape
             pitchs = np.zeros(h)
             for n in range(h1):
-                row_sum = sum(cols_cqt[n,])
+                row_sum = sum(cols_cqt[n,])/w1
                 pitchs[n] = row_sum
             # print("pitchs is {}, size {}".format(pitchs,len(pitchs)))
             base_pitchs.append(pitchs)
@@ -2938,7 +2965,10 @@ def get_base_pitch_by_cqt_and_starts(filename,starts):
     if len(base_pitchs) > 0:
         for b in base_pitchs:
             index = list(b).index(np.max(b))
-            base_pitch.append(index)
+            indexs = [i for i in range(5,len(b)-5) if b[i] > b[i-5] + 10 and b[i] > b[i+5]+10 and i > 10 and b[i] > -36]
+            if len(indexs) > 0:
+                index = indexs[0]
+                base_pitch.append(index)
     return base_pitch,base_pitchs
 
 def draw_plt(filename,rhythm_code, pitch_code):
@@ -3197,6 +3227,7 @@ def draw_by_alexnet(filename,rhythm_code,pitch_code):
     CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
 
     start, end, length = get_start_and_end(CQT)
+    onset_frames_by_overage = [x for x in onset_frames_by_overage if x > start - 5 and x < end]
     if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 15:
         rms = librosa.feature.rmse(y=y)[0]
         rms = [x / np.std(rms) for x in rms]
@@ -3254,6 +3285,7 @@ def draw_by_alexnet(filename,rhythm_code,pitch_code):
     librosa.display.specshow(CQT, x_axis='time')
     w, h = CQT.shape
 
+    # print("draw finally onset_frames is {}, size {}".format(onset_frames, len(onset_frames)))
     onset_times = librosa.frames_to_time(onset_frames, sr=sr)
     plt.vlines(onset_times, 0, sr, color='y', linestyle='--')
 
