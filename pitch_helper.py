@@ -1177,11 +1177,12 @@ def check_with_before_and_after_rate(code,starts,positions,raw_positions,base_sy
             rate_code_after = wrong_code_on_p/wrong_code_after
 
             wrong_raw_p = i # 同一位置比较
-            wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
-            wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
-            wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
-            rate_width_before = wrong_raw_width_before/wrong_raw_width_p
-            rate_width_after = wrong_raw_width_p/wrong_raw_width_after
+            if wrong_raw_p - 1 >= 0 and wrong_raw_p + 2 <= len(starts) - 1:  # 不要越界
+                wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
+                wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
+                wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
+                rate_width_before = wrong_raw_width_before/wrong_raw_width_p
+                rate_width_after = wrong_raw_width_p/wrong_raw_width_after
 
             if np.abs(rate_code_before - rate_width_before) < rate_code_before * 0.25 and np.abs(rate_code_after - rate_width_after) < rate_code_after * 0.25:
                 symbols_list[wrong_p] = base_symbols[wrong_p]
@@ -1189,7 +1190,7 @@ def check_with_before_and_after_rate(code,starts,positions,raw_positions,base_sy
 
 
             wrong_raw_p = i - 1 # 与前一位置比较
-            if wrong_raw_p - 1 >= 0: #不要越界
+            if wrong_raw_p - 1 >= 0 and wrong_raw_p + 2 <= len(starts) - 1: #不要越界
                 wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
                 wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
                 wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
@@ -1201,7 +1202,7 @@ def check_with_before_and_after_rate(code,starts,positions,raw_positions,base_sy
                     continue
 
             wrong_raw_p = i + 1 # 与后一位置比较
-            if wrong_raw_p + 2 <= len(starts) -1: #不要越界
+            if wrong_raw_p - 1 >= 0 and wrong_raw_p + 2 <= len(starts) -1: #不要越界
                 wrong_raw_width_p = starts[wrong_raw_p + 1] - starts[wrong_raw_p]
                 wrong_raw_width_before = starts[wrong_raw_p] - starts[wrong_raw_p - 1]
                 wrong_raw_width_after = starts[wrong_raw_p + 2] - starts[wrong_raw_p + 1]
@@ -3326,4 +3327,5 @@ def draw_by_alexnet(filename,rhythm_code,pitch_code):
     change_points_time = librosa.frames_to_time(onset_frames)
     plt.vlines(change_points_time, 0, 40, color='b', linestyle='dashed')
 
+    plt.subplots_adjust(wspace=0, hspace=0.5)  # 调整子图间距
     return plt
