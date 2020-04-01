@@ -4,8 +4,10 @@ import scipy.signal as signal
 from base_helper import *
 from LscHelper import *
 from create_base import *
-from single_notes.predict_one_onset_alexnet import get_starts_by_alexnet
+from single_notes.predict_one_onset_alexnet import get_starts_by_alexnet,get_starts_by_overage
 from split_path_helper import get_split_pic_save_path
+from collections import Counter
+from parselmouth_util import *
 
 
 def get_start_and_end(cqt):
@@ -1478,7 +1480,10 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
     CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
-    start, end, length = get_start_and_end(CQT)
+    # start, end, length = get_start_and_end(CQT)
+    start, end, length = get_start_and_end_with_parselmouth(filename)
+    start, end = list(librosa.time_to_frames([start, end], sr))
+    length = start, end
     code = parse_rhythm_code(rhythm_code)
     code = [int(x) for x in code]
     # onset_types, all_starts = get_onset_from_heights_v3(cqt, rhythm_code,pitch_code,filename)
@@ -1486,10 +1491,89 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     # savepath = '/home/lei/bot-rating/split_pic'
     savepath = get_split_pic_save_path()
     # init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
-    onset_types, all_starts,base_pitch,change_points = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
+
+    ######################################add ####################################################
+    pitch = get_pitch_by_parselmouth(filename)
+    small_or_big = 'big'
+    # 根据音高轨迹线获取高可信的起始点列表
+    high_believe_test_frames_on_pitch, high_believe_onset_times_on_pitch = get_high_believe_starts_by_absolute_pitch(pitch, small_or_big)
+    high_believe_test_frames_on_pitch = librosa.time_to_frames(high_believe_onset_times_on_pitch,sr) # parselmouth转换成librosa
+    high_believe_test_frames_on_pitch = list(high_believe_test_frames_on_pitch)
+
+    #根据幅度轫线获取高可信的超始点列表
+    high_believe_test_frames_on_rms = get_high_believe_starts_of_rms(filename,y)
+    high_believe_onset_times_on_rms = librosa.frames_to_time(high_believe_test_frames_on_rms,sr)
+
+    all_high_believe_start_frames = high_believe_test_frames_on_pitch.copy()
+    all_high_believe_onset_times = high_believe_onset_times_on_pitch.copy()
+
+    #合并两个高可信的起始点列表
+    for i,g in enumerate(high_believe_test_frames_on_rms):
+        tmp = [np.abs(g - o) for o in high_believe_test_frames_on_pitch]
+        if np.min(tmp) > 10:
+            all_high_believe_start_frames.append(g)
+            all_high_believe_onset_times.append(high_believe_onset_times_on_rms[i])
+    all_high_believe_start_frames.sort()
+    all_high_believe_onset_times.sort()
+
+
+    if len(all_high_believe_onset_times) >= len(code):
+        all_starts = librosa.time_to_frames(all_high_believe_onset_times,sr)
+        all_starts = list(all_starts)
+        onset_types, all_starts, speed = get_onset_type_by_opt(all_starts, rhythm_code, end) #计算节奏种类
+    else:
+        onset_types, all_starts, base_pitch, change_points = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
+        all_starts = insert_high_believe_starts(all_starts, all_high_believe_start_frames) #将不存在的高可信点插入到列表
+        onset_types, all_starts, speed = get_onset_type_by_opt(all_starts, rhythm_code, end)  # 计算节奏种类
+
+    onset_frames_by_overage = get_starts_by_overage(all_starts)
+    #######################################add end##################################################
+
+    # onset_types, all_starts,base_pitch,change_points = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
     # print("1 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
     # print("1 finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
     # print("1 finally change_points is {}, size {}".format(change_points, len(change_points)))
+
+    ##############################################################################
+    #################################新优化部分###################################
+    ##############################################################################
+
+
+    ###################### 总体思路：去重化，如果还缺少节奏数，才查漏##########################################
+
+    # pitch = get_pitch_by_parselmouth(filename)
+    # print("del_the_same_with_absolute_pitch all_starts is {}, size {}".format(all_starts, len(all_starts)))
+    # 绝对音高对节奏起始点进行去重
+    all_starts_checked = del_the_same_with_absolute_pitch(pitch, all_starts,sr)
+    if len(all_starts) > len(all_starts_checked): # 如果有删除重复的，则需要重新计算节奏种类
+        onset_types, all_starts, speed = get_onset_type_by_opt(all_starts_checked, rhythm_code, end)
+        if code[-1] - onset_types[-1] <= 1000:
+            onset_types[-1] = code[-1]  # 最后一个节拍，由于人的习惯不会唱全，所以都识别为标准节拍
+    else:
+        all_starts = all_starts_checked
+    # print("del_the_same_with_absolute_pitch all_starts is {}, size {}".format(all_starts, len(all_starts)))
+
+    # 如果缺少节奏数，则进行查漏
+    length_gap = len(code) - len(all_starts)
+    if length_gap > 0 and length_gap < 3:
+        # 找出大概率为音符起始点的位置(短节奏的，例如：250)
+        start_frames, onset_times = get_short_starts_by_absolute_pitch(pitch,small_or_big)
+    elif length_gap >= 3:
+        # 找出大概率为音符起始点的位置(短节奏的，例如：250)
+        short_start_frames, short_onset_times = get_short_starts_by_absolute_pitch(pitch,small_or_big)
+        # 找出大概率为音符起始点的位置(长节奏的，例如：>250)
+        long_start_frames, long_onset_times = get_starts_by_absolute_pitch(pitch,small_or_big)
+
+
+    # 找出大概率为音符起始点的位置
+    creditable_frames, creditable_onset_times = get_starts_by_absolute_pitch_with_filename(filename,small_or_big)
+    # print("1 creditable_frames is {}, size {}".format(creditable_frames, len(creditable_frames)))
+    # 将parselmouth的帧位置换算成librosa的帧位置
+    changed_creditable_frames = librosa.time_to_frames(creditable_onset_times, sr)
+    # print( "1 changed_creditable_frames is {}, size {}".format(changed_creditable_frames, len(changed_creditable_frames)))
+    # print("2 finally onset_types is {}, size {}".format(onset_types, len(onset_types)))
+    # print("2 finally all_starts is {}, size {}".format(all_starts, len(all_starts)))
+    # print("2 finally change_points is {}, size {}".format(change_points, len(change_points)))
     #如果个数相等，修正偏差大于500的节拍
     # if len(onset_types) == len(code):
     #     for i in range(len(onset_types)):
@@ -1523,6 +1607,9 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     # print("onset_score is {}".format(onset_score))
     # print("detail is {}".format(detail))
     threshold_score = 60
+    c0, cx = get_notes(filename)
+    # base_pitch = get_notes_by_start_points(all_starts, cx)
+    base_pitch = cx # 通过新的方法获取音高信息
     note_score1, note_detail1 = calculate_note_score(pitch_code,threshold_score,all_starts,base_pitch,start,end)
     note_score2, note_detail2 = calculate_note_score_alexnet(pitch_code, threshold_score, all_starts, filename)
     if note_score1 > note_score2:
@@ -1534,7 +1621,115 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
     total_score = onset_score + note_score
     # print("总分 is {}".format(total_score))
     detail = "旋律" + note_detail + "。节奏" + onset_detail
-    return total_score,all_starts,detail
+
+    #######################################################################
+    # 追加绝对音高的评分流程
+    #######################################################################
+    # 获取绝对音高
+    all_first_candidate_names, result,all_second_candidate_names = get_all_absolute_pitchs_for_filename(filename, all_starts, sr)
+    # print("all_first_candidate_names is {},size is {}".format(all_first_candidate_names,len(all_first_candidate_names)))
+    # print("result is {},size is {}".format(result,len(result)))
+    encode_absolute_pitchs = get_encode_pitch_seque(result)
+    # print("encode_absolute_pitchs is {},size is {}".format(encode_absolute_pitchs, len(encode_absolute_pitchs)))
+    # print("onset_frames is {},size is {}".format(all_starts,len(all_starts)))
+    pitch_code_for_absolute_pitch = parse_rhythm_code_for_absolute_pitch(pitch_code)
+    # print("pitch_code_for_absolute_pitch is {},size is {}".format(pitch_code_for_absolute_pitch, len(pitch_code_for_absolute_pitch)))
+    encode_pitch_code = get_encode_pitch_seque(pitch_code_for_absolute_pitch)
+    # print("encode_pitch_code is {},size is {}".format(encode_pitch_code, len(encode_pitch_code)))
+    note_score_absolute_pitch,lcseque, str_detail_list, detail_list, raw_positions = get_matched_detail_absolute_pitch(pitch_code_for_absolute_pitch, result)
+    note_score_absolute_pitch,str_detail_list = check_from_second_candidate_names(note_score_absolute_pitch, str_detail_list, detail_list,
+                                      all_second_candidate_names, pitch_code_for_absolute_pitch)
+    # print("lcseque is {},size is {}".format(lcseque, len(lcseque)))
+    # print("str_detail_list is {}".format(str_detail_list))
+    total_score_absolute_pitch = onset_score + note_score_absolute_pitch
+    # print("绝对音高评分总分 is {}".format(total_score_absolute_pitch))
+    str_detail_list = str_detail_list + "。节奏" + onset_detail
+
+    # 如果绝对音高评测得分高于相对评测的结晶，则需要替换相对评测的结果，因为以更严格的评测标准为准
+    if total_score_absolute_pitch > total_score:
+        total_score, detail = total_score_absolute_pitch,str_detail_list
+    return total_score,all_starts,detail,total_score_absolute_pitch,str_detail_list,onset_frames_by_overage
+
+def insert_high_believe_starts(starts,high_believe_starts):
+    all_starts = starts.copy()
+    for i, g in enumerate(high_believe_starts):
+        tmp = [np.abs(g - o) for o in all_starts]
+        if np.min(tmp) > 10:
+            all_starts.append(g)
+    all_starts.sort()
+    return all_starts
+
+
+def get_high_believe_starts_of_rms(filename,y=[]):
+    if len(y) == 0:
+        y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+
+    rms = [x / np.std(rms) for x in rms]
+    rms = list(np.diff(rms))
+    rms.insert(0, 0)
+
+    b, a = signal.butter(8, 0.5, analog=False)
+    sig_ff = signal.filtfilt(b, a, rms)
+    sig_ff = [x / np.std(sig_ff) for x in sig_ff]
+    starts = [i for i in range(1, len(sig_ff) - 1) if sig_ff[i] > sig_ff[i - 1] and sig_ff[i] > sig_ff[i + 1] and sig_ff[i] > 1.85]
+    return starts
+
+def get_notes(path):
+    y, sr = librosa.load(path)
+    C = np.abs(librosa.cqt(y, sr=sr, hop_length=64, n_bins=84, bins_per_octave=12))
+
+    d_C = np.zeros([1, C.shape[0]])
+    local_sum = np.zeros([1, C.shape[0]])
+    # 84*1
+
+    i = 0
+    de_di_rate = 8
+    for i in range(0, C.shape[1]):
+        if (i + 1) % de_di_rate != 0:
+            local_sum += C[:, i]
+        else:
+            local_sum /= de_di_rate
+            d_C = np.r_[d_C, local_sum]
+            local_sum = np.zeros([1, C.shape[0]])
+
+    if (i + 1) % de_di_rate != 0:
+        local_sum /= (i + 1) % de_di_rate
+        d_C = np.r_[d_C, local_sum]
+
+    n_C = d_C / np.max(d_C)
+    SIGMA = 0.1
+    for i in range(0, n_C.shape[0]):
+        for j in range(0, n_C.shape[1]):
+            if n_C[i][j] < SIGMA:
+                n_C[i][j] = 0
+
+    c0 = (n_C > SIGMA)  # 所有不为0的元素
+    c1 = c0.astype(int)  # 所有"true"转换为1
+
+    c0 = np.zeros(c1.shape)
+    cx = np.zeros(c1.shape[0])
+    # print(c0)
+    for h in range(1, c1.shape[0]):
+        for w in range(1, c1.shape[1] - 1):
+            if c1[h, w] == 1 and c1[h, w - 1] == 0:
+                c0[h, w] = 1
+                cx[h] = w
+                break
+    return c0, cx
+
+def get_notes_by_start_points(lines,cx):
+    result = np.zeros(len(lines)-1)
+    for i in range(1,len(lines)):
+        start = lines[i-1]
+        end = lines[i]
+        tmp = cx[start:end]
+        counter = Counter(tmp)
+        most = counter.most_common(1)[0][0] # 就是相应的最高频元素
+    #     data.most_common(1)[0][1]  # 就是相应的最高频元素的频次
+#         print(most)
+        result[i-1] = most
+    return result
 
 def add_loss_by_positions(detail_list,raw_positions,onset_types, all_starts,base_pitch,change_points):
     for i,x in enumerate(detail_list):
@@ -1569,7 +1764,7 @@ def check_total_score_from_starts_and_base_pitch(all_starts,base_pitch,rhythm_co
     # all_symbols = modify_onset_when_small_change(code, onset_types, base_symbols, all_symbols)
     # print("all_symbols  is {} ,all_symbols {}".format(all_symbols, len(all_symbols)))
     # print("base_symbols  is {} ,base_symbols {}".format(base_symbols, len(base_symbols)))
-    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
+    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols,code, all_starts,onset_types, threshold_score)
     threshold_score = 60
     note_score, note_detail = calculate_note_score(pitch_code, threshold_score, all_starts, base_pitch, start, end)
     # print("note_score is {}".format(note_score))
@@ -1938,7 +2133,7 @@ def check_onset_score(cqt,select_starts,rhythm_code,pitch_code,code_dict):
 
     all_symbols = modify_onset_when_small_change(code, onset_types, base_symbols, all_symbols)
 
-    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
+    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols,code, all_starts,onset_types, threshold_score)
     return onset_score
 
 def add_loss_rms(filename,maybe,select_starts):
@@ -2291,7 +2486,11 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
     CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
 
-    start, end, length = get_start_and_end(CQT)
+    # start, end, length = get_start_and_end(CQT)
+    # start, end, length = get_start_and_end_for_note(y, sr)
+    start, end, length = get_start_and_end_with_parselmouth(filename)
+    start,end = list(librosa.time_to_frames([start,end],sr))
+    length = start,end
     base_pitch = get_base_pitch_from_cqt(CQT)  # 获取音高线
     # print("base_pitch is {},size {}".format(base_pitch[56:65], len(base_pitch)))
     base_pitch = modify_base_pitch(base_pitch)  # 修正音高线上的倍频问题
@@ -2302,11 +2501,14 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
     # savepath = '/home/lei/bot-rating/split_pic'
 
     savepath = get_split_pic_save_path()
-    change_points = init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
+    # change_points = init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
+    change_points = init_data_V2(filename, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_frames, onset_frames_by_overage = get_starts_by_alexnet(filename, rhythm_code, savepath)
-    onset_frames_by_overage = [x for x in onset_frames_by_overage if x > start - 5 and x < end]
+    print(onset_frames)
+    # onset_frames_by_overage = [x for x in onset_frames_by_overage if x > start - 5 and x < end]
+    onset_frames_by_overage = [x for x in onset_frames_by_overage if x < end]
     #如果没包括起始点
-    if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 15:
+    if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 10:
         rms = librosa.feature.rmse(y=y)[0]
         rms = [x / np.std(rms) for x in rms]
         rms = list(np.diff(rms))
@@ -2634,7 +2836,7 @@ def check_onset_score_from_starts(select_starts,rhythm_code,end):
     # all_symbols = modify_onset_when_small_change(code, onset_types, base_symbols, all_symbols)
     # print("all_symbols  is {} ,all_symbols {}".format(all_symbols, len(all_symbols)))
     # print("base_symbols  is {} ,base_symbols {}".format(base_symbols, len(base_symbols)))
-    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols, threshold_score)
+    onset_score, onset_detail,detail_list,raw_positions = calculate_onset_score_from_symbols(base_symbols, all_symbols,code, all_starts,onset_types, threshold_score)
     # print("check_onset_score_from_starts onset_score  is {}".format(onset_score))
     return onset_score,all_starts
 
@@ -2940,6 +3142,98 @@ def init_data(filename, rhythm_code,savepath):
     cqt_split_and_save(filename, change_points, savepath)
     return change_points
 
+def init_data_V2(filename,savepath):
+    clear_dir(savepath)
+    gap = 6
+    change_points = get_all_points_for_onset(filename, gap)
+    # print("change_points IS {}".format(change_points))
+    cqt_split_and_save(filename, change_points, savepath)
+    return change_points
+
+
+def cal_note_start_point(path, default_gap=10):
+    y, sr = librosa.load(path)
+    C = np.abs(librosa.cqt(y, sr=sr, hop_length=64, n_bins=84, bins_per_octave=12))
+
+    d_C = np.zeros([1, C.shape[0]])
+    local_sum = np.zeros([1, C.shape[0]])
+    # 84*1
+
+    i = 0
+    de_di_rate = 8
+    for i in range(0, C.shape[1]):
+        if (i + 1) % de_di_rate != 0:
+            local_sum += C[:, i]
+        else:
+            local_sum /= de_di_rate
+            d_C = np.r_[d_C, local_sum]
+            local_sum = np.zeros([1, C.shape[0]])
+
+    if (i + 1) % de_di_rate != 0:
+        local_sum /= (i + 1) % de_di_rate
+        d_C = np.r_[d_C, local_sum]
+
+    n_C = d_C / np.max(d_C)
+    SIGMA = 0.1
+    for i in range(0, n_C.shape[0]):
+        for j in range(0, n_C.shape[1]):
+            if n_C[i][j] < SIGMA:
+                n_C[i][j] = 0
+    D = np.zeros([n_C.shape[0] - 1, n_C.shape[1]])
+    for i in range(0, n_C.shape[0] - 1):
+        D[i] = (n_C[i] - n_C[i + 1]) * (n_C[i] - n_C[i + 1])
+
+    D = D.sum(axis=1)
+
+    gap = default_gap
+    lines = [i for i in range(gap + 1, D.shape[0] - gap) if np.max(D[i - gap:i + gap]) == D[i] and D[i] > 0.0]
+    return lines,n_C,D
+
+def del_end_points(lines,n_C):
+    start_points = []
+    end_points = []
+    tmp = n_C.sum(axis = 1)
+    for l in lines:
+        sum_before = np.sum(tmp[l-3:l])
+        sum_after = np.sum(tmp[l+1:l+4])
+        if sum_after < sum_before * 0.5:
+            end_points.append(l)
+        else:
+            start_points.append(l)
+    return start_points,end_points
+
+def get_start_points_by_end_points(end_points,D):
+    start_points_added = []
+    if len(end_points) > 0:
+        for e in end_points:
+            tmp = D[e+3:e+20]
+#             start = e + np.argmax(tmp)
+            lines = [i for i in range(1,len(tmp)-1) if tmp[i-1] < tmp[i] and tmp[i+1] < tmp[i] and tmp[i] > 0.0]
+            if len(lines) > 0:
+                start = e + 3 + lines[0]
+                # print("==== {} ==== ".format(start))
+                start_points_added.append(start)
+    return start_points_added
+
+
+def get_all_points_for_onset(path, default_gap=10):
+    # 获取初始数据
+    lines,n_C,D = cal_note_start_point(path, default_gap)
+
+    # 分离出节拍尾部点
+    start_points, end_points = del_end_points(lines, n_C)
+
+    # 获取需要添加的节拍点
+    start_points_need_added = get_start_points_by_end_points(end_points, D)
+
+    # 将需要添加的节拍点加入到节拍列表中
+    if len(start_points_need_added) > 0:
+        for s in start_points_need_added:
+            if s not in lines:
+                lines.append(s)
+    lines.sort()
+    return lines
+
 def get_base_pitch_by_cqt_and_starts(filename,starts):
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
@@ -3219,63 +3513,104 @@ def draw_detail(filename,rhythm_code,pitch_code):
 def draw_by_alexnet(filename,rhythm_code,pitch_code):
     # savepath = 'E:/t/'  # 保存要测试的目录
     savepath = get_split_pic_save_path()
-    init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
+    # init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
+    change_points = init_data_V2(filename, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_frames, onset_frames_by_overage = get_starts_by_alexnet(filename, rhythm_code, savepath)
-    # 如果没包括起始点
+    # # 如果没包括起始点
+    # y, sr = librosa.load(filename)
+    # CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    # CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
+    # CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
+
+    # # start, end, length = get_start_and_end(CQT)
+    # start, end, length = get_start_and_end_for_note(y, sr)
+    # # onset_frames_by_overage = [x for x in onset_frames_by_overage if x > start - 5 and x < end]
+    # onset_frames_by_overage = [x for x in onset_frames_by_overage if x < end]
+    # if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 15:
+    #     rms = librosa.feature.rmse(y=y)[0]
+    #     rms = [x / np.std(rms) for x in rms]
+    #     rms = list(np.diff(rms))
+    #     rms.insert(0, 0)
+    #     b, a = signal.butter(8, 0.5, analog=False)
+    #     sig_ff = signal.filtfilt(b, a, rms)
+    #     sig_ff = [x / np.std(sig_ff) for x in sig_ff]
+    #     # print("asfdasdfadsfas {}".format(sig_ff[start:start+3]))
+    #     # 如果起始点的振幅大于0.9才算真正的起始点
+    #     s = start - 4 if start - 4 > 0 else 0
+    #     sig_ff_tmp = sig_ff[s:start + 4]
+    #     if np.max(sig_ff_tmp) > 0.9:
+    #         onset_frames_by_overage.append(start)
+    #         onset_frames_by_overage.sort()
+    #
+    # # 判断是否包括了必选节拍
+    # starts_from_rms_must = get_must_starts(filename, 1.75)
+    # starts_from_rms_must = [x for x in starts_from_rms_must if x > start - 5 and x < end]
+    # for s in starts_from_rms_must:
+    #     offset = [np.abs(s - o) for o in onset_frames_by_overage]
+    #     if np.min(offset) >= 8:
+    #         onset_frames_by_overage.append(s)
+    # onset_frames_by_overage.sort()
+    #
+    # all_starts = onset_frames_by_overage.copy()
+    # code = parse_rhythm_code(rhythm_code)
+    # code = [int(x) for x in code]
+    # onset_types, all_starts, speed = get_onset_type_by_opt(all_starts, rhythm_code, end)
+    # if code[-1] - onset_types[-1] <= 1000:
+    #     onset_types[-1] = code[-1]  # 最后一个节拍，由于人的习惯不会唱全，所以都识别为标准节拍
+    # if len(code) > len(all_starts) and len(code) - len(all_starts) <= 2:  # 如果个数小于标准个数2个之内
+    #     for i, a in enumerate(all_starts):
+    #         if onset_types[i] == 500 and code[i] == 250:
+    #             tmp = a + int((all_starts[i + 1] - a) * 0.5)
+    #             all_starts.append(tmp)
+    #             all_starts.sort()
+    #             break
+    #     if len(all_starts) < len(code):
+    #         for i in range(-1, 0 - len(all_starts) + 2, -1):
+    #             if onset_types[i] == 500 and code[i] == 250:
+    #                 a = all_starts[i - 1]
+    #                 tmp = a + int((all_starts[i] - a) * 0.5)
+    #                 all_starts.append(tmp)
+    #                 all_starts.sort()
+    #                 break
+
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
     CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
-
     start, end, length = get_start_and_end(CQT)
-    onset_frames_by_overage = [x for x in onset_frames_by_overage if x > start - 5 and x < end]
-    if len(onset_frames_by_overage) > 0 and np.abs(onset_frames_by_overage[0] - start) > 15:
-        rms = librosa.feature.rmse(y=y)[0]
-        rms = [x / np.std(rms) for x in rms]
-        rms = list(np.diff(rms))
-        rms.insert(0, 0)
-        b, a = signal.butter(8, 0.5, analog=False)
-        sig_ff = signal.filtfilt(b, a, rms)
-        sig_ff = [x / np.std(sig_ff) for x in sig_ff]
-        # print("asfdasdfadsfas {}".format(sig_ff[start:start+3]))
-        # 如果起始点的振幅大于0.9才算真正的起始点
-        s = start - 4 if start - 4 > 0 else 0
-        sig_ff_tmp = sig_ff[s:start + 4]
-        if np.max(sig_ff_tmp) > 0.9:
-            onset_frames_by_overage.append(start)
-            onset_frames_by_overage.sort()
-
-    # 判断是否包括了必选节拍
-    starts_from_rms_must = get_must_starts(filename, 1.75)
-    starts_from_rms_must = [x for x in starts_from_rms_must if x > start - 5 and x < end]
-    for s in starts_from_rms_must:
-        offset = [np.abs(s - o) for o in onset_frames_by_overage]
-        if np.min(offset) >= 8:
-            onset_frames_by_overage.append(s)
-    onset_frames_by_overage.sort()
-
-    all_starts = onset_frames_by_overage.copy()
     code = parse_rhythm_code(rhythm_code)
     code = [int(x) for x in code]
-    onset_types, all_starts, speed = get_onset_type_by_opt(all_starts, rhythm_code, end)
-    if code[-1] - onset_types[-1] <= 1000:
-        onset_types[-1] = code[-1]  # 最后一个节拍，由于人的习惯不会唱全，所以都识别为标准节拍
-    if len(code) > len(all_starts) and len(code) - len(all_starts) <= 2:  # 如果个数小于标准个数2个之内
-        for i, a in enumerate(all_starts):
-            if onset_types[i] == 500 and code[i] == 250:
-                tmp = a + int((all_starts[i + 1] - a) * 0.5)
-                all_starts.append(tmp)
-                all_starts.sort()
-                break
-        if len(all_starts) < len(code):
-            for i in range(-1, 0 - len(all_starts) + 2, -1):
-                if onset_types[i] == 500 and code[i] == 250:
-                    a = all_starts[i - 1]
-                    tmp = a + int((all_starts[i] - a) * 0.5)
-                    all_starts.append(tmp)
-                    all_starts.sort()
-                    break
+    # onset_types, all_starts = get_onset_from_heights_v3(cqt, rhythm_code,pitch_code,filename)
+    # savepath = 'E:/t/'  # 保存要测试的目录
+    # savepath = '/home/lei/bot-rating/split_pic'
+    savepath = get_split_pic_save_path()
+    # init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
+
+    ######################################add ####################################################
+    pitch = get_pitch_by_parselmouth(filename)
+    small_or_big = 'big'
+    test_frames, test_onset_times = get_all_starts_by_absolute_pitch(pitch, small_or_big)
+    if len(test_frames) - len(code) <= 2 and len(test_frames) == len(code):
+        all_starts = librosa.time_to_frames(test_onset_times, sr)
+        all_starts = list(all_starts)
+        onset_types, all_starts, speed = get_onset_type_by_opt(all_starts, rhythm_code, end)
+    else:
+        onset_types, all_starts, base_pitch, change_points = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
+
     onset_frames = all_starts
+    # 绝对音高对节奏起始点进行去重
+    # onset_types, onset_frames = del_the_same_with_absolute_pitch(filename, sr, onset_types, onset_frames, pitch_code)
+    pitch = get_pitch_by_parselmouth(filename)
+    print("del_the_same_with_absolute_pitch all_starts is {}, size {}".format(all_starts, len(all_starts)))
+    # 绝对音高对节奏起始点进行去重
+    onset_frames_checked = del_the_same_with_absolute_pitch(pitch, onset_frames, sr)
+    if len(all_starts) > len(onset_frames_checked):  # 如果有删除重复的，则需要重新计算节奏种类
+        onset_types, onset_frames, speed = get_onset_type_by_opt(onset_frames_checked, rhythm_code, end)
+        if code[-1] - onset_types[-1] <= 1000:
+            onset_types[-1] = code[-1]  # 最后一个节拍，由于人的习惯不会唱全，所以都识别为标准节拍
+    else:
+        onset_frames = onset_frames_checked
+    print("draw onset_frames is {},size is {}".format(onset_frames,len(onset_frames)))
     y, sr = librosa.load(filename)
     CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
     plt.subplot(3, 1, 1)
@@ -3287,6 +3622,62 @@ def draw_by_alexnet(filename,rhythm_code,pitch_code):
     w, h = CQT.shape
 
     # print("draw finally onset_frames is {}, size {}".format(onset_frames, len(onset_frames)))
+    onset_times = librosa.frames_to_time(onset_frames, sr=sr)
+    plt.vlines(onset_times, 0, sr, color='y', linestyle='--')
+
+    plt.subplot(3, 1, 2)
+    # print(onset_samples)
+    # plt.subplot(len(onset_times),1,1)
+    y, sr = librosa.load(filename)
+    rms = librosa.feature.rmse(y=y)[0]
+    rms_bak = rms.copy();
+    rms = [x / np.std(rms) for x in rms]
+    rms = list(np.diff(rms))
+    rms.insert(0, 0)
+
+    b, a = signal.butter(8, 0.5, analog=False)
+    sig_ff = signal.filtfilt(b, a, rms)
+    sig_ff = [x / np.std(sig_ff) for x in sig_ff]
+    # sig_ff = [x if x > 0 else x - np.min(sig_ff) for x in sig_ff]
+    # rms = signal.medfilt(rms,3)
+    times = librosa.frames_to_time(np.arange(len(rms)))
+    plt.plot(times, sig_ff)
+    plt.plot(times, rms)
+    plt.xlim(0, np.max(times))
+    onset_frames_by_overage_times = librosa.frames_to_time(onset_frames_by_overage, sr=sr)
+    plt.vlines(onset_frames_by_overage_times, 0, np.max(sig_ff), color='r', linestyle='--')
+
+    plt.subplot(3, 1, 3)
+    CQT = signal.medfilt(CQT, (5, 5))  # 二维中值滤波
+    CQT = np.where(CQT > -35, np.max(CQT), np.min(CQT))
+    base_pitch = get_base_pitch_from_cqt(CQT)
+    # print("base_pitch is {},size {}".format(base_pitch[316:], len(base_pitch)))
+    base_pitch = modify_base_pitch(base_pitch)  # 修正倍频问题
+
+    # base_pitch = signal.medfilt(base_pitch, 11)  # 二维中值滤波
+    t = librosa.frames_to_time(np.arange(len(base_pitch)))
+    plt.plot(t, base_pitch)
+    plt.xlim(0, np.max(t))
+    plt.ylim(0, 84)
+    change_points_time = librosa.frames_to_time(onset_frames)
+    plt.vlines(change_points_time, 0, 40, color='b', linestyle='dashed')
+
+    plt.subplots_adjust(wspace=0, hspace=0.5)  # 调整子图间距
+    return plt
+
+def draw_by_alexnet_with_start_frames(filename,onset_frames,onset_frames_by_overage):
+
+    y, sr = librosa.load(filename)
+    CQT = librosa.amplitude_to_db(librosa.cqt(y, sr=16000), ref=np.max)
+    plt.subplot(3, 1, 1)
+    plt.title(filename)
+    plt.xlabel("识别结果示意图")
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+    librosa.display.specshow(CQT, x_axis='time')
+    w, h = CQT.shape
+
+    print("draw finally onset_frames is {}, size {}".format(onset_frames, len(onset_frames)))
     onset_times = librosa.frames_to_time(onset_frames, sr=sr)
     plt.vlines(onset_times, 0, sr, color='y', linestyle='--')
 

@@ -1673,7 +1673,7 @@ def get_start_and_end_for_note(y, sr):
             if np.min(rms[i-5:i]) == 1 and (states[i] == 1 and np.max(states[i-30:i-20]) == 1):
                 end = i
                 break
-    return start,end
+    return start,end,end-start
 def draw_baseline_and_note_on_cqt(filename,display=True):
     y, sr = librosa.load(filename)
     start,end = get_start_and_end_for_note(y, sr)

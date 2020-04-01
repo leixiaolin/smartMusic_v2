@@ -3,6 +3,7 @@ import argparse
 import sys
 from pitch_helper import *
 import warnings
+import time
 warnings.simplefilter('ignore')
 
 def write_txt(content, filename, mode='w'):
@@ -32,10 +33,13 @@ else:
     print("file_path is {}".format(file_path))
     print("rhythm_code is {}".format(rhythm_code))
     print("melody_code is {}".format(melody_code))
-    #file_path = 'F:/项目/花城音乐项目/样式数据/3.06MP3/节奏/节4欧(95).wav'
-    #file_code = '[19,60,92,128,161,178,197,230,263]'
+    # file_path = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav'
+    # rhythm_code = '[1000,1000;500,500,1000;500,250,250,500,500;2000]'
+    # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     # total_score,  onsets_frames,detail_content = calcalate_total_score(file_path,rhythm_code,melody_code)
-    total_score, onsets_frames, detail_content = calcalate_total_score_by_alexnet(file_path, rhythm_code, melody_code)
+    start = time.clock()
+    total_score, onsets_frames, detail_content,total_score_absolute_pitch,detail_absolute_pitch,change_points = calcalate_total_score_by_alexnet(file_path, rhythm_code, melody_code)
+    print("time used is {}".format(time.clock() - start))
     print("total_score, is {}".format(total_score))
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
@@ -45,6 +49,12 @@ else:
     write_txt(content, save_path, mode='w')
     #detail = '整体节奏偏离较大，未能误别部分节拍，流畅平稳性有待加强'
     detail = detail_content
+    write_txt(detail, save_path, mode='a')
+    # 绝对音高的评分结果
+    content = "\n" + 'total_score is ' + str(total_score_absolute_pitch)
+    content += "\n"
+    write_txt(content, save_path, mode='a')
+    detail = detail_absolute_pitch
     write_txt(detail, save_path, mode='a')
     #python grade_xl_util.py F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav [1000,1000;500,500,1000;500,250,250,500,500;2000] [5,5,3,2,1,2,2,3,2,6-,5-]
     # python grade_xl_util.py F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/01，98.wav [500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000] [5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]
