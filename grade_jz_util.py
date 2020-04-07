@@ -46,7 +46,7 @@ else:
     score, detail_content = calculate_score(max_indexs, rhythm_code,end)
     # print("score is {}".format(score))
     out_result = {'file_path': file_path, 'rhythm_code': rhythm_code, 'total_score': score, 'detail': detail_content}
-    print(json.dumps(out_result))
+    print(json.dumps(out_result,ensure_ascii=False))
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
     content = 'score is ' + str(score)

@@ -45,7 +45,8 @@ else:
     out_result = {'file_path': file_path, 'rhythm_code': rhythm_code, 'melody_code': melody_code,
                   'time_used': (time.clock() - start), 'total_score': total_score, 'detail': detail_content,
                   'total_score_absolute': total_score_absolute_pitch, 'detail_absolute': detail_absolute_pitch}
-    print(json.dumps(out_result))
+    x = json.dumps(out_result)
+    print(json.dumps(out_result,ensure_ascii=False))
     filepath, fullflname = os.path.split(file_path)
     output_file = fullflname.split('.wav')[0] + '-out.txt'
     content = 'total_score is ' + str(total_score)
