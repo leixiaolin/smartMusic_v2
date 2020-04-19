@@ -11,7 +11,7 @@
 #   six==1.12.0
 #   websocket==0.2.1
 #   websocket-client==0.56.0
-#
+#   pip install websocket
 #  语音听写流式 WebAPI 接口调用示例 接口文档（必看）：https://doc.xfyun.cn/rest_api/语音听写（流式版）.html
 #  webapi 听写服务参考帖子（必看）：http://bbs.xfyun.cn/forum.php?mod=viewthread&tid=38947&extra=
 #  语音听写流式WebAPI 服务，热词使用方式：登陆开放平台https://www.xfyun.cn/后，找到控制台--我的应用---语音听写（流式）---服务管理--个性化热词，
@@ -104,8 +104,10 @@ def on_message(ws, message):
             for i in data:
                 bg = i["bg"]
                 for w in i["cw"]:
-                    result += w["w"]
-                    ws.all_detail[w["w"]] = bg
+                    if w["w"] != '':
+                        ws.all_detail[bg] = (w["w"],len(ws.all_message) + len(result))
+                        result += w["w"]
+                    # ws.all_detail[w["w"]] = bg
             print("sid:%s call success!,data is:%s" % (sid, json.dumps(data, ensure_ascii=False)))
             # print(result)
             # print(ws.all_detail)
@@ -196,6 +198,9 @@ if __name__ == "__main__":
     filename = 'F:/项目/花城音乐项目/样式数据/20.04.01MP3/test.pcm'
     filename = 'F:/项目/花城音乐项目/样式数据/20.04.01MP3/人声打分.pcm'
     filename = 'F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋律/B-6.pcm'
+    filename = 'F:/项目/花城音乐项目/样式数据/20.04.07MP3/人声.pcm'
+    filename = 'F:/项目/花城音乐项目/样式数据/20.04.07MP3/人声_1549.pcm'
+    filename = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/录音.pcm'
     time1 = datetime.now()
     print(filename)
     # wsParam = Ws_Param(APPID='5d5ba58f', APIKey='2b05d51544e2f7896d4c539ccd2c8454',

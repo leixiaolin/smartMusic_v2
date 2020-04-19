@@ -6,7 +6,7 @@ import time
 import hmac
 import base64
 import urllib
-import Config
+from tencent.Config import Config
 
 def task_process(audio_url):
     request_data = dict()

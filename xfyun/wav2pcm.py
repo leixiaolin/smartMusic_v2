@@ -11,4 +11,6 @@ if __name__ == "__main__":
 
     wavfile = 'F:/项目/花城音乐项目/样式数据/20.04.01MP3/人声打分.wav'
     wavfile = 'F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋律/B-6.wav'
+    wavfile = 'F:/项目/花城音乐项目/样式数据/20.04.07MP3/人声_1549.wav'
+    wavfile = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/录音.wav'
     wav2pcm(wavfile)
