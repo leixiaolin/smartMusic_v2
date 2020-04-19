@@ -1,7 +1,7 @@
 import os
 
-m4a_path = "F:/项目/花城音乐项目/样式数据/20.03.16MP3/3.16音频/"
-wav_path = "F:/项目/花城音乐项目/样式数据/20.03.16MP3/wav/"
+m4a_path = "F:/项目/花城音乐项目/样式数据/20.03.26MP3/aac/"
+wav_path = "F:/项目/花城音乐项目/样式数据/20.03.26MP3/wav/"
 m4a_file = os.listdir(m4a_path)
 m4a_file = [name for name in m4a_file if name.endswith(".aac")]
 

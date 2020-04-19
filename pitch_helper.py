@@ -1523,6 +1523,8 @@ def calcalate_total_score_by_alexnet(filename, rhythm_code,pitch_code):
         onset_types, all_starts, speed = get_onset_type_by_opt(all_starts, rhythm_code, end) #计算节奏种类
     else:
         onset_types, all_starts, base_pitch, change_points = get_all_starts_by_alexnet(filename, rhythm_code,pitch_code)
+        if all_starts is None:
+            return 0, [], "无法识别或偏差较大", 0, "无法识别或偏差较大", []
         all_starts = insert_high_believe_starts(all_starts, all_high_believe_start_frames) #将不存在的高可信点插入到列表
         onset_types, all_starts, speed = get_onset_type_by_opt(all_starts, rhythm_code, end)  # 计算节奏种类
 
@@ -2502,9 +2504,11 @@ def get_all_starts_by_alexnet(filename, rhythm_code,pitch_code):
 
     savepath = get_split_pic_save_path()
     # change_points = init_data(filename, rhythm_code, savepath)  # 切分潜在的节拍点，并且保存切分的结果
-    change_points = init_data_V2(filename, savepath)  # 切分潜在的节拍点，并且保存切分的结果
+    change_points = init_data_V3(filename, savepath)  # 切分潜在的节拍点，并且保存切分的结果
     onset_frames, onset_frames_by_overage = get_starts_by_alexnet(filename, rhythm_code, savepath)
     print(onset_frames)
+    if len(onset_frames) < 1:
+        return None,None,None,None
     # onset_frames_by_overage = [x for x in onset_frames_by_overage if x > start - 5 and x < end]
     onset_frames_by_overage = [x for x in onset_frames_by_overage if x < end]
     #如果没包括起始点
@@ -3150,6 +3154,30 @@ def init_data_V2(filename,savepath):
     cqt_split_and_save(filename, change_points, savepath)
     return change_points
 
+def init_data_V3(filename,savepath):
+    clear_dir(savepath)
+    pitch = get_pitch_by_parselmouth(filename)
+    small_or_big = 'small'
+    test_frames, test_onset_times = get_all_starts_by_absolute_pitch(pitch, small_or_big)
+    change_points = librosa.time_to_frames(test_onset_times)
+    change_points = list(change_points)
+
+    # 根据幅度轫线获取高可信的超始点列表
+    high_believe_test_frames_on_rms = get_high_believe_starts_of_rms(filename)
+
+    all_high_believe_start_frames = change_points.copy()
+    # 合并两个高可信的起始点列表
+    for i, g in enumerate(high_believe_test_frames_on_rms):
+        tmp = [np.abs(g - o) for o in change_points]
+        if np.min(tmp) > 10:
+            all_high_believe_start_frames.append(g)
+    all_high_believe_start_frames.sort()
+
+    change_points = all_high_believe_start_frames
+    # change_points = get_all_points_for_onset(filename, gap)
+    # print("change_points IS {}".format(change_points))
+    cqt_split_and_save(filename, change_points, savepath)
+    return change_points
 
 def cal_note_start_point(path, default_gap=10):
     y, sr = librosa.load(path)

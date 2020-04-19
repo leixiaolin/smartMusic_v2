@@ -6,6 +6,9 @@ import librosa
 from LscHelper import my_find_lcseque
 import scipy.signal as signal
 
+
+from xfyun.iat_ws_python3 import get_iat_result
+
 FREQS = [
     ('B0',30.87), ('C1',32.7), ('C#1',34.65),
     ('D1',36.71), ('D#1',38.89), ('E1',41.2),
@@ -39,6 +42,13 @@ FREQS = [
 ]
 
 PITCH_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B', 'C', 'C#', 'D3', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+def get_freq_by_notation_name(notation_name):
+    freq = [tup for tup in FREQS if tup[0] == notation_name]
+    if len(freq) > 0:
+        return freq[0][1]
+    else:
+        return None
 
 '''
 获取平移后的音高类型
@@ -180,7 +190,7 @@ def draw_pitch(pitch,draw_type=1,filename='',notation='',grain_size=0):
     # plt.xlim([snd.xmin, snd.xmax])
     return plt
 
-def draw_pitch_specified (pitch,pitch_values,draw_type=1,filename='',notation='',grain_size=0):
+def draw_pitch_specified (intensity,pitch,pitch_values,draw_type=1,filename='',notation='',grain_size=0):
     # Extract selected pitch contour, and
     # replace unvoiced samples by NaN to not plot
     p_min = 70
@@ -249,6 +259,8 @@ def draw_pitch_specified (pitch,pitch_values,draw_type=1,filename='',notation=''
         plt.text(0.1, p, pitch_name[i] + " - " + numbered_musical_notation,size='8')
 
     # plt.xlim([snd.xmin, snd.xmax])
+    plt.twinx()
+    draw_intensity(intensity)
     return plt
 
 def draw_spectrogram(spectrogram, dynamic_range=70):
@@ -260,8 +272,13 @@ def draw_spectrogram(spectrogram, dynamic_range=70):
     plt.ylabel("frequency [Hz]")
 
 def draw_intensity(intensity):
-    plt.plot(intensity.xs(), intensity.values.T, linewidth=3, color='w')
+    # plt.plot(intensity.xs(), intensity.values.T, linewidth=3, color='w')
+    values = intensity.values.T.copy()
+    values = list(values)
+    values = [v[0] for v in values]
+    values = signal.medfilt(values, 11)
     plt.plot(intensity.xs(), intensity.values.T, linewidth=1)
+    plt.plot(intensity.xs(), values, linewidth=1)
     plt.grid(False)
     plt.ylim(0)
     plt.ylabel("intensity [dB]")
@@ -292,13 +309,13 @@ def get_pitch_by_parselmouth(filename):
     pitch = snd.to_pitch()
     return pitch
 
-def draw_intensity(intensity):
-    # plt.plot(intensity.xs(), intensity.values.T, linewidth=3, color='w')
-    intensity_values_t = intensity.values.T - 50
-    plt.plot(intensity.xs(), intensity_values_t, linewidth=1, color='r')
-    plt.grid(False)
-    plt.ylim(0)
-    plt.ylabel("intensity [dB]")
+# def draw_intensity(intensity):
+#     # plt.plot(intensity.xs(), intensity.values.T, linewidth=3, color='w')
+#     intensity_values_t = intensity.values.T - 50
+#     plt.plot(intensity.xs(), intensity_values_t, linewidth=1, color='r')
+#     plt.grid(False)
+#     plt.ylim(0)
+#     plt.ylabel("intensity [dB]")
 
 '''
 根据起始帧和结束帧提取特定时段的音高，包括第一判定音高，第二判定音高
@@ -672,7 +689,7 @@ def get_short_starts_by_absolute_pitch(pitch,small_or_big,move_gap = 0):
 
     # 获取连续段的起始点及长度
     starts,lens = get_starts_and_length_for_section(pitch_values_candidate)
-    start_frames = [starts[i] for i in range(len(lens)) if lens[i] < 30 and lens[i] > 15]
+    start_frames = [starts[i] for i in range(len(lens)) if lens[i] < 30 and lens[i] > 10]
     # start_frames = [i for i in range(len(pitch_values) - 30) if np.abs(pitch_values_candidate[i] - pitch_values_candidate[i+1]) > 5
     #                and Counter(pitch_values_candidate[i+1:i+30]).most_common(1)[0][1] > 15 and Counter(pitch_values_candidate[i+1:i+30]).most_common(1)[0][1] <= 20
     #                and Counter(pitch_values_candidate[i+1:i+30]).most_common(1)[0][0] > 75]
@@ -711,6 +728,16 @@ def get_high_believe_starts_by_absolute_pitch(pitch,small_or_big = 'big'):
         if np.min(tmp) > 15:
             all_start_frames.append(g)
             all_onset_times.append(gap_onset_times[i])
+    all_start_frames.sort()
+    all_onset_times.sort()
+    import scipy.signal as signal
+    pitch_values = pitch.selected_array['frequency']
+    pitch_values = signal.medfilt(pitch_values, 45)
+    # 找出第一个不为0、不为nan的元素的位置
+    first_position = [i for i in range(len(pitch_values)) if pitch_values[i] >= 50 and not np.isnan(pitch_values[i])][0]
+    if all_start_frames[0] - first_position > 12:
+        all_start_frames.append(first_position)
+        all_onset_times.append(round(first_position/100,2))
     all_start_frames.sort()
     all_onset_times.sort()
     return all_start_frames,all_onset_times
@@ -829,7 +856,7 @@ def get_start_and_end_with_parselmouth(filename):
     pitch = get_pitch_by_parselmouth(filename)
     pitch_values = pitch.selected_array['frequency']
     import scipy.signal as signal
-    pitch_values = signal.medfilt(pitch_values, 45)
+    pitch_values = signal.medfilt(pitch_values, 35)
     # 找出第一个不为0、不为nan的元素的位置
     first_position = [i for i in range(len(pitch_values)) if pitch_values[i] >= 50 and not np.isnan(pitch_values[i])][0]
     # 找出最后一个不为0、不为nan的元素的位置
@@ -841,8 +868,21 @@ def get_start_and_end_with_parselmouth(filename):
 '''
 获取所有平移后的音高类型
 '''
-def get_all_numbered_musical_notation_by_moved(first_notation,first_base_numbered_notation,all_notations):
+def get_all_numbered_musical_notation_by_moved(first_base_numbered_notation,all_notations,all_times):
 
+    # all_times = librosa.frames_to_time(all_frames)
+    # all_times = list(all_times)
+    all_times.append(all_times[-1] + 0.2) # 添加一个结束点
+    result = []
+    first_notation = ''
+    first_freq = 0
+    for a in all_notations:
+        if a is not None:
+            first_notation = a
+            first_freq = get_freq_by_notation_name(a)
+            break
+    if first_notation == '':
+        return result
     #将标准序列中首个数字音高转换为字母
     first_base_numbered_notation_str = str(first_base_numbered_notation)
     first_base_notation = get_musical_notation_with_number(first_base_numbered_notation_str,'capital')
@@ -854,11 +894,23 @@ def get_all_numbered_musical_notation_by_moved(first_notation,first_base_numbere
     min_steps = [s for s in steps if np.abs(s) == np.min(np.abs(steps))]
     step = min_steps[0]
 
-    result = []
-    for a in all_notations:
-        numbered_notation = get_numbered_musical_notation_by_moved(a,step)
-        result.append(numbered_notation)
-    return result
+    detail = []
+    for i,a in enumerate(all_notations):
+        if a is None:
+            result.append(None)
+            detail.append((None,all_times[i],all_times[i+1]))
+        else:
+            numbered_notation = get_numbered_musical_notation_by_moved(a,step)
+            if numbered_notation.find("#") >= 0:
+                numbered_notation = numbered_notation[0]
+            a_freq = get_freq_by_notation_name(a)
+            if int(numbered_notation) == first_base_numbered_notation and a_freq > first_freq: # 如果当前频率大于基准频率，且音高相同，则需要上调一个音分
+                numbered_notation = str((int(numbered_notation) + 1)%7)
+            elif int(numbered_notation) == first_base_numbered_notation and a_freq < first_freq: # 如果当前频率大于基准频率，且音高相同，则需要下调一个音分
+                numbered_notation = str(int(numbered_notation) - 1) if int(numbered_notation) - 1 != 0 else '7'
+            result.append(numbered_notation)
+            detail.append((numbered_notation, all_times[i], all_times[i + 1]))
+    return result,detail
 
 def get_all_numbered_notation_and_offset(pitch,onset_frames,sr=22050):
     from collections import Counter
@@ -873,7 +925,7 @@ def get_all_numbered_notation_and_offset(pitch,onset_frames,sr=22050):
     pitch_values_candidate = get_pitch_values(pitch_values, small_or_big)
     # 将小缝隙补齐
     pitch_values_candidate = smooth_pitch_values_candidate(pitch_values_candidate)
-    last_position = librosa.time_to_frames(pitch.duration - 0.05, sr=sr)
+    last_position = int((pitch.duration - 0.05) * 100)
     onset_frames.append(last_position)
     all_first_candidates = []
     all_first_candidate_names = []
@@ -888,10 +940,15 @@ def get_all_numbered_notation_and_offset(pitch,onset_frames,sr=22050):
             candidate_notation_tmp = pitch_values_candidate[start_frame:end_frame]
             candidate_notation_tmp = [p for p in candidate_notation_tmp if p > 50]
             pitch_tmp = pitch_values[start_frame:end_frame]
+            if len(candidate_notation_tmp) == 0:
+                all_first_candidate_names.append(None)
+                all_first_candidates.append(None)
+                all_offset_types.append(None)
+                continue
             # 找出list中出现最多的元素
             res = Counter(candidate_notation_tmp)
             if len(pitch_values_candidate) == 0:  # 如果整个音高序列为空
-                return np.nan, np.nan
+                return np.nan, np.nan,np.nan
             most_notation_freq = res.most_common(1)[0][0]  # 第一判定音高
             first_candidate_name = most_notation_freq if np.isnan(most_notation_freq) else get_pitch_name(most_notation_freq)
             small_list = [i for i,p in enumerate(pitch_tmp) if p < most_notation_freq and p > 50]
@@ -910,6 +967,108 @@ def get_all_numbered_notation_and_offset(pitch,onset_frames,sr=22050):
             # print( e.message)
             pass
     return all_first_candidate_names, all_first_candidates, all_offset_types
+
+'''
+如果前后两个音高数字相差不大，且频率相差也不大，可以大概率认为是伪起始点
+'''
+def check_all_starts(pitch,onset_frames,test_onset_times):
+    pitch_values = pitch.selected_array['frequency']
+    pitch_values = signal.medfilt(pitch_values, 35)
+    # librosa时间点换算成parselmouth的帧所在位置
+    all_starts_parselmouth = [int(o * pitch.n_frames / pitch.duration) for o in test_onset_times]
+    all_first_candidate_names, all_first_candidates, all_offset_types = get_all_numbered_notation_and_offset(pitch,onset_frames)
+    print("check_all_starts all_first_candidate_names is {},size is {}".format(all_first_candidate_names,len(all_first_candidate_names)))
+    numbered_musical_notations = []
+    for a in all_first_candidate_names:
+        if a[1] == "#":
+            s = a[0:2]
+        else:
+            s = a[0]
+        anchor_point = [i for i, p in enumerate(PITCH_NAMES) if i >= 12 and i <= 23 and p.find(s) >= 0]
+        numbered_musical_notations.append(anchor_point[0])
+
+    pitch_values_on_test_frames = [np.abs(round(pitch_values[t - 2] - pitch_values[t + 2], 2)) for t in all_starts_parselmouth]
+    print("check_all_starts pitch_values_on_test_frames is {},size is {}".format(pitch_values_on_test_frames, len(pitch_values_on_test_frames)))
+    result = [onset_frames[0]] # 添加第一个
+    onset_times = [test_onset_times[0]]  # 添加第一个
+    for i,s in enumerate(numbered_musical_notations):
+        if i > 0:
+            s1 = int(numbered_musical_notations[i-1]) #前一个音高数字
+            s2 = int(numbered_musical_notations[i]) #当前音高数字
+            if np.abs(s1 -s2) <= 1 and np.abs(pitch_values_on_test_frames[i]) < 9: # 如果前后两个音高数字相差不大，且频率相差也不大，可以大概率认为是伪起始点
+                continue
+            else:
+                result.append(onset_frames[i])
+                onset_times.append(test_onset_times[i])
+    return result,onset_times
+
+'''
+通过科大讯飞语音识别接口获取歌词信息
+'''
+def get_result_from_xfyun(filename):
+
+    all_message, all_detail = get_iat_result(filename)
+    return all_message, all_detail
+
+'''
+    根据幅度较大的波谷判断为大概率的起始点
+'''
+def get_starts_by_parselmouth_rms(intensity,pitch):
+    values = intensity.values.T.copy()
+    values = list(values)
+    values = [v[0] for v in values]  #原始幅度
+    values_medfilt = signal.medfilt(values, 11)  #滤波后幅度
+    values_gap = [values_medfilt[i] - values[i] for i in range(len(values_medfilt))]
+    values_len = len(values)
+
+    pitch_values = pitch.selected_array['frequency']
+    pitch_values = signal.medfilt(pitch_values, 35)
+
+    # 找出第一个不为0、不为nan的元素的位置
+    first_position = [i for i in range(len(pitch_values)) if pitch_values[i] >= 50 and not np.isnan(pitch_values[i])][0]
+    first_position = int(first_position*values_len/len(pitch_values))
+    # 找出最后一个不为0、不为nan的元素的位置
+    last_position = [i for i in range(len(pitch_values)) if pitch_values[i] >= 50 and not np.isnan(pitch_values[i])][-1]
+    last_position = int(last_position * values_len / len(pitch_values))
+
+    #判断条件：1、幅度差值大于1.5；  2、位置开始点和结束点之间；  3、起始点之后15之后要有音高线；
+    must_starts = [i for i,v in enumerate(values_medfilt) if values_gap[i] > 1.6 and i > first_position and i < last_position - 40]
+    # must_starts = [s for s in must_starts if np.mean(pitch_values[s:s+15]) > 70]
+    #相临太密的取幅度减值较大的
+    result = [must_starts[0]]
+    for i in range(1,len(must_starts)):
+        c = must_starts[i]
+        c_on_pitch_values = int(c *len(pitch_values) / values_len)
+        if np.mean(pitch_values[c_on_pitch_values:c_on_pitch_values+15]) > 70:
+            if c - result[-1] < 30:
+                selected = c if values_gap[c] > values_gap[result[-1]] else result[-1]
+                result[-1] = selected
+            else:
+                result.append(c)
+    onset_times = [pitch.duration * t / values_len for t in result]
+    result = [int(o * 100) for o in onset_times]
+    return result,onset_times
+
+
+def merge_candidate(pitch_values,pitch_values_candidate):
+    pass
+
+def merge_times_from_iat_plm_rms(iat_times,plm_times,rms_times):
+    tmp = plm_times + rms_times
+    tmp = [round(t,2) for t in tmp]
+    tmp.sort()
+    result = iat_times
+    for s in tmp:
+        offset = [np.abs(t - s) for t in result]
+        if np.min(offset) > 0.20:
+            result.append(s)
+    result.sort()
+    return result
+
+def get_notation_detail_by_times(numbered_notations_detail,start_time,end_time):
+    selected_numbered_notations_detail = [tup for tup in numbered_notations_detail if tup[2] > start_time and tup[1] < end_time] # 开始点和结束点落在区间内的都算
+    return selected_numbered_notations_detail
+
 
 if __name__ == "__main__":
     raw_seque = ['1','1+','1-','2','2+','2-','3','3+','3-','4','4+','4-','5','5+','5-','6','6+','6-','7','7+','7-']
