@@ -11,6 +11,26 @@ pitch_time = [0,1, 1.5, 2, 3, 3.5, 4, 5, 6, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 1
 def notation_rhythm_score(pitch_time,):
     pass
 
+'''
+根据标准歌词、歌词时间点、标准音符和音符时间点获取每个歌词对应的音符
+standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友加'
+standard_kc_time = [0,1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 26.5, 27, 28,30,32]
+standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28,32]
+'''
+def get_notations_on_kc(standard_kc,standard_kc_time,standard_notations,standard_notation_time):
+    standard_kc_list = list(standard_kc)
+    standard_notations_list = standard_notations.split(",")
+    kc_with_notations = {}
+    for i,kc in enumerate(standard_kc_list):
+        start_time = standard_kc_time[i]
+        end_time = standard_kc_time[i+1]
+        notation_positions = [i for i,t in enumerate(standard_notation_time) if t>= start_time and t<end_time ] #音符开始时间落在歌词时间区间上的都算
+        select_notations = [standard_notations_list[i] for i in notation_positions]
+        kc_with_notations[i] = (kc,notation_positions,select_notations)
+        print("{},{}".format(i,kc_with_notations[i]))
+    return kc_with_notations
+
 
 '''
 歌词节奏评分
@@ -35,7 +55,7 @@ def kc_rhythm_score(standard_kc,standard_kc_time,kc_detail,test_kc,score_seted):
     modify_test_kc = modify_tyz_by_position(standard_kc, test_kc)
     # 获取最大公共序列及其相关位置信息
     lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_kc, modify_test_kc)
-
+    loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_kc, modify_test_kc)
     score_detail = '评测细节：' + '\n'
     for i,tup in enumerate(kc_detail.values()):
         try:
@@ -64,9 +84,9 @@ def kc_rhythm_score(standard_kc,standard_kc_time,kc_detail,test_kc,score_seted):
             if offset_duration <= standard_duration * 0.25: #如果偏差小于25%，即可得分
                 score = round(each_score * len(ps),2)
                 total_score += score
-                str_detail = "{}: duration is {}, standard_duration is {} ,offset_duration is {},score is {}".format(tup[0],test_duration,standard_duration, offset_duration,score)
+                str_detail = "{}:  持续时长为{}秒, 标准时长为{}秒, 偏差值为{},得分为{}".format(tup[0],test_duration,standard_duration, offset_duration,score)
             else:
-                str_detail ="{}: duration is {}, standard_duration is {} ,offset_duration is {},score is {}".format(tup[0],test_duration,standard_duration, offset_duration, 0)
+                str_detail ="{}:  持续时长为{}秒, 标准时长为{}秒 偏差值为{},得分为{}".format(tup[0],test_duration,standard_duration, offset_duration, 0)
             score_detail += str_detail + '\n'
             # print(str_detail)
         except Exception:
@@ -96,9 +116,11 @@ def pitch_score(standard_notations,numbered_notations,score_seted):
     #找出未匹配的音高，并对未匹配的每个音高进行分析
     lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
     loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
+    real_loss_positions = []
     for j,lp in enumerate(loss_positions):
         loss_notation = 0
         try:
+            # 未匹配的音高名称
             loss_notation = int(loss_notations_in_standard[j][0])
             # 该未匹配音高的前一个准点
             anchor_before = int(lp) - 1
@@ -121,10 +143,11 @@ def pitch_score(standard_notations,numbered_notations,score_seted):
                 offset = [np.abs(loss_notation - t) for t in tmp] # 音高差值
                 if np.min(offset) <= 1: #如果音高差值不超过1，可计半分
                     total_score -= round(each_score * 0.5, 2)
-                    str_detail = "第{}个音高:{} 与标准差值较小，扣{}分".format(lp, loss_notation,round(each_score * 0.5, 2))
+                    str_detail = "第{}个音高:{} 识别结果与标准差值较小，扣{}分".format(lp, loss_notation,round(each_score * 0.5, 2))
                 else:
-                    str_detail = "第{}个音高:{} 与标准差值较大，扣{}分".format(lp, loss_notation,each_score)
+                    str_detail = "第{}个音高:{} 识别结果与标准差值较大，扣{}分".format(lp, loss_notation,each_score)
                     total_score -= each_score
+                    real_loss_positions.append(lp)
                 score_detail += str_detail + '\n'
         except Exception:
             str_detail = "第{}个音高:{}  is error，扣{}分".format(lp,loss_notation,each_score)
@@ -133,7 +156,7 @@ def pitch_score(standard_notations,numbered_notations,score_seted):
         # print(str_detail)
     if total_score == score_seted:
         score_detail = "未存在失分的情况"
-    return round(total_score,2), score_detail
+    return round(total_score,2), score_detail,real_loss_positions
 
 '''
 音符节奏评分算法
@@ -149,12 +172,14 @@ def notation_duration_score(standard_notations,standard_notation_time,numbered_n
     score_detail = '评测细节：下列音高存在失分情况' + '\n'
 
     standard_notations = standard_notations.split(',')
+    standard_len = len(standard_notations)
     standard_notations = [s[0] for s in standard_notations]
     standard_notations = ''.join(standard_notations)
 
     test_times = [test_times[i] for i,n in enumerate(numbered_notations) if n is not None]
     test_times.append(end_time)
     test_times_diff = np.diff(test_times)
+    print("test_times_diff is {},size is {}".format(test_times_diff, len(test_times_diff)))
     numbered_notations = [n for n in numbered_notations if n is not None]
     numbered_notations = ''.join(numbered_notations)
     numbered_notations_list = list(numbered_notations)
@@ -162,7 +187,11 @@ def notation_duration_score(standard_notations,standard_notation_time,numbered_n
     print("numbered_notations is {},size is {}".format(numbered_notations, len(numbered_notations)))
 
     standard_notation_time_diff = np.diff(standard_notation_time)
+    print("standard_notation_time_diff is {},size is {}".format(standard_notation_time_diff, len(standard_notation_time_diff)))
 
+    # 找出未匹配的音高，并对未匹配的每个音高进行分析
+    loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
+    print("loss_positions is {},size is {}".format(loss_positions, len(loss_positions)))
     # 找出最大公共子序列，并对每个匹配上的音符时长进行判断计分处理
     lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
     for l,s in enumerate(lcseque):
@@ -177,11 +206,20 @@ def notation_duration_score(standard_notations,standard_notation_time,numbered_n
             offset = offset / standard_duration
             offset = round(offset,2)
 
-            if offset <= 0.25: # 时长偏差小于0.25，该音符可得满分
+            if standard_position == standard_len -1: #最后一个要求最低，只有匹配上就算对
                 total_score += each_score
             else:
-                str_detail = "第{}个音高:{} 时长为{}，标准时长为{}，与标准差值为{}，大于规定范围，扣{}分".format(standard_position, s,test_duration,standard_duration, offset,each_score)
-                score_detail += str_detail + '\n'
+                if offset <= 0.3: # 时长偏差小于0.25，该音符可得满分
+                    total_score += each_score
+                else:
+                    if int(standard_position + 1) in loss_positions: #如果后一个音符在未匹配序列中，后一个音符在有可能是漏识别的音符，所以要两个的时长一起来判断
+                        next_standard_duration = standard_notation_time_diff[standard_position+1]
+                        if np.abs(test_duration / (next_standard_duration + standard_duration) -1) < 0.5:
+                            total_score += each_score
+                            continue
+                    #     print("in loss")
+                    str_detail = "第{}个音高:{} 开始于{}秒，结束于{}秒，时长为{}秒，标准时长为{}秒，与标准差值为{}，大于规定范围，扣{}分".format(standard_position, s,test_times[test_position],test_times[test_position+1],test_duration,standard_duration, offset,each_score)
+                    score_detail += str_detail + '\n'
 
     #找出未匹配的音高，并对未匹配的每个音高进行分析
     # loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
@@ -367,17 +405,25 @@ if __name__ == "__main__":
     print("loss_notations_in_standard is {}, size is {}".format(loss_notations_in_standard, len(loss_notations_in_standard)))
 
     score_seted = 30
-    standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,1,3,4,5,6,6,1+,7,6,1+'
+    standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,6,7-,3,2,1,7-,1,6-'
     numbered_notations = [None, '3', '2', '2', '1', '1', '7', '6', '6', '6', None, '4', '4', '4', '3', '2', '1', '2', '4', '3', None, '3', '4', '4', '3', '2', '4', '3', '1', '6', '7', '7', '3', '2', '1', '1', '6']
-    # pitch_total_score, pitch_score_detail = pitch_score(standard_notations, numbered_notations, score_seted)
-    # print("pitch_total_score is {}".format(pitch_total_score))
-    # print("pitch_score_detail is {}".format(pitch_score_detail))
+    pitch_total_score, pitch_score_detail,real_loss_positions = pitch_score(standard_notations, numbered_notations, score_seted)
+    print("pitch_total_score is {}".format(pitch_total_score))
+    print("pitch_score_detail is {}".format(pitch_score_detail))
+    print("real_loss_positions is {}".format(real_loss_positions))
 
+    # standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    # numbered_notations = [None, '3', '3', '2', '1', '1', '7', '6', '6', '5', '6', None, '4', '4', '3', '2', '1', '2', '4', '3', None, '4', '4', '3', '2', '2', '4', '3', '3', '7', '5', '6', None, '7', '1', '3', '2', '1', '7', '1', '6', '6']
+    # standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28,32]
+    # test_times = [0.2, 0.47, 1.44, 1.97, 2.36, 3.48, 3.92, 4.4, 5.52, 6.4, 6.61, 8.24, 8.56, 9.55, 10.1, 10.4, 11.05, 11.52, 11.88, 12.66, 16.24, 16.45, 17.49, 17.96, 18.32, 19.36, 19.96, 20.41, 21.0, 22.04, 22.4, 22.8, 24.25, 24.57, 25.45, 25.66, 26.45, 26.97, 27.45, 27.93, 28.47, 29.84]
+    # end_time = 32
+    # notation_duration_total_score, notation_duration_score_detail = notation_duration_score(standard_notations, standard_notation_time, numbered_notations, test_times,end_time, score_seted)
+    # print("notation_duration_total_score is {}".format(notation_duration_total_score))
+    # print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
 
-    numbered_notations = [None, '3', '3', '2', '1', '1', '7', '6', '6', '5', '6', None, '4', '4', '3', '2', '1', '2', '4', '3', None, '4', '4', '3', '2', '2', '4', '3', '3', '7', '5', '6', None, '7', '1', '3', '2', '1', '7', '1', '6', '6']
-    standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28,32]
-    test_times = [0.2, 0.47, 1.44, 1.97, 2.36, 3.48, 3.92, 4.4, 5.52, 6.4, 6.61, 8.24, 8.56, 9.55, 10.1, 10.4, 11.05, 11.52, 11.88, 12.66, 16.24, 16.45, 17.49, 17.96, 18.32, 19.36, 19.96, 20.41, 21.0, 22.04, 22.4, 22.8, 24.25, 24.57, 25.45, 25.66, 26.45, 26.97, 27.45, 27.93, 28.47, 29.84]
-    end_time = 32
-    notation_duration_total_score, notation_duration_score_detail = notation_duration_score(standard_notations, standard_notation_time, numbered_notations, test_times,end_time, score_seted)
-    print("notation_duration_total_score is {}".format(notation_duration_total_score))
-    print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
+    standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
+    standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,26.5, 27, 28, 32]
+    standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    standard_notation_time = [0, 1, 1.5, 2, 3, 3.5, 4, 5, 6, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 16, 17, 17.5, 18, 19, 19.5, 20, 21, 21.5, 22, 23, 24, 25, 26, 26.5, 27, 27.5, 28, 32]
+    kc_with_notations = get_notations_on_kc(standard_kc, standard_kc_time, standard_notations, standard_notation_time)
+    print("kc_with_notations is {}".format(kc_with_notations))
