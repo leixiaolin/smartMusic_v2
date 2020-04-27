@@ -102,6 +102,24 @@ def modify_tyz_by_position(standard_str,tested_str):
                 result.append(tested_str[i])
     return result
 
+
+'''
+判断歌词是否为同音字
+'''
+def check_tyz(standard_char, test_str):
+    flag = False
+    py_standard = lazy_pinyin(standard_char)
+    for test_char in test_str:
+        py_tested = lazy_pinyin(test_char)
+        s,t = py_standard,py_tested
+        lcseque = find_lcseque(s, t)
+        if len(s) - len(lcseque) <= 1 and len(t) - len(lcseque) <= 1:  # 编辑距离小于2的情况，则纠正
+            if t[0] != s[0] and check_initial(t[0], s[0]):  # 声母不同的情况,则检查是不是常用的易错声母
+                flag = True
+            elif t[0] == s[0]:  # 声母相同的情况下，直接纠正
+                flag = True
+    return flag
+
 if __name__ == '__main__':
     lp = lazy_pinyin('相思儿')  # 不考虑多音字的情况
     print("".join(lp))
@@ -126,3 +144,6 @@ if __name__ == '__main__':
     modify_str = modify_tyz_by_position(standard_str,tested_str)
     modify_str = ''.join(modify_str)
     print(modify_str)
+    standard_char, test_str = '父','服'
+    check_tyz_result = check_tyz(standard_char, test_str)
+    print("check_tyz is {}".format(check_tyz_result))

@@ -167,8 +167,8 @@ pcmfile = filename.split(".wav")[0] + ".pcm"
 all_message, all_detail = get_result_from_xfyun(pcmfile)
 detail_time = [round((value)/100,2) for value in all_detail.keys() if value > 0]
 # detail_time.sort()
-# print(all_detail)
-# print(detail_time)
+print(all_detail)
+print(detail_time)
 # print(all_message)
 # all_detail = {20: ('惜', 0), 144: ('爱', 1), 236: ('春天', 2), 392: ('的', 4), 440: ('人', 5), 552: ('儿', 6), 640: ('时', 7), 824: ('心地', 8), 1040: ('纯洁', 10), 1188: ('的', 12), 1624: ('相思', 13), 1832: ('罗', 15), 1936: ('兰花', 16), 2100: ('花儿', 18), 2240: ('一样', 20), 2425: ('是', 22), 2545: ('我', 23), 2645: ('知心', 24), 2745: ('朋友', 26), 0: ('', 28)}
 # detail_time = [0.2, 1.44, 2.36, 3.92, 4.4, 5.52, 6.4, 8.24, 10.4, 11.88, 16.24, 18.32, 19.36, 21.0, 22.4, 24.25, 25.45, 26.45, 27.45]
@@ -226,7 +226,7 @@ starts_by_parselmouth_rms,starts_by_parselmouth_rms_times = get_starts_by_parsel
 print("starts_by_parselmouth_rms is {},size is {}".format(starts_by_parselmouth_rms,len(starts_by_parselmouth_rms)))
 # plt.twinx()  # 共X轴，用来画声音强度信息
 # draw_intensity(intensity)
-plt.vlines(onset_times, 0, 500, color='y', linestyle='-.')
+plt.vlines(onset_times, 0, 40, color='y', linestyle='-.')
 # plt.vlines(test_onset_times, 0, 500, color='r', linestyle='--')
 # plt.vlines(starts_by_parselmouth_rms_times, 0, 500, color='b', linestyle='--')
 # plt.hlines(mean_pitchs, 0, 8, color='r', linestyle='--')
@@ -258,7 +258,10 @@ for (k,v) in  all_detail.items():
 
 #标准时间线
 standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28]
-standard_time = [t+0.3 for t in standard_notation_time]
+standard_time = [t for t in standard_notation_time]
+# tmp_points = [t for i,t in enumerate(merge_times) if numbered_notations[i] is not None]
+# firt_offset = tmp_points[0]
+# standard_time = [t+firt_offset for t in standard_notation_time]
 plt.vlines(standard_time, 0, 500, color='g', linestyle=':')
 standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 standard_notations = standard_notations.split(',')
@@ -271,9 +274,9 @@ loss_positions, loss_notations_in_standard = get_lossed_standard_notations(stand
 
 score_seted = 30
 standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-pitch_total_score, pitch_score_detail = pitch_score(standard_notations,numbered_notations,score_seted)
-print("pitch_total_score is {}".format(pitch_total_score))
-print("pitch_score_detail is {}".format(pitch_score_detail))
+# pitch_total_score, pitch_score_detail = pitch_score(standard_notations,numbered_notations,score_seted)
+# print("pitch_total_score is {}".format(pitch_total_score))
+# print("pitch_score_detail is {}".format(pitch_score_detail))
 # 打印标准音符
 for i,(k,v) in enumerate(standard_notations_times):
     if i in loss_positions:

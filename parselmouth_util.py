@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import librosa
 from LscHelper import my_find_lcseque
 import scipy.signal as signal
-
-
+from xfyun.wav2pcm import *
+from pingfen_uitl import get_all_scores,get_all_scores_by_st
 from xfyun.iat_ws_python3 import get_iat_result
 
 FREQS = [
@@ -868,11 +868,15 @@ def get_start_and_end_with_parselmouth(filename):
 '''
 获取所有平移后的音高类型
 '''
-def get_all_numbered_musical_notation_by_moved(first_base_numbered_notation,all_notations,all_times):
+def get_all_numbered_musical_notation_by_moved(first_base_numbered_notation,all_notations,test_times,end_time=None):
 
     # all_times = librosa.frames_to_time(all_frames)
     # all_times = list(all_times)
-    all_times.append(all_times[-1] + 0.2) # 添加一个结束点
+    all_times = test_times.copy()
+    if end_time is None:
+        all_times.append(all_times[-1] + 0.2) # 添加一个结束点
+    else:
+        all_times.append(end_time)
     result = []
     first_notation = ''
     first_freq = 0
@@ -1069,6 +1073,52 @@ def get_notation_detail_by_times(numbered_notations_detail,start_time,end_time):
     selected_numbered_notations_detail = [tup for tup in numbered_notations_detail if tup[2] > start_time and tup[1] < end_time] # 开始点和结束点落在区间内的都算
     return selected_numbered_notations_detail
 
+def score_all(filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time):
+    # ###### 语音识别===========
+    if filename.find(".wav") >= 0:
+        wav2pcm(filename)
+    pcmfile = filename.split(".wav")[0] + ".pcm"
+    test_kc, kc_detail = get_result_from_xfyun(pcmfile)
+    detail_time = [round((value) / 100, 2) for value in kc_detail.keys() if value > 0]
+    pitch = get_pitch_by_parselmouth(filename)
+    end_time = pitch.duration
+    small_or_big = 'small'
+    test_frames, test_onset_times = get_all_starts_by_absolute_pitch(pitch, small_or_big)
+
+    snd = parselmouth.Sound(filename)
+    intensity = snd.to_intensity()
+    starts_by_parselmouth_rms, starts_by_parselmouth_rms_times = get_starts_by_parselmouth_rms(intensity, pitch)
+    test_times = merge_times_from_iat_plm_rms(detail_time, test_onset_times, starts_by_parselmouth_rms_times)
+    merge_frames = librosa.time_to_frames(test_times)
+    all_first_candidate_names, all_first_candidates, all_offset_types = get_all_numbered_notation_and_offset(pitch,merge_frames)
+    # print("3 all_first_candidate_names is {},size is {}".format(all_first_candidate_names,len(all_first_candidate_names)))
+    numbered_notations,numbered_notations_detail = get_all_numbered_musical_notation_by_moved(3,all_first_candidate_names,test_times)
+    get_all_scores(standard_kc, standard_kc_time,test_kc, standard_notations, numbered_notations, standard_notation_time, test_times,
+                   kc_detail, end_time)
+
+def score_all_by_st(filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time):
+    # ###### 语音识别===========
+    if filename.find(".wav") >= 0:
+        wav2pcm(filename)
+    pcmfile = filename.split(".wav")[0] + ".pcm"
+    test_kc, kc_detail = get_result_from_xfyun(pcmfile)
+    kyes = list(kc_detail.keys())
+    detail_time = [round((value) / 100, 2) for value in kyes if value > 0]
+    pitch = get_pitch_by_parselmouth(filename)
+    end_time = pitch.duration
+    small_or_big = 'small'
+    test_frames, test_onset_times = get_all_starts_by_absolute_pitch(pitch, small_or_big)
+
+    snd = parselmouth.Sound(filename)
+    intensity = snd.to_intensity()
+    starts_by_parselmouth_rms, starts_by_parselmouth_rms_times = get_starts_by_parselmouth_rms(intensity, pitch)
+    test_times = merge_times_from_iat_plm_rms(detail_time, test_onset_times, starts_by_parselmouth_rms_times)
+    merge_frames = librosa.time_to_frames(test_times)
+    all_first_candidate_names, all_first_candidates, all_offset_types = get_all_numbered_notation_and_offset(pitch,merge_frames)
+    print("3 all_first_candidate_names is {},size is {}".format(all_first_candidate_names,len(all_first_candidate_names)))
+    numbered_notations,numbered_notations_detail = get_all_numbered_musical_notation_by_moved(3,all_first_candidate_names,test_times,end_time)
+    get_all_scores_by_st(standard_kc, standard_kc_time, standard_notations, numbered_notations, standard_notation_time,
+                         test_times, kc_detail, end_time)
 
 if __name__ == "__main__":
     raw_seque = ['1','1+','1-','2','2+','2-','3','3+','3-','4','4+','4-','5','5+','5-','6','6+','6-','7','7+','7-']
@@ -1076,3 +1126,16 @@ if __name__ == "__main__":
     print(test)
     freqs_names = [tup[0] for tup in FREQS]
     print(freqs_names)
+    filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准1648.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    # filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准4882.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    # filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准1681.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    # filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准1648.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
+    standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,26.5, 27, 28, 32]
+    standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    standard_notation_time = [0, 1, 1.5, 2, 3, 3.5, 4, 5, 6, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 16, 17, 17.5, 18, 19,19.5, 20, 21, 21.5, 22, 23, 24, 25, 26, 26.5, 27, 27.5, 28, 32]
+    score_all(filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time)
+
+    print("+++++++++++++++++++++++++++++++++++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~++++++++++++++++++++++++++++")
+    score_all_by_st(filename, standard_kc, standard_kc_time, standard_notations, standard_notation_time)
