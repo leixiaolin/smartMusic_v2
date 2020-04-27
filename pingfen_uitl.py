@@ -433,6 +433,7 @@ def get_all_scores(standard_kc,standard_kc_time,test_kc,standard_notations, numb
     # print("kc_rhythm_score is {}".format(kc_rhythm_score))
     # print("kc_rhythm_sscore_detail is {}".format(kc_rhythm_sscore_detail))
     total_score = pitch_total_score + notation_duration_total_score + kc_duration_total_score
+    total_score = round(total_score,2)
     return total_score,pitch_total_score,notation_duration_total_score,kc_duration_total_score,pitch_score_detail,notation_duration_score_detail,kc_rhythm_sscore_detail
 
 def get_all_scores_by_st(standard_kc,standard_kc_time,standard_notations, numbered_notations,standard_notation_time,test_times,kc_detail,end_time):
@@ -454,6 +455,7 @@ def get_all_scores_by_st(standard_kc,standard_kc_time,standard_notations, number
     # print("kc_duration_total_score is {}".format(kc_duration_total_score))
     # print("kc_duration_score_detail is {}".format(kc_duration_score_detail))
     total_score = notation_duration_total_score + pitch_total_score + kc_duration_total_score
+    total_score = round(total_score, 2)
     return total_score,pitch_total_score,notation_duration_total_score,kc_duration_total_score,pitch_score_detail,notation_duration_score_detail,kc_duration_score_detail
 '''
 以标准音符时间点来计算音符节奏得分和音高得分

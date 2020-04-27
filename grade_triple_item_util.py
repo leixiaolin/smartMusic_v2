@@ -61,8 +61,7 @@ else:
                                                                        kc_rhythm_sscore_detail)
     # print("time used is {}".format(time.clock() - start))
     # print("total_score, is {}".format(total_score))
-    out_result = {'file_path': file_path, 'rhythm_code': total_score, 'melody_code': total_score,
-                  'time_used': (time.clock() - start), 'detail': score_detail}
+    out_result = {'file_path': file_path,'time_used': (time.clock() - start), 'total_score': total_score, 'detail': score_detail}
     x = json.dumps(out_result)
     print(json.dumps(out_result,ensure_ascii=False))
     filepath, fullflname = os.path.split(file_path)
@@ -75,7 +74,7 @@ else:
     detail = score_detail
     write_txt(detail, save_path, mode='a')
 
-    #python grade_triple_item_util.py F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav [1000,1000;500,500,1000;500,250,250,500,500;2000] [5,5,3,2,1,2,2,3,2,6-,5-]
+    #python grade_triple_item_util.py F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav 0,1,2,3,3.5,4,5,6,8,9,10,11,11.5,12,16,17,18,19,20,21,22,23,24,25,26,26.5,27,28,32 3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6- 0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28,32
     # python grade_triple_item_util.py F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准1648.wav 喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友 0,1,2,3,3.5,4,5,6,8,9,10,11,11.5,12,16,17,18,19,20,21,22,23,24,25,26,26.5,27,28,32 3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6- 0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28,32
     # python grade_triple_item_util.py F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-6.wav [1000,500,500;2000;250,250,500,500,500;2000] [6,5,3,6,3,5,3,2,1,6-]
     # python grade_triple_item_util.py F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/test.wav [1000,250,250,250,250;2000;1000,500,500;2000] [1,3,5,1+,6,5,1,3,2,1]
