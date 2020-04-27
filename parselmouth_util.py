@@ -1079,6 +1079,8 @@ def score_all(filename, standard_kc,standard_kc_time, standard_notations, standa
         wav2pcm(filename)
     pcmfile = filename.split(".wav")[0] + ".pcm"
     test_kc, kc_detail = get_result_from_xfyun(pcmfile)
+    if len(kc_detail) == 0:
+        return 0,0,0,0,'语音识别未能正常返回结果','语音识别未能正常返回结果','语音识别未能正常返回结果'
     detail_time = [round((value) / 100, 2) for value in kc_detail.keys() if value > 0]
     pitch = get_pitch_by_parselmouth(filename)
     end_time = pitch.duration
@@ -1093,15 +1095,17 @@ def score_all(filename, standard_kc,standard_kc_time, standard_notations, standa
     all_first_candidate_names, all_first_candidates, all_offset_types = get_all_numbered_notation_and_offset(pitch,merge_frames)
     # print("3 all_first_candidate_names is {},size is {}".format(all_first_candidate_names,len(all_first_candidate_names)))
     numbered_notations,numbered_notations_detail = get_all_numbered_musical_notation_by_moved(3,all_first_candidate_names,test_times)
-    get_all_scores(standard_kc, standard_kc_time,test_kc, standard_notations, numbered_notations, standard_notation_time, test_times,
+    total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail = get_all_scores(standard_kc, standard_kc_time,test_kc, standard_notations, numbered_notations, standard_notation_time, test_times,
                    kc_detail, end_time)
-
+    return total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail
 def score_all_by_st(filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time):
     # ###### 语音识别===========
     if filename.find(".wav") >= 0:
         wav2pcm(filename)
     pcmfile = filename.split(".wav")[0] + ".pcm"
     test_kc, kc_detail = get_result_from_xfyun(pcmfile)
+    if len(kc_detail) == 0:
+        return 0,0,0,0,'语音识别未能正常返回结果','语音识别未能正常返回结果','语音识别未能正常返回结果'
     kyes = list(kc_detail.keys())
     detail_time = [round((value) / 100, 2) for value in kyes if value > 0]
     pitch = get_pitch_by_parselmouth(filename)
@@ -1117,8 +1121,9 @@ def score_all_by_st(filename, standard_kc,standard_kc_time, standard_notations, 
     all_first_candidate_names, all_first_candidates, all_offset_types = get_all_numbered_notation_and_offset(pitch,merge_frames)
     print("3 all_first_candidate_names is {},size is {}".format(all_first_candidate_names,len(all_first_candidate_names)))
     numbered_notations,numbered_notations_detail = get_all_numbered_musical_notation_by_moved(3,all_first_candidate_names,test_times,end_time)
-    get_all_scores_by_st(standard_kc, standard_kc_time, standard_notations, numbered_notations, standard_notation_time,
+    total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail = get_all_scores_by_st(standard_kc, standard_kc_time, standard_notations, numbered_notations, standard_notation_time,
                          test_times, kc_detail, end_time)
+    return total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail
 
 if __name__ == "__main__":
     raw_seque = ['1','1+','1-','2','2+','2-','3','3+','3-','4','4+','4-','5','5+','5-','6','6+','6-','7','7+','7-']
@@ -1135,7 +1140,22 @@ if __name__ == "__main__":
     standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,26.5, 27, 28, 32]
     standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
     standard_notation_time = [0, 1, 1.5, 2, 3, 3.5, 4, 5, 6, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 16, 17, 17.5, 18, 19,19.5, 20, 21, 21.5, 22, 23, 24, 25, 26, 26.5, 27, 27.5, 28, 32]
-    score_all(filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time)
-
+    total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail = score_all(filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time)
+    print("total_score is {}".format(total_score))
+    score_detail = "音高评分结果为{}，{}，音符节奏评分结果为{}，{}，歌词节奏评分结果为{}，{}".format(pitch_total_score,
+                                                                       pitch_score_detail,
+                                                                       notation_duration_total_score,
+                                                                       notation_duration_score_detail,
+                                                                       kc_duration_total_score,
+                                                                       kc_rhythm_sscore_detail)
+    print("score detail is {}".format(score_detail))
     print("+++++++++++++++++++++++++++++++++++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~++++++++++++++++++++++++++++")
-    score_all_by_st(filename, standard_kc, standard_kc_time, standard_notations, standard_notation_time)
+    total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail = score_all_by_st(filename, standard_kc, standard_kc_time, standard_notations, standard_notation_time)
+    print("total_score is {}".format(total_score))
+    score_detail = "音高评分结果为{}，{}，音符节奏评分结果为{}，{}，歌词节奏评分结果为{}，{}".format(pitch_total_score,
+                                                                       pitch_score_detail,
+                                                                       notation_duration_total_score,
+                                                                       notation_duration_score_detail,
+                                                                       kc_duration_total_score,
+                                                                       kc_rhythm_sscore_detail)
+    print("score detail is {}".format(score_detail))

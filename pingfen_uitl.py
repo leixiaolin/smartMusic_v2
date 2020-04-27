@@ -383,8 +383,8 @@ def get_all_scores(standard_kc,standard_kc_time,test_kc,standard_notations, numb
     #                       '6']
     pitch_total_score, pitch_score_detail, real_loss_positions = pitch_score(standard_notations, numbered_notations,
                                                                              score_seted)
-    print("pitch_total_score is {}".format(pitch_total_score))
-    print("pitch_score_detail is {}".format(pitch_score_detail))
+    # print("pitch_total_score is {}".format(pitch_total_score))
+    # print("pitch_score_detail is {}".format(pitch_score_detail))
     # print("real_loss_positions is {}".format(real_loss_positions))
 
     # print("====================================================================================================")
@@ -404,8 +404,8 @@ def get_all_scores(standard_kc,standard_kc_time,test_kc,standard_notations, numb
                                                                                             numbered_notations,
                                                                                             test_times, end_time,
                                                                                             score_seted)
-    print("notation_duration_total_score is {}".format(notation_duration_total_score))
-    print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
+    # print("notation_duration_total_score is {}".format(notation_duration_total_score))
+    # print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
 
     # standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
     # standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,26.5, 27, 28, 32]
@@ -428,19 +428,21 @@ def get_all_scores(standard_kc,standard_kc_time,test_kc,standard_notations, numb
     #              2645: ('知心', 24), 2745: ('朋友', 26)}
 
     score_seted = 30
-    total_score, score_detail = kc_rhythm_score(standard_kc, standard_kc_time, kc_detail, test_kc, real_loss_positions,
+    kc_duration_total_score, kc_rhythm_sscore_detail = kc_rhythm_score(standard_kc, standard_kc_time, kc_detail, test_kc, real_loss_positions,
                                                 score_seted)
-    print("total_score is {}".format(total_score))
-    print("score_detail is {}".format(score_detail))
+    # print("kc_rhythm_score is {}".format(kc_rhythm_score))
+    # print("kc_rhythm_sscore_detail is {}".format(kc_rhythm_sscore_detail))
+    total_score = pitch_total_score + notation_duration_total_score + kc_duration_total_score
+    return total_score,pitch_total_score,notation_duration_total_score,kc_duration_total_score,pitch_score_detail,notation_duration_score_detail,kc_rhythm_sscore_detail
 
 def get_all_scores_by_st(standard_kc,standard_kc_time,standard_notations, numbered_notations,standard_notation_time,test_times,kc_detail,end_time):
     score_seted = 35
     notation_duration_total_score, notation_duration_score_detail, pitch_total_score, pitch_score_detail = notation_duration_and_pitch_score_by_st(
         standard_notations, standard_notation_time, numbered_notations, test_times, end_time, score_seted)
-    print("notation_duration_total_score is {}".format(notation_duration_total_score))
-    print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
-    print("pitch_total_score is {}".format(pitch_total_score))
-    print("pitch_score_detail is {}".format(pitch_score_detail))
+    # print("notation_duration_total_score is {}".format(notation_duration_total_score))
+    # print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
+    # print("pitch_total_score is {}".format(pitch_total_score))
+    # print("pitch_score_detail is {}".format(pitch_score_detail))
 
     score_seted = 30
     # print("======standard_kc is {}".format(standard_kc))
@@ -449,8 +451,10 @@ def get_all_scores_by_st(standard_kc,standard_kc_time,standard_notations, number
     # print("======end_time is {}".format(end_time))
     kc_duration_total_score, kc_duration_score_detail = kc_duration_score_by_st(standard_kc, standard_kc_time,
                                                                                 kc_detail, end_time, score_seted)
-    print("kc_duration_total_score is {}".format(kc_duration_total_score))
-    print("kc_duration_score_detail is {}".format(kc_duration_score_detail))
+    # print("kc_duration_total_score is {}".format(kc_duration_total_score))
+    # print("kc_duration_score_detail is {}".format(kc_duration_score_detail))
+    total_score = notation_duration_total_score + pitch_total_score + kc_duration_total_score
+    return total_score,pitch_total_score,notation_duration_total_score,kc_duration_total_score,pitch_score_detail,notation_duration_score_detail,kc_duration_score_detail
 '''
 以标准音符时间点来计算音符节奏得分和音高得分
 1、若该时间段内正确音符连续时长占比大于50%，则该音符节奏可得分；
