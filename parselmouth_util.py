@@ -1135,7 +1135,11 @@ if __name__ == "__main__":
     # filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准4882.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
     # filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准1681.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
     # filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-    filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准1648.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准1648.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    # filename, notation = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    # filename, notation = 'F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋律/H-5.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    filename, notation = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-1089.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    filename, notation = 'F:/项目/花城音乐项目/样式数据/20.03.26MP3/wav/CI1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
     standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
     standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,26.5, 27, 28, 32]
     standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
@@ -1150,12 +1154,12 @@ if __name__ == "__main__":
                                                                        kc_rhythm_sscore_detail)
     print("score detail is {}".format(score_detail))
     print("+++++++++++++++++++++++++++++++++++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~++++++++++++++++++++++++++++")
-    total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail = score_all_by_st(filename, standard_kc, standard_kc_time, standard_notations, standard_notation_time)
-    print("total_score is {}".format(total_score))
-    score_detail = "音高评分结果为{}，{}，音符节奏评分结果为{}，{}，歌词节奏评分结果为{}，{}".format(pitch_total_score,
-                                                                       pitch_score_detail,
-                                                                       notation_duration_total_score,
-                                                                       notation_duration_score_detail,
-                                                                       kc_duration_total_score,
-                                                                       kc_rhythm_sscore_detail)
-    print("score detail is {}".format(score_detail))
+    # total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail = score_all_by_st(filename, standard_kc, standard_kc_time, standard_notations, standard_notation_time)
+    # print("total_score is {}".format(total_score))
+    # score_detail = "音高评分结果为{}，{}，音符节奏评分结果为{}，{}，歌词节奏评分结果为{}，{}".format(pitch_total_score,
+    #                                                                    pitch_score_detail,
+    #                                                                    notation_duration_total_score,
+    #                                                                    notation_duration_score_detail,
+    #                                                                    kc_duration_total_score,
+    #                                                                    kc_rhythm_sscore_detail)
+    # print("score detail is {}".format(score_detail))

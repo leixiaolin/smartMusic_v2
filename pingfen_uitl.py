@@ -55,6 +55,9 @@ def kc_rhythm_score(standard_kc,standard_kc_time,kc_detail,test_kc,real_loss_pos
     modify_test_kc = modify_tyz_by_position(standard_kc, test_kc)
     # 获取最大公共序列及其相关位置信息
     lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_kc, modify_test_kc)
+    if len(lcseque) < len(standard_kc) * 0.3:
+        total_score, score_detail = 0,'歌词节奏评分项总分{}，每个歌词的分值为{}，歌词匹配结果较差，该项评分计为0分，请检查演唱内容是否与题目一致！'.format(score_seted,each_score)
+        return total_score, score_detail
 
     score_detail = '歌词节奏评分项总分{}，每个歌词的分值为{}，下列歌词可能存在失分情况：'.format(score_seted,each_score) + '\n'
     keys = list(kc_detail.keys())
@@ -86,7 +89,8 @@ def kc_rhythm_score(standard_kc,standard_kc_time,kc_detail,test_kc,real_loss_pos
             standard_duration = round(standard_duration, 2)
 
             offset_duration = round(np.abs(test_duration - standard_duration),2)
-            if offset_duration <= standard_duration * 0.25: #如果偏差小于25%，即可得分
+            offset_duration = round(offset_duration/standard_duration,2)
+            if offset_duration <=  0.25: #如果偏差小于25%，即可得分
                 score = round(each_score * len(ps),2)
                 total_score += score
                 # str_detail = "{}: 开始于{}秒， 持续时长为{}秒, 标准时长为{}秒, 偏差值为{},得分为{}".format(tup[0],start_time,test_duration,standard_duration, offset_duration,score)
@@ -98,14 +102,15 @@ def kc_rhythm_score(standard_kc,standard_kc_time,kc_detail,test_kc,real_loss_pos
                     add_durations = round(add_durations, 2)
                     standard_duration_added = standard_duration + add_durations
                     offset_duration = round(np.abs(test_duration - standard_duration_added), 2)
-                    if offset_duration <= standard_duration_added * 0.25:  # 如果偏差小于25%，即可得分
+                    offset_duration = round(offset_duration / standard_duration_added, 2)
+                    if offset_duration <= 0.25:  # 如果偏差小于25%，即可得分
                         score = round(each_score * len(ps), 2)
                         total_score += score
                         # str_detail = "{}: 开始于{}秒， 持续时长为{}秒, 标准时长为{}秒, 偏差值为{},得分为{}".format(tup[0],start_time,test_duration,standard_duration, offset_duration,score)
                     else:
-                         str_detail ="{}:  开始于{}秒，持续时长为{}秒, 标准时长为{}秒 偏差值为{},得分为{}".format(tup[0],start_time,test_duration,standard_duration, offset_duration, 0)
+                         str_detail ="{}:  开始于{}秒，持续时长为{}秒, 标准时长为{}秒，与标准值偏差率为{},得分为{}".format(tup[0],start_time,test_duration,standard_duration, offset_duration, 0)
                 else:
-                    str_detail ="{}:  开始于{}秒，持续时长为{}秒, 标准时长为{}秒 偏差值为{},得分为{}".format(tup[0],start_time,test_duration,standard_duration, offset_duration, 0)
+                    str_detail ="{}:  开始于{}秒，持续时长为{}秒, 标准时长为{}秒，与标准值偏差率为{},得分为{}".format(tup[0],start_time,test_duration,standard_duration, offset_duration, 0)
                 score_detail += str_detail + '\n'
             # print(str_detail)
         except Exception:
@@ -118,7 +123,7 @@ def kc_rhythm_score(standard_kc,standard_kc_time,kc_detail,test_kc,real_loss_pos
     if len(no_score_in_loss_notations) >0:
         str_detail ="{}: 未能识别出这些歌词，这些歌词得分为0".format(''.join(no_score_in_loss_notations))
         score_detail += str_detail + '\n'
-    total_score += (len(loss_positions) - len(no_score_in_loss_notations)) * score
+    total_score += (len(loss_positions) - len(no_score_in_loss_notations)) * each_score
     total_score = round(total_score,2)
     total_score = total_score if total_score < score_seted else score_seted
 
@@ -169,6 +174,7 @@ def pitch_score(standard_notations,numbered_notations,score_seted):
                     str_detail = "第{}个音高:{} 未匹配，扣{}分".format(lp+1, loss_notation,each_score)
                     total_score -= each_score
                     score_detail += str_detail + '\n'
+                    real_loss_positions.append(lp)
             else: # 如果前后准点不相临
                 # 获取前后准点之间的音高
                 tmp = [int(a) for i,a in enumerate(numbered_notations) if i > anchor_before_in_test and i < anchor_after_in_test]
@@ -182,6 +188,7 @@ def pitch_score(standard_notations,numbered_notations,score_seted):
                     real_loss_positions.append(lp)
                 score_detail += str_detail + '\n'
         except Exception:
+            real_loss_positions.append(lp)
             str_detail = "第{}个音高:{}  is error，扣{}分".format(lp+1,loss_notation,each_score)
             total_score -= each_score
             score_detail += str_detail + '\n'
@@ -428,8 +435,7 @@ def get_all_scores(standard_kc,standard_kc_time,test_kc,standard_notations, numb
     #              2645: ('知心', 24), 2745: ('朋友', 26)}
 
     score_seted = 30
-    kc_duration_total_score, kc_rhythm_sscore_detail = kc_rhythm_score(standard_kc, standard_kc_time, kc_detail, test_kc, real_loss_positions,
-                                                score_seted)
+    kc_duration_total_score, kc_rhythm_sscore_detail = kc_rhythm_score(standard_kc, standard_kc_time, kc_detail, test_kc, real_loss_positions,score_seted)
     # print("kc_rhythm_score is {}".format(kc_rhythm_score))
     # print("kc_rhythm_sscore_detail is {}".format(kc_rhythm_sscore_detail))
     total_score = pitch_total_score + notation_duration_total_score + kc_duration_total_score
