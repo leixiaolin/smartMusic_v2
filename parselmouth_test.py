@@ -97,6 +97,14 @@ filename, notation = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/�
 filename, notation = 'F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋律/H-5.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 ######################202-04-28#########################
 
+######################202-04-30#########################
+filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI2.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test1-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test2-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test3-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+######################202-04-30#########################
+
 dir_list = ['F:/项目/花城音乐项目/样式数据/20.03.16MP3/wav/']
 dir_list = ['F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋律/']
 
@@ -263,10 +271,10 @@ for (k,v) in  all_detail.items():
 
 #标准时间线
 standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28]
-standard_time = [t for t in standard_notation_time]
-# tmp_points = [t for i,t in enumerate(merge_times) if numbered_notations[i] is not None]
-# firt_offset = tmp_points[0]
-# standard_time = [t+firt_offset for t in standard_notation_time]
+# standard_time = [t for t in standard_notation_time]
+tmp_points = [t for i,t in enumerate(merge_times) if numbered_notations[i] is not None]
+firt_offset = tmp_points[0]
+standard_time = [t+firt_offset for t in standard_notation_time]
 plt.vlines(standard_time, 0, 500, color='g', linestyle=':')
 standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 standard_notations = standard_notations.split(',')

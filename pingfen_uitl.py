@@ -39,10 +39,11 @@ standard_kc_time = [0,1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18,
 kc_detail = {20: ('惜', 0), 144: ('爱', 1), 236: ('春天', 2), 392: ('的', 4), 440: ('人', 5), 552: ('儿', 6), 640: ('时', 7), 824: ('心地', 8), 1040: ('纯洁', 10), 1188: ('的', 12), 1624: ('相思', 13), 1832: ('罗', 15), 1936: ('兰花', 16), 2100: ('花儿', 18), 2240: ('一样', 20), 2425: ('是', 22), 2545: ('我', 23), 2645: ('知心', 24), 2745: ('朋友', 26), 0: ('', 28)}
 all_test_kc = '喜爱春天的人儿是心地纯洁的像紫罗兰花花儿一样是我知心朋友'
 '''
-def kc_rhythm_score(standard_kc,standard_kc_time,kc_detail,test_kc,real_loss_positions,score_seted):
+def kc_rhythm_score(standard_kc,standard_kc_time,kc_detail,test_kc,real_loss_positions,end_time,score_seted):
     #待测歌词的时间点
     detail_time = [round((value) / 100, 2) for value in kc_detail.keys() if value > 0]
-    detail_time.append(standard_kc_time[-1]) #从标准时间序列中添加结束点
+    # detail_time.append(standard_kc_time[-1]) #从标准时间序列中添加结束点
+    detail_time.append(end_time)
     detail_time_diff = np.diff(detail_time)
     detail_time_diff = list(detail_time_diff)
     # print("detail_time_diff is {}, size is {}".format(detail_time_diff, len(detail_time_diff)))
@@ -108,10 +109,11 @@ def kc_rhythm_score(standard_kc,standard_kc_time,kc_detail,test_kc,real_loss_pos
                         total_score += score
                         # str_detail = "{}: 开始于{}秒， 持续时长为{}秒, 标准时长为{}秒, 偏差值为{},得分为{}".format(tup[0],start_time,test_duration,standard_duration, offset_duration,score)
                     else:
-                         str_detail ="{}:  开始于{}秒，持续时长为{}秒, 标准时长为{}秒，与标准值偏差率为{},得分为{}".format(tup[0],start_time,test_duration,standard_duration, offset_duration, 0)
+                        str_detail ="{}:  开始于{}秒，持续时长为{}秒, 标准时长为{}秒，与标准值偏差率为{},得分为{}".format(tup[0],start_time,test_duration,standard_duration, offset_duration, 0)
+                        score_detail += str_detail + '\n'
                 else:
                     str_detail ="{}:  开始于{}秒，持续时长为{}秒, 标准时长为{}秒，与标准值偏差率为{},得分为{}".format(tup[0],start_time,test_duration,standard_duration, offset_duration, 0)
-                score_detail += str_detail + '\n'
+                    score_detail += str_detail + '\n'
             # print(str_detail)
         except Exception:
             # print(tup[0] + "is error")
@@ -260,15 +262,28 @@ def notation_duration_score(standard_notations,standard_notation_time,numbered_n
                             continue
                         else:
                             str_detail = "第{}个音高:{} 开始于{}秒，结束于{}秒，时长为{}秒，标准时长为{}秒，与标准值偏差率为{}，大于规定范围，扣{}分".format(standard_position+1, s,test_times[test_position],test_times[test_position+1],test_duration,standard_duration, offset,each_score)
+                            score_detail += str_detail + '\n'
                     else:
-                       str_detail = "第{}个音高:{} 开始于{}秒，结束于{}秒，时长为{}秒，标准时长为{}秒，与标准值偏差率为{}，大于规定范围，扣{}分".format(standard_position+1, s,test_times[test_position],test_times[test_position+1],test_duration,standard_duration, offset,each_score)
+                        # 根据附近的音符时长来判断，即附近差值不超过1的音符时长都可能是该音符比较对象
+                        nearly_positions = [p for p in range(test_position-1,test_position+2) if p in range(len(numbered_notations)) and p in range(len(test_times_diff)) and np.abs(int(numbered_notations[p]) - int(s)) <=1 ]
+                        nearly_durations = [test_times_diff[n] for n in nearly_positions]
+                        nearly_durations_added = [nearly_durations[i-1] + nearly_durations[i] for i in range(1,len(nearly_durations))]
+                        nearly_sum = [np.sum(nearly_durations)]
+                        all_nearly_durations = nearly_durations + nearly_durations_added + nearly_sum
+                        offset_on_nearly = [np.abs((nd - standard_duration) / standard_duration) for nd in all_nearly_durations]
+                        offset = np.min(offset_on_nearly)
+                        offset = round(offset,2 )
+                        if offset <= 0.3:  # 时长偏差小于0.25，该音符可得满分
+                            total_score += each_score
+                        else:
+                            str_detail = "第{}个音高:{} 开始于{}秒，结束于{}秒，时长为{}秒，标准时长为{}秒，与标准值偏差率为{}，大于规定范围，扣{}分".format(standard_position+1, s,test_times[test_position],test_times[test_position+1],test_duration,standard_duration, offset,each_score)
+                            score_detail += str_detail + '\n'
                     #     print("in loss")
-                    score_detail += str_detail + '\n'
     no_score_in_loss_notations = [loss_notations_in_standard[i] for i,lp in enumerate(loss_positions) if lp not in false_loss_positions]
     no_score_in_loss_positions = [lp for i, lp in enumerate(loss_positions) if lp not in false_loss_positions]
     if len(no_score_in_loss_notations) > 0:
         for i,nn in enumerate(no_score_in_loss_notations):
-            str_detail = "第{}个音高:{} 未能识别，得分为0".format(no_score_in_loss_positions[i],nn)
+            str_detail = "第{}个音高:{} 未能识别，得分为0".format(no_score_in_loss_positions[i]+1,nn)
             score_detail += str_detail + '\n'
     total_score += (len(loss_positions) - len(no_score_in_loss_notations)) * each_score
     total_score = round(total_score, 2)
@@ -435,7 +450,7 @@ def get_all_scores(standard_kc,standard_kc_time,test_kc,standard_notations, numb
     #              2645: ('知心', 24), 2745: ('朋友', 26)}
 
     score_seted = 30
-    kc_duration_total_score, kc_rhythm_sscore_detail = kc_rhythm_score(standard_kc, standard_kc_time, kc_detail, test_kc, real_loss_positions,score_seted)
+    kc_duration_total_score, kc_rhythm_sscore_detail = kc_rhythm_score(standard_kc, standard_kc_time, kc_detail, test_kc, real_loss_positions,end_time,score_seted)
     # print("kc_rhythm_score is {}".format(kc_rhythm_score))
     # print("kc_rhythm_sscore_detail is {}".format(kc_rhythm_sscore_detail))
     total_score = pitch_total_score + notation_duration_total_score + kc_duration_total_score
