@@ -105,8 +105,17 @@ filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/
 filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test3-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 ######################202-04-30#########################
 
+filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/wav/6749-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+
+
 dir_list = ['F:/项目/花城音乐项目/样式数据/20.03.16MP3/wav/']
 dir_list = ['F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋律/']
+
+
+#标准时间线
+standard_notation_time = [0,0.6818181818181817,1.0227272727272734,1.363636363636365,2.0454545454545467,2.3863636363636385,2.72727272727273,3.409090909090912,4.0909090909090935,5.454545454545459,6.136363636363642,6.477272727272732,6.818181818181822,7.159090909090912,7.500000000000002,7.840909090909092,8.181818181818182,10.909090909090908,11.590909090909092,11.931818181818182,12.272727272727272,12.954545454545455,13.295454545454545,13.636363636363635,14.318181818181818,14.659090909090908,14.999999999999998,15.681818181818182,16.363636363636367,17.045454545454547,17.727272727272734,18.06818181818182,18.409090909090914,18.75,19.090909090909093,21.81818181818182]
+standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6- '
+sns_list = standard_notations.split(',')
 
 y,sr = librosa.load(filename)
 rms = librosa.feature.rmse(y=y)[0]
@@ -239,6 +248,8 @@ starts_by_parselmouth_rms,starts_by_parselmouth_rms_times = get_starts_by_parsel
 print("starts_by_parselmouth_rms is {},size is {}".format(starts_by_parselmouth_rms,len(starts_by_parselmouth_rms)))
 # plt.twinx()  # 共X轴，用来画声音强度信息
 # draw_intensity(intensity)
+# 平移语音识别的时间点
+onset_times = [t - (onset_times[0] - test_onset_times[0]) for t in onset_times]
 plt.vlines(onset_times, 0, 40, color='y', linestyle='-.')
 # plt.vlines(test_onset_times, 0, 500, color='r', linestyle='--')
 # plt.vlines(starts_by_parselmouth_rms_times, 0, 500, color='b', linestyle='--')
@@ -266,11 +277,12 @@ for i,c in enumerate(numbered_notations):
     plt.text(k, 12, c, size='8',color='r')
 
 # 打印歌词
+t_offset = (detail_time[0] - test_onset_times[0])
 for (k,v) in  all_detail.items():
-    plt.text(k/100, 3, v[0], size='8',color='r')
+    plt.text(k/100 - t_offset, 3, v[0], size='8',color='r')
 
 #标准时间线
-standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28]
+# standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28]
 # standard_time = [t for t in standard_notation_time]
 tmp_points = [t for i,t in enumerate(merge_times) if numbered_notations[i] is not None]
 firt_offset = tmp_points[0]
