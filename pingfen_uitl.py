@@ -140,7 +140,8 @@ standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-
 numbered_notations = [None, '3', '2', '2', '1', '1', '7', '6', '6', '6', None, '4', '4', '4', '3', '2', '1', '2', '4', '3', None, '3', '4', '4', '3', '2', '4', '3', '1', '6', '7', '7', '3', '2', '1', '1', '6']
 '''
 def pitch_score(standard_notations,numbered_notations,standard_notation_times,test_times,score_seted):
-    each_score = round(score_seted / len(standard_notations.split(',')), 2)
+    total_len = len(standard_notations.split(','))
+    each_score = round(score_seted / total_len, 2)
     total_score = score_seted
     score_detail = '音高评分项总分为{}，每个音高的分值为{}，下列音高可能存在失分情况：'.format(score_seted,each_score) + '\n'
 
@@ -156,6 +157,10 @@ def pitch_score(standard_notations,numbered_notations,standard_notation_times,te
     #找出未匹配的音高，并对未匹配的每个音高进行分析
     lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
     loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
+    loss_sum = len(loss_positions)
+    loss_rate = round(loss_sum/total_len,2)
+    more_rate = round(np.abs(len(numbered_notations) - total_len)/total_len,2)
+    # print("loss_rate is {},more_rate is {}".format(loss_rate,more_rate))
     real_loss_positions = []
     for j,lp in enumerate(loss_positions):
         loss_notation = 0
@@ -178,10 +183,10 @@ def pitch_score(standard_notations,numbered_notations,standard_notation_times,te
             anchor_after_in_test = [test_positions[i] for i,a in enumerate(standard_positions) if a >= anchor_after][0]
             if anchor_before_in_test + 1 == anchor_after_in_test: # 如果前后准点相临
                 # 根据当前音高是否等于前一个准点的音高，如果等于即是存在连音的情况，可计分
-                if loss_notation == int(numbered_notations[anchor_before_in_test]):
+                if loss_notation == int(numbered_notations[anchor_before_in_test]) and loss_rate < 0.2:
                     # total_score += each_score
                     pass
-                elif flag:
+                elif flag and loss_rate < 0.2:
                     total_score -= round(each_score * 0.5, 2)
                     str_detail = "第{}个音高:{} 未有精准匹配项但存在疑似匹配结果，扣{}分".format(lp+1, loss_notation,round(each_score * 0.5, 2))
                     score_detail += str_detail + '\n'
@@ -194,10 +199,10 @@ def pitch_score(standard_notations,numbered_notations,standard_notation_times,te
                 # 获取前后准点之间的音高
                 tmp = [int(a) for i,a in enumerate(numbered_notations) if i > anchor_before_in_test and i < anchor_after_in_test]
                 offset = [np.abs(loss_notation - t) for t in tmp] # 音高差值
-                if np.min(offset) <= 1: #如果音高差值不超过2，可计半分
+                if np.min(offset) <= 1 and loss_rate < 0.2: #如果音高差值不超过2，可计半分
                     total_score -= round(each_score * 0.5, 2)
                     str_detail = "第{}个音高:{} 识别结果与标准差值小于等于1，扣{}分".format(lp+1, loss_notation,round(each_score * 0.5, 2))
-                elif flag:
+                elif flag and loss_rate < 0.2:
                     total_score -= round(each_score * 0.5, 2)
                     str_detail = "第{}个音高:{} 未有精准匹配项但存在疑似匹配结果，扣{}分".format(lp+1, loss_notation,round(each_score * 0.5, 2))
                     score_detail += str_detail + '\n'
@@ -212,9 +217,14 @@ def pitch_score(standard_notations,numbered_notations,standard_notation_times,te
             total_score -= each_score
             score_detail += str_detail + '\n'
         # print(str_detail)
+    if more_rate > 0.5 and total_score > score_seted * 0.5:
+        total_score = score_seted * 0.5
+        str_detail = "由于识别结果中有较多的多唱音高，评分限定为不合格"
+        score_detail += str_detail + '\n'
+
     if total_score == score_seted:
         score_detail = "未存在失分的情况"
-    return round(total_score,2), score_detail,real_loss_positions
+    return round(total_score,2), score_detail,real_loss_positions,more_rate
 
 def check_by_nearly_notaions(standard_notation,start_time,end_time,numbered_notations,test_times):
     standard_notation = int(standard_notation)
@@ -441,7 +451,7 @@ def get_all_scores(standard_kc,standard_kc_time,test_kc,standard_notations, numb
     # numbered_notations = [None, '3', '2', '2', '1', '1', '7', '6', '6', '6', None, '4', '4', '4', '3', '2', '1', '2',
     #                       '4', '3', None, '3', '4', '4', '3', '2', '4', '3', '1', '6', '7', '7', '3', '2', '1', '1',
     #                       '6']
-    pitch_total_score, pitch_score_detail, real_loss_positions = pitch_score(standard_notations, numbered_notations,standard_notation_time,test_times,score_seted)
+    pitch_total_score, pitch_score_detail, real_loss_positions,more_rate = pitch_score(standard_notations, numbered_notations,standard_notation_time,test_times,score_seted)
     # print("pitch_total_score is {}".format(pitch_total_score))
     # print("pitch_score_detail is {}".format(pitch_score_detail))
     # print("real_loss_positions is {}".format(real_loss_positions))
@@ -493,6 +503,10 @@ def get_all_scores(standard_kc,standard_kc_time,test_kc,standard_notations, numb
     # print("kc_rhythm_sscore_detail is {}".format(kc_rhythm_sscore_detail))
     total_score = pitch_total_score + notation_duration_total_score + kc_duration_total_score
     total_score = round(total_score,2)
+    if total_score > 60 and more_rate > 0.5:
+        str_detail = "由于识别结果中有较多的多唱音高，评分限定为不合格"
+        total_score, pitch_total_score, notation_duration_total_score,kc_duration_total_score = 55,round(35*0.55,2),round(35*0.55,2),round(30*0.55,2)
+        pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail = str_detail,str_detail,str_detail
     return total_score,pitch_total_score,notation_duration_total_score,kc_duration_total_score,pitch_score_detail,notation_duration_score_detail,kc_rhythm_sscore_detail
 
 def get_all_scores_by_st(standard_kc,standard_kc_time,standard_notations, numbered_notations,standard_notation_time,test_times,kc_detail,end_time):

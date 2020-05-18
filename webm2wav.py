@@ -1,7 +1,7 @@
 import os
 
-webm_path = "F:/项目/花城音乐项目/样式数据/20.05.01MP3/dbg/"
-wav_path = "F:/项目/花城音乐项目/样式数据/20.05.01MP3/wav/"
+webm_path = "F:/项目/花城音乐项目/样式数据/20.05.12MP3/"
+wav_path = "F:/项目/花城音乐项目/样式数据/20.05.12MP3/wav/"
 webm_file = os.listdir(webm_path)
 webm_file = [name for name in webm_file if name.endswith(".webm")]
 
