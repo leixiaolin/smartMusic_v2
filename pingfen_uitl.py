@@ -156,7 +156,21 @@ def pitch_score(standard_notations,numbered_notations,standard_notation_times,te
 
     #找出未匹配的音高，并对未匹配的每个音高进行分析
     lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
+
+    time_offset_threshold = 2
+    standard_positions_times = [standard_notation_times[i] for i in standard_positions]
+    test_positions_times = [test_times[i] for i in test_positions]
+    # 比较匹配点的时间偏差值
+    times_offset = [np.abs(standard_positions_times[i] - t) for i,t in enumerate(test_positions_times)]
+    # 如果时间偏差值较大，该匹配点记为未匹配
+    loss_positions_by_times = [standard_positions[i] for i,t in enumerate(times_offset) if t > time_offset_threshold]
+    loss_notations_by_times = [lcseque[i] for i, t in enumerate(times_offset) if t > time_offset_threshold]
+    # for t in times_offset:
+    #     print(t)
     loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
+    loss_positions_old = loss_positions.copy() # 备份通过最大公共序列判断的未匹配结果
+    loss_positions = loss_positions + loss_positions_by_times # 整合两种未匹配结果
+    loss_positions.sort()
     loss_sum = len(loss_positions)
     loss_rate = round(loss_sum/total_len,2)
     more_rate = round(np.abs(len(numbered_notations) - total_len)/total_len,2)
@@ -166,7 +180,12 @@ def pitch_score(standard_notations,numbered_notations,standard_notation_times,te
         loss_notation = 0
         try:
             # 未匹配的音高名称
-            loss_notation = int(loss_notations_in_standard[j][0])
+            if lp in loss_positions_old:
+                index = loss_positions_old.index(lp)
+                loss_notation = int(loss_notations_in_standard[index][0])
+            else:
+                index = loss_positions_by_times.index(lp)
+                loss_notation = int(loss_notations_by_times[index][0])
 
             #判断该标准时间点前后1秒是否存在疑似匹配对象
             gap = test_times[0] - standard_notation_times[0]
@@ -278,6 +297,15 @@ def notation_duration_score(standard_notations,standard_notation_time,numbered_n
     # print("loss_positions is {},size is {}".format(loss_positions, len(loss_positions)))
     # 找出最大公共子序列，并对每个匹配上的音符时长进行判断计分处理
     lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
+
+    time_offset_threshold = 2
+    standard_positions_times = [standard_notation_time[i] for i in standard_positions]
+    test_positions_times = [test_times[i] for i in test_positions]
+    # 比较匹配点的时间偏差值
+    times_offset = [np.abs(standard_positions_times[i] - t) for i, t in enumerate(test_positions_times)]
+    # 如果时间偏差值较大，该匹配点记为未匹配
+    loss_positions_by_times = [standard_positions[i] for i, t in enumerate(times_offset) if t > time_offset_threshold]
+    loss_notations_by_times = [lcseque[i] for i, t in enumerate(times_offset) if t > time_offset_threshold]
     offset_standard = 0.45
     for l,s in enumerate(lcseque):
         if l < len(lcseque):
@@ -294,7 +322,10 @@ def notation_duration_score(standard_notations,standard_notation_time,numbered_n
             if standard_position == standard_len -1: #最后一个要求最低，只有匹配上就算对
                 total_score += each_score
             else:
-                if offset <= offset_standard: # 时长偏差小于0.25，该音符可得满分
+                if times_offset[l] > time_offset_threshold:
+                    str_detail = "第{}个音高:{} 开始于{}秒，结束于{}秒，时长为{}秒，与标准时间点偏差大于规定范围{}秒，扣{}分".format(standard_position+1, s,test_times[test_position],test_times[test_position+1],test_duration,time_offset_threshold, each_score)
+                    score_detail += str_detail + '\n'
+                elif offset <= offset_standard: # 时长偏差小于0.25，该音符可得满分
                     total_score += each_score
                 else:
                     if int(standard_position + 1) in loss_positions: #如果后一个音符在未匹配序列中，后一个音符在有可能是漏识别的音符，所以要两个的时长一起来判断
