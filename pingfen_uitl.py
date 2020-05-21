@@ -168,13 +168,15 @@ def pitch_score(standard_notations,numbered_notations,standard_notation_times,te
     loss_notations_by_times = [lcseque[i] for i, t in enumerate(times_offset) if t > time_offset_threshold]
     # for t in times_offset:
     #     print(t)
-    loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
+    # loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
+    loss_positions, loss_notations_in_standard = get_lossed_standard_notations_match_positions(standard_notations, standard_positions)
     loss_positions_old = loss_positions.copy() # 备份通过最大公共序列判断的未匹配结果
     loss_positions = loss_positions + loss_positions_by_times # 整合两种未匹配结果
     loss_positions.sort()
     loss_sum = len(loss_positions)
     loss_rate = round(loss_sum/total_len,2)
     more_rate = round(np.abs(len(numbered_notations) - total_len)/total_len,2)
+    loss_rate_threshold = 0.8
     # print("loss_rate is {},more_rate is {}".format(loss_rate,more_rate))
     real_loss_positions = []
     for j,lp in enumerate(loss_positions):
@@ -203,10 +205,10 @@ def pitch_score(standard_notations,numbered_notations,standard_notation_times,te
             anchor_after_in_test = [test_positions[i] for i,a in enumerate(standard_positions) if a >= anchor_after][0]
             if anchor_before_in_test + 1 == anchor_after_in_test: # 如果前后准点相临
                 # 根据当前音高是否等于前一个准点的音高，如果等于即是存在连音的情况，可计分
-                if loss_notation == int(numbered_notations[anchor_before_in_test]) and loss_rate < 0.2:
+                if loss_notation == int(numbered_notations[anchor_before_in_test]) and loss_rate < loss_rate_threshold:
                     # total_score += each_score
                     pass
-                elif flag and loss_rate < 0.2:
+                elif flag and loss_rate < loss_rate_threshold:
                     total_score -= round(each_score * 0.5, 2)
                     str_detail = "第{}个音高:{} 未有精准匹配项但存在疑似匹配结果，扣{}分".format(lp+1, loss_notation,round(each_score * 0.5, 2))
                     score_detail += str_detail + '\n'
@@ -222,7 +224,7 @@ def pitch_score(standard_notations,numbered_notations,standard_notation_times,te
                 if np.min(offset) <= 1 and loss_rate < 0.2: #如果音高差值不超过2，可计半分
                     total_score -= round(each_score * 0.5, 2)
                     str_detail = "第{}个音高:{} 识别结果与标准差值小于等于1，扣{}分".format(lp+1, loss_notation,round(each_score * 0.5, 2))
-                elif flag and loss_rate < 0.2:
+                elif flag and loss_rate < loss_rate_threshold:
                     total_score -= round(each_score * 0.5, 2)
                     str_detail = "第{}个音高:{} 未有精准匹配项但存在疑似匹配结果，扣{}分".format(lp+1, loss_notation,round(each_score * 0.5, 2))
                     score_detail += str_detail + '\n'
@@ -292,14 +294,15 @@ def notation_duration_score(standard_notations,standard_notation_time,numbered_n
     standard_notation_time_diff = np.diff(standard_notation_time)
     # print("standard_notation_time_diff is {},size is {}".format(standard_notation_time_diff, len(standard_notation_time_diff)))
 
-    # 找出未匹配的音高，并对未匹配的每个音高进行分析
-    loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
     false_loss_positions = []
     # print("loss_positions is {},size is {}".format(loss_positions, len(loss_positions)))
     # 找出最大公共子序列，并对每个匹配上的音符时长进行判断计分处理
     # lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
     lcseque, standard_positions, test_positions = get_lcseque_and_position_with_time_offset(standard_notations, numbered_notations, standard_notation_time, test_times)
 
+    # 找出未匹配的音高，并对未匹配的每个音高进行分析
+    # loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
+    loss_positions, loss_notations_in_standard = get_lossed_standard_notations_match_positions(standard_notations,standard_positions)
     time_offset_threshold = 2
     standard_positions_times = [standard_notation_time[i] for i in standard_positions]
     test_positions_times = [test_times[i] for i in test_positions]
@@ -521,6 +524,17 @@ def get_anchor_after_time_from_kc_detail(kc_detail,anchor_position):
 
 def get_lossed_standard_notations(standard_notations, numbered_notations):
     lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
+    all_positions = [i for i in range(len(standard_notations))]
+    loss_positions = [i for i in all_positions if i not in standard_positions]
+    loss_notations_in_standard = [standard_notations[i] for i in loss_positions]
+    # print("lcseque is {}, size is {}".format(lcseque, len(lcseque)))
+    # print("standard_positions is {}, size is {}".format(standard_positions, len(standard_positions)))
+    # print("test_positions is {}, size is {}".format(test_positions, len(test_positions)))
+    # print("loss_positions is {}, size is {}".format(loss_positions, len(loss_positions)))
+    # print("loss_notations_in_standard is {}, size is {}".format(loss_notations_in_standard, len(loss_notations_in_standard)))
+    return loss_positions,loss_notations_in_standard
+
+def get_lossed_standard_notations_match_positions(standard_notations, standard_positions):
     all_positions = [i for i in range(len(standard_notations))]
     loss_positions = [i for i in all_positions if i not in standard_positions]
     loss_notations_in_standard = [standard_notations[i] for i in loss_positions]
