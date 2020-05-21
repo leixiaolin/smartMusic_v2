@@ -155,7 +155,8 @@ def pitch_score(standard_notations,numbered_notations,standard_notation_times,te
     # print("numbered_notations is {},size is {}".format(numbered_notations, len(numbered_notations)))
 
     #找出未匹配的音高，并对未匹配的每个音高进行分析
-    lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
+    # lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
+    lcseque, standard_positions, test_positions = get_lcseque_and_position_with_time_offset(standard_notations, numbered_notations, standard_notation_times, test_times)
 
     time_offset_threshold = 2
     standard_positions_times = [standard_notation_times[i] for i in standard_positions]
@@ -296,7 +297,8 @@ def notation_duration_score(standard_notations,standard_notation_time,numbered_n
     false_loss_positions = []
     # print("loss_positions is {},size is {}".format(loss_positions, len(loss_positions)))
     # 找出最大公共子序列，并对每个匹配上的音符时长进行判断计分处理
-    lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
+    # lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
+    lcseque, standard_positions, test_positions = get_lcseque_and_position_with_time_offset(standard_notations, numbered_notations, standard_notation_time, test_times)
 
     time_offset_threshold = 2
     standard_positions_times = [standard_notation_time[i] for i in standard_positions]
@@ -330,7 +332,7 @@ def notation_duration_score(standard_notations,standard_notation_time,numbered_n
                 else:
                     if int(standard_position + 1) in loss_positions: #如果后一个音符在未匹配序列中，后一个音符在有可能是漏识别的音符，所以要两个的时长一起来判断
                         next_standard_duration = standard_notation_time_diff[standard_position+1]
-                        if np.abs(test_duration / (next_standard_duration + standard_duration) -1) < 0.5:
+                        if np.abs(test_duration / (next_standard_duration + standard_duration) -1) < offset_standard:
                             total_score += each_score
                             false_loss_positions.append(int(standard_position + 1) )
                             continue
@@ -413,6 +415,61 @@ def get_lcseque_and_position(standard_kc,test_kc):
                 test_positions.append(test_start + test_index)
                 test_start = test_start + test_index + 1
     return lcseque,standard_positions,test_positions
+
+'''
+获取最大公共序列及其相关位置信息
+'''
+def get_lcseque_and_position_with_time_offset(standard_kc,test_kc,standard_notation_times,test_times):
+    lcseque = find_lcseque(standard_kc,test_kc)
+    checked_lcseque = []
+    test_start = 0
+    standard_start = 0
+    standard_kc_list, test_kc_list = list(standard_kc),list(test_kc)
+    test_positions = []
+    standard_positions = []
+    flag = True
+    tmp_points = [t for i, t in enumerate(test_times) if i < 5 and test_kc[i] is not None]
+    firt_offset = tmp_points[0]
+    standard_notation_times = [t + firt_offset for t in standard_notation_times]
+    for i,s in enumerate(lcseque):
+        # 获取最大公共序列在标准序列中的位置
+        tmp = standard_kc_list[standard_start:]
+        standard_index = tmp.index(s)
+
+        # 匹配上的标准序列时间点
+        standard_time = standard_notation_times[standard_start + standard_index]
+        old_standard_start = standard_start + standard_index
+        standard_start = standard_start + standard_index + 1
+
+        # 获取最大公共序列在待测序列中的位置
+        time_threshold = 1
+        test_time_start = standard_time - time_threshold if standard_time - time_threshold>0 else 0  # 判断区间起始点
+        test_time_end = standard_time + time_threshold if standard_time + time_threshold < test_times[-1] else test_times[-1]  # 判断区间结束点
+        tmp = test_kc_list[test_start:]
+        if s in tmp:
+            for j,t in enumerate(tmp):
+                test_index = test_start + j # 当前测试字符的位置
+                next_index = test_index + 1 if test_index + 1 < len(test_times) - 1 else len(test_times) - 1
+                cerrent_time = test_times[test_index]
+                next_time = test_times[next_index]
+                if cerrent_time >= test_time_start and cerrent_time <= test_time_end: # 如果当前测试字符的时间点位于判断区间内
+                    if s == t and next_index < len(test_kc_list) and test_kc_list[next_index] == s and np.abs(next_time - standard_time) < np.abs(cerrent_time - standard_time):
+                        standard_positions.append(old_standard_start)  # 添加标准序列匹配位置
+                        test_positions.append(next_index)  # 添加测试序列匹配位置
+                        test_start = next_index + 1
+                        checked_lcseque.append(s)
+                        break
+                    elif s == t:
+                        standard_positions.append(old_standard_start)  # 添加标准序列匹配位置
+                        test_positions.append(test_index)  # 添加测试序列匹配位置
+                        test_start = test_index + 1
+                        checked_lcseque.append(s)
+                        break
+                else:
+                    # flag = False # 未匹配上
+                    # break
+                    continue
+    return checked_lcseque,standard_positions,test_positions
 
 '''
 当识别歌词存在漏词的情况，根据音高匹配结果修正识别结果，即修正test_kc和kc_detail
@@ -735,112 +792,121 @@ def get_kc_info_in_time_range(range_start,range_end,kc_detail,end_time):
     return result
 
 if __name__ == "__main__":
-    standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
-    test_kc = '惜爱春天的人儿时心地纯洁的相思罗兰花花儿一样是我知心朋友'
-    test_kc = '喜爱春天的人儿是心的一纯像紫罗兰花儿一样是我知心朋友'
-    lcseque, standard_positions,test_positions = get_lcseque_and_position(standard_kc,test_kc)
-    print("lcseque is {}, size is {}".format(lcseque,len(lcseque)))
-    print("standard_positions is {}, size is {}".format(standard_positions, len(standard_positions)))
-    print("test_positions is {}, size is {}".format(test_positions, len(test_positions)))
-
-    standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-                        26.5, 27, 28,32]
-    kc_detail = {20: ('惜', 0), 144: ('爱', 1), 236: ('春天', 2), 392: ('的', 4), 440: ('人', 5), 552: ('儿', 6),
-                 640: ('时', 7), 824: ('心地', 8), 1040: ('纯洁', 10), 1188: ('的', 12), 1624: ('相思', 13), 1832: ('罗', 15),
-                 1936: ('兰花', 16), 2100: ('花儿', 18), 2240: ('一样', 20), 2425: ('是', 22), 2545: ('我', 23),
-                 2645: ('知心', 24), 2745: ('朋友', 26)}
-
-
-    numbered_notations = [None, '3', '2', '2', '1', '1', '7', '6', '6', '6', None, '4', '4', '4', '3', '2', '1', '2',
-                           '4', '3', None, '3', '4', '4', '3', '2', '4', '3', '1', '6', '7', '7', '3', '2', '1', '1',
-                           '6']
-    numbered_notations = [n for n in numbered_notations if n is not None]
-    numbered_notations = ''.join(numbered_notations)
-    print("numbered_notations is {},size is {}".format(numbered_notations,len(numbered_notations)))
-    standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,6,7-,3,2,1,7-,1,6-'
-    standard_notations = standard_notations.split(',')
-    standard_notations = [s[0] for s in standard_notations]
-    standard_notations= ''.join(standard_notations)
-    print("standard_notations is {},size is {}".format(standard_notations,len(standard_notations)))
-    loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
-    print("lcseque is {}, size is {}".format(lcseque, len(lcseque)))
-    print("standard_positions is {}, size is {}".format(standard_positions, len(standard_positions)))
-    print("test_positions is {}, size is {}".format(test_positions, len(test_positions)))
-    print("loss_positions is {}, size is {}".format(loss_positions, len(loss_positions)))
-    print("loss_notations_in_standard is {}, size is {}".format(loss_notations_in_standard, len(loss_notations_in_standard)))
-
-    score_seted = 35
-    standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,6,7-,3,2,1,7-,1,6-'
-    numbered_notations = [None, '3', '2', '2', '1', '1', '7', '6', '6', '6', None, '4', '4', '4', '3', '2', '1', '2', '4', '3', None, '3', '4', '4', '3', '2', '4', '3', '1', '6', '7', '7', '3', '2', '1', '1', '6']
-    pitch_total_score, pitch_score_detail,real_loss_positions = pitch_score(standard_notations, numbered_notations, score_seted)
-    print("pitch_total_score is {}".format(pitch_total_score))
-    print("pitch_score_detail is {}".format(pitch_score_detail))
-    print("real_loss_positions is {}".format(real_loss_positions))
-
-    print("====================================================================================================")
-    standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-    numbered_notations = [None, '3', '3', '2', '1', '1', '7', '6', '6', '5', '6', None, '4', '4', '3', '2', '1', '2', '4', '3', None, '4', '4', '3', '2', '2', '4', '3', '3', '7', '5', '6', None, '7', '1', '3', '2', '1', '7', '1', '6', '6']
-    standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28,32]
-    test_times = [0.2, 0.47, 1.44, 1.97, 2.36, 3.48, 3.92, 4.4, 5.52, 6.4, 6.61, 8.24, 8.56, 9.55, 10.1, 10.4, 11.05, 11.52, 11.88, 12.66, 16.24, 16.45, 17.49, 17.96, 18.32, 19.36, 19.96, 20.41, 21.0, 22.04, 22.4, 22.8, 24.25, 24.57, 25.45, 25.66, 26.45, 26.97, 27.45, 27.93, 28.47, 29.84]
-    end_time = 32
-    score_seted = 35
-    notation_duration_total_score, notation_duration_score_detail = notation_duration_score(standard_notations, standard_notation_time, numbered_notations, test_times,end_time, score_seted)
-    print("notation_duration_total_score is {}".format(notation_duration_total_score))
-    print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
-
     # standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
-    # standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,26.5, 27, 28, 32]
+    # test_kc = '惜爱春天的人儿时心地纯洁的相思罗兰花花儿一样是我知心朋友'
+    # test_kc = '喜爱春天的人儿是心的一纯像紫罗兰花儿一样是我知心朋友'
+    # lcseque, standard_positions,test_positions = get_lcseque_and_position(standard_kc,test_kc)
+    # print("lcseque is {}, size is {}".format(lcseque,len(lcseque)))
+    # print("standard_positions is {}, size is {}".format(standard_positions, len(standard_positions)))
+    # print("test_positions is {}, size is {}".format(test_positions, len(test_positions)))
+    #
+    # standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+    #                     26.5, 27, 28,32]
+    # kc_detail = {20: ('惜', 0), 144: ('爱', 1), 236: ('春天', 2), 392: ('的', 4), 440: ('人', 5), 552: ('儿', 6),
+    #              640: ('时', 7), 824: ('心地', 8), 1040: ('纯洁', 10), 1188: ('的', 12), 1624: ('相思', 13), 1832: ('罗', 15),
+    #              1936: ('兰花', 16), 2100: ('花儿', 18), 2240: ('一样', 20), 2425: ('是', 22), 2545: ('我', 23),
+    #              2645: ('知心', 24), 2745: ('朋友', 26)}
+    #
+    #
+    # numbered_notations = [None, '3', '2', '2', '1', '1', '7', '6', '6', '6', None, '4', '4', '4', '3', '2', '1', '2',
+    #                        '4', '3', None, '3', '4', '4', '3', '2', '4', '3', '1', '6', '7', '7', '3', '2', '1', '1',
+    #                        '6']
+    # numbered_notations = [n for n in numbered_notations if n is not None]
+    # numbered_notations = ''.join(numbered_notations)
+    # print("numbered_notations is {},size is {}".format(numbered_notations,len(numbered_notations)))
+    # standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,6,7-,3,2,1,7-,1,6-'
+    # standard_notations = standard_notations.split(',')
+    # standard_notations = [s[0] for s in standard_notations]
+    # standard_notations= ''.join(standard_notations)
+    # print("standard_notations is {},size is {}".format(standard_notations,len(standard_notations)))
+    # loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
+    # print("lcseque is {}, size is {}".format(lcseque, len(lcseque)))
+    # print("standard_positions is {}, size is {}".format(standard_positions, len(standard_positions)))
+    # print("test_positions is {}, size is {}".format(test_positions, len(test_positions)))
+    # print("loss_positions is {}, size is {}".format(loss_positions, len(loss_positions)))
+    # print("loss_notations_in_standard is {}, size is {}".format(loss_notations_in_standard, len(loss_notations_in_standard)))
+    #
+    # score_seted = 35
+    # standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,6,7-,3,2,1,7-,1,6-'
+    # numbered_notations = [None, '3', '2', '2', '1', '1', '7', '6', '6', '6', None, '4', '4', '4', '3', '2', '1', '2', '4', '3', None, '3', '4', '4', '3', '2', '4', '3', '1', '6', '7', '7', '3', '2', '1', '1', '6']
+    # pitch_total_score, pitch_score_detail,real_loss_positions = pitch_score(standard_notations, numbered_notations, score_seted)
+    # print("pitch_total_score is {}".format(pitch_total_score))
+    # print("pitch_score_detail is {}".format(pitch_score_detail))
+    # print("real_loss_positions is {}".format(real_loss_positions))
+    #
+    # print("====================================================================================================")
     # standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-    # standard_notation_time = [0, 1, 1.5, 2, 3, 3.5, 4, 5, 6, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 16, 17, 17.5, 18, 19, 19.5, 20, 21, 21.5, 22, 23, 24, 25, 26, 26.5, 27, 27.5, 28, 32]
-    # kc_with_notations = get_notations_on_kc(standard_kc, standard_kc_time, standard_notations, standard_notation_time)
-    # print("kc_with_notations is {}".format(kc_with_notations))
+    # numbered_notations = [None, '3', '3', '2', '1', '1', '7', '6', '6', '5', '6', None, '4', '4', '3', '2', '1', '2', '4', '3', None, '4', '4', '3', '2', '2', '4', '3', '3', '7', '5', '6', None, '7', '1', '3', '2', '1', '7', '1', '6', '6']
+    # standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28,32]
+    # test_times = [0.2, 0.47, 1.44, 1.97, 2.36, 3.48, 3.92, 4.4, 5.52, 6.4, 6.61, 8.24, 8.56, 9.55, 10.1, 10.4, 11.05, 11.52, 11.88, 12.66, 16.24, 16.45, 17.49, 17.96, 18.32, 19.36, 19.96, 20.41, 21.0, 22.04, 22.4, 22.8, 24.25, 24.57, 25.45, 25.66, 26.45, 26.97, 27.45, 27.93, 28.47, 29.84]
+    # end_time = 32
+    # score_seted = 35
+    # notation_duration_total_score, notation_duration_score_detail = notation_duration_score(standard_notations, standard_notation_time, numbered_notations, test_times,end_time, score_seted)
+    # print("notation_duration_total_score is {}".format(notation_duration_total_score))
+    # print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
+    #
+    # # standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
+    # # standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,26.5, 27, 28, 32]
+    # # standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    # # standard_notation_time = [0, 1, 1.5, 2, 3, 3.5, 4, 5, 6, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 16, 17, 17.5, 18, 19, 19.5, 20, 21, 21.5, 22, 23, 24, 25, 26, 26.5, 27, 27.5, 28, 32]
+    # # kc_with_notations = get_notations_on_kc(standard_kc, standard_kc_time, standard_notations, standard_notation_time)
+    # # print("kc_with_notations is {}".format(kc_with_notations))
+    #
+    # standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
+    # test_kc = '惜爱春天的人儿时心地纯洁的相思罗兰花花儿一样是我知心朋友'
+    # # test_kc = '喜爱春天的人儿时心地纯洁的相思罗兰花花儿一样是我知心朋友'
+    #
+    #
+    # print("====================================================================================================")
+    #
+    # standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+    #                     26.5, 27, 28, 32]
+    # kc_detail = {20: ('惜', 0), 144: ('爱', 1), 236: ('春天', 2), 392: ('的', 4), 440: ('人', 5), 552: ('儿', 6),
+    #              640: ('时', 7), 824: ('心地', 8), 1040: ('纯洁', 10), 1188: ('的', 12), 1624: ('相思', 13), 1832: ('罗', 15),
+    #              1936: ('兰花', 16), 2100: ('花儿', 18), 2240: ('一样', 20), 2425: ('是', 22), 2545: ('我', 23),
+    #              2645: ('知心', 24), 2745: ('朋友', 26)}
+    #
+    # score_seted = 30
+    # total_score, score_detail = kc_rhythm_score(standard_kc, standard_kc_time, kc_detail, test_kc, real_loss_positions,score_seted)
+    # print("total_score is {}".format(total_score))
+    # print("score_detail is {}".format(score_detail))
+    #
+    # print("=================================000000000000000000000000000000000000000000============================")
+    # standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
+    # test_kc = '惜爱春天的人儿时心地纯洁的相思罗兰花花儿一样是我知心朋友'
+    # standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 26.5, 27, 28, 32]
+    # kc_detail = {20: ('惜', 0), 144: ('爱', 1), 236: ('春天', 2), 392: ('的', 4), 440: ('人', 5), 552: ('儿', 6),
+    #              640: ('时', 7), 824: ('心地', 8), 1040: ('纯洁', 10), 1188: ('的', 12), 1624: ('相思', 13), 1832: ('罗', 15),
+    #              1936: ('兰花', 16), 2100: ('花儿', 18), 2240: ('一样', 20), 2425: ('是', 22), 2545: ('我', 23),
+    #              2645: ('知心', 24), 2745: ('朋友', 26)}
+    # standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+    # numbered_notations = [None, '3', '3', '2', '1', '1', '7', '6', '6', '5', '6', None, '4', '4', '3', '2', '1', '2', '4', '3', None, '4', '4', '3', '2', '2', '4', '3', '3', '7', '5', '6', None, '7', '1', '3', '2', '1', '7', '1', '6', '6']
+    # standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28,32]
+    # test_times = [0.2, 0.47, 1.44, 1.97, 2.36, 3.48, 3.92, 4.4, 5.52, 6.4, 6.61, 8.24, 8.56, 9.55, 10.1, 10.4, 11.05, 11.52, 11.88, 12.66, 16.24, 16.45, 17.49, 17.96, 18.32, 19.36, 19.96, 20.41, 21.0, 22.04, 22.4, 22.8, 24.25, 24.57, 25.45, 25.66, 26.45, 26.97, 27.45, 27.93, 28.47, 29.84]
+    # end_time = 32
+    # get_all_scores(standard_kc,standard_kc_time, test_kc, standard_notations, numbered_notations, standard_notation_time, test_times, kc_detail, end_time)
+    #
+    # print("=================================000000000000000000000000000000000000000000============================")
+    # notation_duration_total_score, notation_duration_score_detail, pitch_total_score, pitch_score_detail = notation_duration_and_pitch_score_by_st(standard_notations,standard_notation_time,numbered_notations,test_times,end_time,score_seted)
+    # print("notation_duration_total_score is {}".format(notation_duration_total_score))
+    # print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
+    # print("pitch_total_score is {}".format(pitch_total_score))
+    # print("pitch_score_detail is {}".format(pitch_score_detail))
+    #
+    # print("=================================000000000000000000000000000000000000000000============================")
+    # kc_duration_total_score, kc_duration_score_detail = kc_duration_score_by_st(standard_kc,standard_kc_time,kc_detail,end_time,score_seted)
+    # print("kc_duration_total_score is {}".format(kc_duration_total_score))
+    # print("kc_duration_score_detail is {}".format(kc_duration_score_detail))
+    #
+    # print("=================================00000000000000000=====================00000000000============================")
+    # get_all_scores_by_st(standard_kc, standard_kc_time, standard_notations, numbered_notations, standard_notation_time,
+    #                      test_times, kc_detail, end_time)
 
-    standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
-    test_kc = '惜爱春天的人儿时心地纯洁的相思罗兰花花儿一样是我知心朋友'
-    # test_kc = '喜爱春天的人儿时心地纯洁的相思罗兰花花儿一样是我知心朋友'
-
-
-    print("====================================================================================================")
-
-    standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-                        26.5, 27, 28, 32]
-    kc_detail = {20: ('惜', 0), 144: ('爱', 1), 236: ('春天', 2), 392: ('的', 4), 440: ('人', 5), 552: ('儿', 6),
-                 640: ('时', 7), 824: ('心地', 8), 1040: ('纯洁', 10), 1188: ('的', 12), 1624: ('相思', 13), 1832: ('罗', 15),
-                 1936: ('兰花', 16), 2100: ('花儿', 18), 2240: ('一样', 20), 2425: ('是', 22), 2545: ('我', 23),
-                 2645: ('知心', 24), 2745: ('朋友', 26)}
-
-    score_seted = 30
-    total_score, score_detail = kc_rhythm_score(standard_kc, standard_kc_time, kc_detail, test_kc, real_loss_positions,score_seted)
-    print("total_score is {}".format(total_score))
-    print("score_detail is {}".format(score_detail))
-
-    print("=================================000000000000000000000000000000000000000000============================")
-    standard_kc = '喜爱春天的人儿是心地纯洁的人像紫罗兰花儿一样是我知心朋友'
-    test_kc = '惜爱春天的人儿时心地纯洁的相思罗兰花花儿一样是我知心朋友'
-    standard_kc_time = [0, 1, 2, 3, 3.5, 4, 5, 6, 8, 9, 10, 11, 11.5, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 26.5, 27, 28, 32]
-    kc_detail = {20: ('惜', 0), 144: ('爱', 1), 236: ('春天', 2), 392: ('的', 4), 440: ('人', 5), 552: ('儿', 6),
-                 640: ('时', 7), 824: ('心地', 8), 1040: ('纯洁', 10), 1188: ('的', 12), 1624: ('相思', 13), 1832: ('罗', 15),
-                 1936: ('兰花', 16), 2100: ('花儿', 18), 2240: ('一样', 20), 2425: ('是', 22), 2545: ('我', 23),
-                 2645: ('知心', 24), 2745: ('朋友', 26)}
-    standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-    numbered_notations = [None, '3', '3', '2', '1', '1', '7', '6', '6', '5', '6', None, '4', '4', '3', '2', '1', '2', '4', '3', None, '4', '4', '3', '2', '2', '4', '3', '3', '7', '5', '6', None, '7', '1', '3', '2', '1', '7', '1', '6', '6']
-    standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28,32]
-    test_times = [0.2, 0.47, 1.44, 1.97, 2.36, 3.48, 3.92, 4.4, 5.52, 6.4, 6.61, 8.24, 8.56, 9.55, 10.1, 10.4, 11.05, 11.52, 11.88, 12.66, 16.24, 16.45, 17.49, 17.96, 18.32, 19.36, 19.96, 20.41, 21.0, 22.04, 22.4, 22.8, 24.25, 24.57, 25.45, 25.66, 26.45, 26.97, 27.45, 27.93, 28.47, 29.84]
-    end_time = 32
-    get_all_scores(standard_kc,standard_kc_time, test_kc, standard_notations, numbered_notations, standard_notation_time, test_times, kc_detail, end_time)
-
-    print("=================================000000000000000000000000000000000000000000============================")
-    notation_duration_total_score, notation_duration_score_detail, pitch_total_score, pitch_score_detail = notation_duration_and_pitch_score_by_st(standard_notations,standard_notation_time,numbered_notations,test_times,end_time,score_seted)
-    print("notation_duration_total_score is {}".format(notation_duration_total_score))
-    print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
-    print("pitch_total_score is {}".format(pitch_total_score))
-    print("pitch_score_detail is {}".format(pitch_score_detail))
-
-    print("=================================000000000000000000000000000000000000000000============================")
-    kc_duration_total_score, kc_duration_score_detail = kc_duration_score_by_st(standard_kc,standard_kc_time,kc_detail,end_time,score_seted)
-    print("kc_duration_total_score is {}".format(kc_duration_total_score))
-    print("kc_duration_score_detail is {}".format(kc_duration_score_detail))
-
-    print("=================================00000000000000000=====================00000000000============================")
-    get_all_scores_by_st(standard_kc, standard_kc_time, standard_notations, numbered_notations, standard_notation_time,
-                         test_times, kc_detail, end_time)
+    standard_notations = '33211766644321243443224331667321716'
+    numbered_notations = ['3', '3', '2', '1', '1', '1', '7', '7', '6', '6', '6', '5', '6', '4', '4', '3', '2', '2', '1', '2', '4', '3', '4', '4', '3', '2', '2', '4', '3', '3', '7', '5', '6', '6', '7', '3', '2', '1', '7', '7', '1', '6', '6']
+    standard_notation_time = [0, 1, 1.5, 2, 3, 3.5, 4, 5, 6, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 16, 17, 17.5, 18, 19, 19.5, 20, 21, 21.5, 22, 23, 24, 25, 26, 26.5, 27, 27.5, 28]
+    merge_times = [0.470441038473569, 1.7104410384735689, 1.97, 2.38, 2.630441038473569, 3.48, 3.98, 4.190441038473569, 4.44, 4.6704410384735695, 5.790441038473569, 6.42, 6.6704410384735695, 8.51044103847357, 9.55, 10.1, 10.43, 10.67044103847357, 11.05, 11.52, 12.15044103847357, 12.66, 16.510441038473566, 17.49, 17.96, 18.590441038473568, 19.630441038473567, 19.96, 20.41, 21.270441038473567, 22.04, 22.45, 22.670441038473566, 24.520441038473567, 24.75, 25.720441038473567, 26.720441038473567, 26.97, 27.49, 27.720441038473567, 27.93, 28.47, 29.84]
+    lcseque, standard_positions, test_positions = get_lcseque_and_position_with_time_offset(standard_notations, numbered_notations, standard_notation_time, merge_times)
+    print("lcseque is {}".format(lcseque))
+    print("standard_positions is {}".format(standard_positions))
+    print("test_positions is {}".format(test_positions))

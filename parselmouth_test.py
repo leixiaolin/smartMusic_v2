@@ -8,7 +8,7 @@ from xfyun.iat_ws_python3 import *
 import os
 from collections import Counter
 from xfyun.wav2pcm import *
-from pingfen_uitl import get_lossed_standard_notations,pitch_score
+from pingfen_uitl import get_lossed_standard_notations,get_lcseque_and_position,get_lcseque_and_position_with_time_offset
 
 result_path = 'e:/test_image/n/'
 
@@ -93,22 +93,23 @@ filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段�
 ######################202-04-08#########################
 
 ######################202-04-28#########################
-filename, notation = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-filename, notation = 'F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋律/H-5.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-######################202-04-28#########################
-
-######################202-04-30#########################
-filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI2.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test1-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test2-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test3-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-######################202-04-30#########################
-
-filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/wav/6749-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋律/H-5.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# ######################202-04-28#########################
+#
+# ######################202-04-30#########################
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI2.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test1-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test2-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test3-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# ######################202-04-30#########################
+#
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/wav/6749-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.12MP3/wav/200508-4710-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.12MP3/wav/200508-8312-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.12MP3/wav/200508-8312-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.12MP3/wav/20200518-8354-1132.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/dbg/3141/seg1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 
 
 dir_list = ['F:/项目/花城音乐项目/样式数据/20.03.16MP3/wav/']
@@ -117,7 +118,7 @@ dir_list = ['F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋律/']
 
 #标准时间线
 standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28]
-standard_notation_time = [0,0.6818181818181817,1.0227272727272734,1.363636363636365,2.0454545454545467,2.3863636363636385,2.72727272727273,3.409090909090912,4.0909090909090935,5.454545454545459,6.136363636363642,6.477272727272732,6.818181818181822,7.159090909090912,7.500000000000002,7.840909090909092,8.181818181818182,10.909090909090908,11.590909090909092,11.931818181818182,12.272727272727272,12.954545454545455,13.295454545454545,13.636363636363635,14.318181818181818,14.659090909090908,14.999999999999998,15.681818181818182,16.363636363636367,17.045454545454547,17.727272727272734,18.06818181818182,18.409090909090914,18.75,19.090909090909093,21.81818181818182]
+# standard_notation_time = [0,0.6818181818181817,1.0227272727272734,1.363636363636365,2.0454545454545467,2.3863636363636385,2.72727272727273,3.409090909090912,4.0909090909090935,5.454545454545459,6.136363636363642,6.477272727272732,6.818181818181822,7.159090909090912,7.500000000000002,7.840909090909092,8.181818181818182,10.909090909090908,11.590909090909092,11.931818181818182,12.272727272727272,12.954545454545455,13.295454545454545,13.636363636363635,14.318181818181818,14.659090909090908,14.999999999999998,15.681818181818182,16.363636363636367,17.045454545454547,17.727272727272734,18.06818181818182,18.409090909090914,18.75,19.090909090909093,21.81818181818182]
 standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6- '
 sns_list = standard_notations.split(',')
 
@@ -275,10 +276,10 @@ for i,c in enumerate(all_first_candidate_names):
     k = merge_times[i]
     plt.text(k, 20, c, size='8',color='r')
 
-# 打印音高(数字)
-for i,c in enumerate(numbered_notations):
-    k = merge_times[i]
-    plt.text(k, 12, c, size='8',color='r')
+# # 打印音高(数字)
+# for i,c in enumerate(numbered_notations):
+#     k = merge_times[i]
+#     plt.text(k, 12, c, size='8',color='r')
 
 # 打印歌词
 t_offset = (detail_time[0] - test_onset_times[0])
@@ -301,6 +302,24 @@ standard_notations = ''.join(standard_notations)
 print("standard_notations is {},size is {}".format(standard_notations, len(standard_notations)))
 loss_positions, loss_notations_in_standard = get_lossed_standard_notations(standard_notations, numbered_notations)
 
+#找出未匹配的音高，并对未匹配的每个音高进行分析
+time_offset_threshold = 2
+lcseque, standard_positions, test_positions = get_lcseque_and_position(standard_notations, numbered_notations)
+print("standard_notations is {}".format(standard_notations))
+print("numbered_notations is {}".format(numbered_notations))
+print("standard_notation_time is {}".format(standard_notation_time))
+print("merge_times is {}".format(merge_times))
+lcseque, standard_positions, test_positions = get_lcseque_and_position_with_time_offset(standard_notations, numbered_notations, standard_notation_time, merge_times)
+# standard_positions_times = [standard_notation_time[i] for i in standard_positions]
+# test_positions_times = [merge_times[i] for i in test_positions]
+# # 比较匹配点的时间偏差值
+# times_offset = [np.abs(standard_positions_times[i] - t) for i, t in enumerate(test_positions_times)]
+# # 如果时间偏差值较大，该匹配点记为未匹配
+# loss_positions_by_times = [standard_positions[i] for i, t in enumerate(times_offset) if t > time_offset_threshold]
+# loss_notations_by_times = [lcseque[i] for i, t in enumerate(times_offset) if t > time_offset_threshold]
+# # loss_positions = loss_positions + loss_positions_by_times
+# loss_positions.sort()
+
 score_seted = 30
 standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # pitch_total_score, pitch_score_detail = pitch_score(standard_notations,numbered_notations,score_seted)
@@ -308,10 +327,18 @@ standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-
 # print("pitch_score_detail is {}".format(pitch_score_detail))
 # 打印标准音符
 for i,(k,v) in enumerate(standard_notations_times):
-    if i in loss_positions:
+    if i not in standard_positions: # 未匹配的
         plt.text(k, 6, v[0], size='20', color='r')
     else:
         plt.text(k, 6, v[0], size='12',color='g')
+
+# 打印音高(数字)
+for i,c in enumerate(numbered_notations):
+    k = merge_times[i]
+    if i not in test_positions:  # 未匹配的
+        plt.text(k, 12, c, size='20', color='r')
+    else:
+        plt.text(k, 12, c, size='12', color='y')
 plt.show()
 
 # batch_draw_samples(dir_list)
