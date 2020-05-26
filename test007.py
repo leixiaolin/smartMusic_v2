@@ -102,7 +102,7 @@ filename, notation = 'F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI2.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test1-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test2-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test3-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test3-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # ######################202-04-30#########################
 #
 filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/wav/6749-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
@@ -113,11 +113,13 @@ filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/wav/
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.20MP3/wav/20200520-2360-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI2.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/wav/20200526-8406.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/wav/20200526-1002.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 
 snd = parselmouth.Sound(filename)
 intensity = snd.to_intensity()
 pitch = get_pitch_by_parselmouth(filename)
+print(pitch.duration) #持续时长
 pitch_values = pitch.selected_array['frequency']
 import scipy.signal as signal
 # b, a = signal.butter(8, 0.2, analog=False)
@@ -128,7 +130,10 @@ intensity = snd.to_intensity()
 draw_intensity(intensity)
 # draw_pitch_specified(intensity,pitch,pitch_values,draw_type=0,filename=filename.split("/")[-1],notation=notation,grain_size=1)
 plt.xlim([snd.xmin, snd.xmax])
-
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.title(filename, fontsize=16)
+plt.hlines(40, 0, pitch.duration, color='r', linestyle='--')
+plt.text(1, 41, '评判线（背景噪声线）', size='12', color='r')
 plt.show()
 
 # batch_draw_samples(dir_list)
