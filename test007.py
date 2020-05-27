@@ -105,16 +105,16 @@ filename, notation = 'F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋
 filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test3-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # ######################202-04-30#########################
 #
-filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/wav/6749-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/wav/6749-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.12MP3/wav/200508-4710-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.12MP3/wav/200508-8312-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.12MP3/wav/20200518-8354-1132.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/dbg/3141/seg1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/dbg/3141/seg1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.20MP3/wav/20200520-2360-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI2.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/wav/20200526-8406.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/wav/20200526-1002.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/wav/20200526-1002.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 
 snd = parselmouth.Sound(filename)
 intensity = snd.to_intensity()
@@ -127,7 +127,24 @@ import scipy.signal as signal
 pitch_values = signal.medfilt(pitch_values, 35)
 print("pitch_values size is {}".format(len(pitch_values)))
 intensity = snd.to_intensity()
-draw_intensity(intensity)
+# draw_intensity(intensity)
+values = intensity.values.T.copy()
+values = list(values)
+values = [v[0] for v in values]
+values = signal.medfilt(values, 11)
+tmp = len(values)
+# values[int(tmp/2):] = 0
+plt.plot(intensity.xs(), intensity.values.T, linewidth=1)
+plt.plot(intensity.xs(), values, linewidth=1)
+plt.grid(False)
+plt.ylim(0)
+plt.ylabel("intensity [dB]")
+
+print("intensity len is {}".format(len(intensity.xs())))
+values = intensity.values.T.copy()
+values = list(values)
+print("intensity values len is {}".format(len(values)))
+print("intensity values max is {}".format(np.max(values)))
 # draw_pitch_specified(intensity,pitch,pitch_values,draw_type=0,filename=filename.split("/")[-1],notation=notation,grain_size=1)
 plt.xlim([snd.xmin, snd.xmax])
 plt.rcParams['font.sans-serif'] = ['SimHei']

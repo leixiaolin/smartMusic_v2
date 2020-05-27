@@ -50,15 +50,19 @@ else:
     # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     # total_score,  onsets_frames,detail_content = calcalate_total_score(file_path,rhythm_code,melody_code)
     start = time.clock()
-    total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail = score_all(
+    total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score,kc_express_total_score,fluency_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail,kc_express_sscore_detail,fluency_sscore_detail  = score_all(
         file_path, standard_kc, standard_kc_time, standard_notations, standard_notation_time)
     print("total_score is {}".format(total_score))
-    score_detail = "音高评分结果为{}，{}，音符节奏评分结果为{}，{}，歌词节奏评分结果为{}，{}".format(pitch_total_score,
-                                                                       pitch_score_detail,
-                                                                       notation_duration_total_score,
-                                                                       notation_duration_score_detail,
-                                                                       kc_duration_total_score,
-                                                                       kc_rhythm_sscore_detail)
+    score_detail = "音高评分结果为{}，{}，音符节奏评分结果为{}，{}，歌词节奏评分结果为{}，{}，歌词表达评分结果为{}，{}，流畅度评分结果为{}，{}".format(pitch_total_score,
+                                                                                                    pitch_score_detail,
+                                                                                                    notation_duration_total_score,
+                                                                                                    notation_duration_score_detail,
+                                                                                                    kc_duration_total_score,
+                                                                                                    kc_rhythm_sscore_detail,
+                                                                                                    kc_express_total_score,
+                                                                                                    kc_express_sscore_detail,
+                                                                                                    fluency_total_score,
+                                                                                                    fluency_sscore_detail)
     # print("time used is {}".format(time.clock() - start))
     # print("total_score, is {}".format(total_score))
     out_result = {'file_path': file_path,'time_used': (time.clock() - start), 'total_score': total_score, 'detail': score_detail}
