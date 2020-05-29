@@ -742,6 +742,7 @@ def get_all_scores_with_5(standard_kc,standard_kc_time,test_kc,standard_notation
     kc_express_total_score, kc_express_sscore_detail = kc_express_score(standard_kc, standard_kc_time, standard_notations, standard_notation_time,test_kc, real_loss_positions,score_seted)
 
     duration = end_time
+    score_seted = 20
     fluency_total_score, fluency_sscore_detail = fluency_score(standard_kc_time, test_times[0], duration, intensity, score_seted)
     total_score = pitch_total_score + notation_duration_total_score + kc_duration_total_score + kc_express_total_score + fluency_total_score
     total_score = round(total_score,2)

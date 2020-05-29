@@ -65,7 +65,8 @@ else:
                                                                                                     fluency_sscore_detail)
     # print("time used is {}".format(time.clock() - start))
     # print("total_score, is {}".format(total_score))
-    out_result = {'file_path': file_path,'time_used': (time.clock() - start), 'total_score': total_score, 'detail': score_detail}
+    metric = {'read_lyric':round(fluency_total_score,2),'pitch':round(pitch_total_score,2),'rhythm':round(notation_duration_total_score+kc_duration_total_score,2),'lyric':round(kc_express_total_score,2),'fluency':round(fluency_total_score,2),'expressiveness':0}
+    out_result = {'file_path': file_path,'time_used': (time.clock() - start), 'total_score': total_score, 'detail': score_detail,'metric':metric}
     x = json.dumps(out_result)
     print(json.dumps(out_result,ensure_ascii=False))
     filepath, fullflname = os.path.split(file_path)
