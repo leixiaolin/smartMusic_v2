@@ -682,12 +682,13 @@ def get_all_scores(standard_kc,standard_kc_time,test_kc,standard_notations, numb
 整合三个评分项（歌词节奏、音符节奏、音高、歌词表达、流畅度）
 '''
 def get_all_scores_with_5(standard_kc,standard_kc_time,test_kc,standard_notations, numbered_notations,standard_notation_time,test_times,kc_detail,end_time,intensity):
-    score_seted = 30
     # standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,6,7-,3,2,1,7-,1,6-'
     # numbered_notations = [None, '3', '2', '2', '1', '1', '7', '6', '6', '6', None, '4', '4', '4', '3', '2', '1', '2',
     #                       '4', '3', None, '3', '4', '4', '3', '2', '4', '3', '1', '6', '7', '7', '3', '2', '1', '1',
     #                       '6']
+    score_seted = 30
     pitch_total_score, pitch_score_detail, real_loss_positions,more_rate = pitch_score(standard_notations, numbered_notations,standard_notation_time,test_times,score_seted)
+    pitch_total_score = pitch_total_score if pitch_total_score < score_seted else score_seted
     # print("pitch_total_score is {}".format(pitch_total_score))
     # print("pitch_score_detail is {}".format(pitch_score_detail))
     # print("real_loss_positions is {}".format(real_loss_positions))
@@ -710,6 +711,7 @@ def get_all_scores_with_5(standard_kc,standard_kc_time,test_kc,standard_notation
                                                                                             test_times, end_time,
                                                                                             real_loss_positions,
                                                                                             score_seted)
+    notation_duration_total_score = notation_duration_total_score if notation_duration_total_score < score_seted else score_seted
     # print("notation_duration_total_score is {}".format(notation_duration_total_score))
     # print("notation_duration_score_detail is {}".format(notation_duration_score_detail))
 
@@ -735,15 +737,19 @@ def get_all_scores_with_5(standard_kc,standard_kc_time,test_kc,standard_notation
 
     score_seted = 15
     kc_duration_total_score, kc_rhythm_sscore_detail = kc_rhythm_score(standard_kc, standard_kc_time, kc_detail, test_kc, real_loss_positions,end_time,score_seted)
+    kc_duration_total_score = kc_duration_total_score if kc_duration_total_score < score_seted else score_seted
     # print("kc_rhythm_score is {}".format(kc_rhythm_score))
     # print("kc_rhythm_sscore_detail is {}".format(kc_rhythm_sscore_detail))
 
     score_seted = 20
     kc_express_total_score, kc_express_sscore_detail = kc_express_score(standard_kc, standard_kc_time, standard_notations, standard_notation_time,test_kc, real_loss_positions,score_seted)
+    kc_express_total_score = kc_express_total_score if kc_express_total_score < score_seted else score_seted
 
     duration = end_time
     score_seted = 20
     fluency_total_score, fluency_sscore_detail = fluency_score(standard_kc_time, test_times[0], duration, intensity, score_seted)
+    fluency_total_score = fluency_total_score if fluency_total_score < score_seted else score_seted
+
     total_score = pitch_total_score + notation_duration_total_score + kc_duration_total_score + kc_express_total_score + fluency_total_score
     total_score = round(total_score,2)
     if total_score > 60 and more_rate > 0.5:
