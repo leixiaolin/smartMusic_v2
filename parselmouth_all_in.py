@@ -144,18 +144,20 @@ if __name__ == '__main__':
     filename,type = 'F:/项目/花城音乐项目/样式数据/20.05.20MP3/20200520-2360.webm',0
     filename,type = 'F:/项目/花城音乐项目/样式数据/20.05.20MP3/20200520-8187.webm',0
     filename,type = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/20200526-8406.webm',0
+    filename, type = 'F:/项目/花城音乐项目/样式数据/20.05.30MP3/20200530-2202.webm', 0
+    filename, type = 'F:/项目/花城音乐项目/样式数据/20.05.30MP3/20200530-9053.webm', 0
       # filename,type = 'F:/项目/花城音乐项目/样式数据/20.05.20MP3/20200520-8605.webm',0
     # filename,type = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/dbg/1701/m.webm',1
     # filename,type = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/20200526-1002.webm',1
     # filename,type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准.webm',1
 
-    # filename = webm2wav(filename)
-    # seg0_filename,seg1_filename = slice_file_to_segs(filename, type)
+    filename = webm2wav(filename)
+    seg0_filename,seg1_filename = slice_file_to_segs(filename, type)
 
-    seg0_filename,type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准1648.wav',1
-    seg1_filename, type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准4882.wav', 1
-    seg0_filename, type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准1648.wav', 1
-    seg1_filename, type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准4882.wav', 1
+    # seg0_filename,type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准1648.wav',1
+    # seg1_filename, type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准4882.wav', 1
+    # seg0_filename, type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准1648.wav', 1
+    # seg1_filename, type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准4882.wav', 1
     # seg0_filename, type = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/tmp-25522-1DENXMdu4JwK-.wav', 0
     # seg1_filename, type = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/tmp-25522-1JAPZZrhv9u9-.wav', 0
     print(seg0_filename)

@@ -8,7 +8,7 @@ from xfyun.iat_ws_python3 import *
 import os
 from collections import Counter
 from xfyun.wav2pcm import *
-from parselmouth_util import get_troughs_on_intensity
+from pingfen_uitl import get_lossed_standard_notations,get_lcseque_and_position,get_lcseque_and_position_with_time_offset
 
 result_path = 'e:/test_image/n/'
 
@@ -28,6 +28,7 @@ def batch_draw_samples(dir_list):
                 plt.xlim([snd.xmin, snd.xmax])
                 plt.savefig(result_path  + filename.split('/')[-1].split('.wav')[0] + '.jpg', bbox_inches='tight', pad_inches=0)
                 plt.clf()
+
 
 filename,notation = "F:/项目/花城音乐项目/音符起始点检测/note_onset_detection-master/audio/F-2.wav",''
 filename,notation = "F:/项目/花城音乐项目/音高检测/Pitch-Class-Detection-using-ML-master/resources/training-set/Gb3.mp3",''
@@ -83,7 +84,7 @@ filename,notation = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/�
 
 ######################202-04-08#########################
 # filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准1648.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准1648.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准4882.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准1681.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准.wav','3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
@@ -99,7 +100,7 @@ filename,notation = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段�
 # ######################202-04-30#########################
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI2.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test1-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-' # ===========================
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test1-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test2-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/test3-1547.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # ######################202-04-30#########################
@@ -112,19 +113,17 @@ filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.20MP3/wav/20200520-2360-1548.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI1.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/CI2.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/wav/20200526-8406.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-' # ============================
+# filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/wav/20200526-8406.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 # filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/wav/20200526-1002.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
-# filename,notation = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
+filename,notation = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/两只老虎20190624-7881.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
 # filename,notation = 'F:/项目/花城音乐项目/样式数据/6.24MP3/旋律/小学8题20190624-3898-8.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
 # filename,notation = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/两只老虎20190621-9805.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
 # filename,notation = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/两只老虎20190621-6314.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
 # filename,notation = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/两只老虎20190621-6264.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
 # filename,notation = 'F:/项目/花城音乐项目/样式数据/6.21MP3/旋律/两只老虎20190621-6143.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
 # filename,notation = 'F:/项目/花城音乐项目/人声分离数据库/新建文件夹/20170001P00001A0014.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
-# filename,notation = 'F:/项目/花城音乐项目/人声分离数据库/新建文件夹/20170001P00001A0012.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
-# filename,notation = 'F:/项目/花城音乐项目/人声分离数据库/新建文件夹/录音30.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
-filename,notation = 'F:/项目/花城音乐项目/人声分离数据库/新建文件夹/录音31.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
-filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.30MP3/20200530-2202.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename,notation = 'F:/项目/花城音乐项目/人声分离数据库/新建文件夹/录音30.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
+# filename,notation = 'F:/项目/花城音乐项目/人声分离数据库/新建文件夹/录音31.wav','1,2,3,1,1,2,3,1,3,4,5,3,4,5'
 
 snd = parselmouth.Sound(filename)
 intensity = snd.to_intensity()
@@ -141,20 +140,14 @@ intensity = snd.to_intensity()
 values = intensity.values.T.copy()
 values = list(values)
 values = [v[0] for v in values]
-values_old = values.copy()
-values = signal.medfilt(values, 15)
+values = signal.medfilt(values, 11)
 tmp = len(values)
 # values[int(tmp/2):] = 0
-plt.plot(intensity.xs(), intensity.values.T, linewidth=1)
-plt.plot(intensity.xs(), values, linewidth=1)
+plt.plot(pitch.xs(), pitch_values, 'o', markersize=5, color='w')
+plt.plot(pitch.xs(), pitch_values, 'o', markersize=2)
 plt.grid(False)
 plt.ylim(0)
 plt.ylabel("intensity [dB]")
-
-# 展示音高线
-# plt.twinx()
-# plt.plot(pitch.xs(), pitch_values, 'o', markersize=5, color='w')
-# plt.plot(pitch.xs(), pitch_values, 'o', markersize=2)
 
 print("intensity len is {}".format(len(intensity.xs())))
 values = intensity.values.T.copy()
@@ -164,25 +157,9 @@ print("intensity values max is {}".format(np.max(values)))
 # draw_pitch_specified(intensity,pitch,pitch_values,draw_type=0,filename=filename.split("/")[-1],notation=notation,grain_size=1)
 plt.xlim([snd.xmin, snd.xmax])
 plt.rcParams['font.sans-serif'] = ['SimHei']
-plt.title(filename, fontsize=16)
-plt.hlines(40, 0, pitch.duration, color='r', linestyle='--')
-plt.text(1, 41, '评判线（背景噪声线）', size='12', color='r')
-
-troughs,offtake_points,trough_durations = get_troughs_on_intensity(values_old)
-values_len = len(values_old)
-duration = pitch.duration
-rate = duration/values_len
-print(pitch.n_frames) #总帧数
-print("pitch.dt is {}".format(pitch.dt)) #每帧时长
-troughs_time_changed = [intensity.dx * s + intensity.x1 for s in troughs]
-offtake_points_time = [intensity.dx * s + intensity.x1 for s in offtake_points]
-plt.vlines(troughs_time_changed, 0, 100, color='g', linestyle=':')
-print("troughs_time_changed is {},size is {}".format(troughs_time_changed,len(troughs_time_changed)))
-print("trough_durations is {},size is {}".format(trough_durations,len(trough_durations)))
-plt.vlines(offtake_points_time, 0, 100, color='r', linestyle=':')
-
-starts_by_parselmouth_rms,starts_by_parselmouth_rms_times = get_starts_by_parselmouth_rms(intensity,pitch)
-# plt.vlines(starts_by_parselmouth_rms_times, 0, 100, color='r', linestyle=':')
+plt.title(filename.split("/")[-1], fontsize=16)
+# plt.hlines(40, 0, pitch.duration, color='r', linestyle='--')
+# plt.text(1, 41, '评判线（背景噪声线）', size='12', color='r')
 plt.show()
 
 # batch_draw_samples(dir_list)
