@@ -525,7 +525,7 @@ def get_lcseque_and_position_with_time_offset(standard_kc,test_kc,standard_notat
     test_positions = []
     standard_positions = []
     flag = True
-    tmp_points = [t for i, t in enumerate(test_times) if i < 5 and test_kc[i] is not None]
+    tmp_points = [t for i, t in enumerate(test_times) if i < 5 and i < len(test_kc) and test_kc[i] is not None]
     firt_offset = tmp_points[0]
     standard_notation_times = [t + firt_offset for t in standard_notation_times]
     for i,s in enumerate(lcseque):
