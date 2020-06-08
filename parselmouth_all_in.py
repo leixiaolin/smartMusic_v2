@@ -80,8 +80,8 @@ def score_by_type(seg0_filename,seg1_filename,type):
         standard_kc_time = [0,0.6818181818181799,1.3636363636363669,2.0454545454545467,2.3863636363636402,2.7272727272727337,3.4090909090909136,4.0909090909090935,5.45454545454546,6.13636363636364,6.818181818181827,7.500000000000014,7.840909090909108,8.181818181818201,10.909090909090928,11.590909090909108,11.931818181818201,12.272727272727295,12.954545454545475,13.295454545454568,13.636363636363662,14.318181818181841,15.000000000000028,15.681818181818208,16.363636363636388,17.045454545454568,17.727272727272748,18.06818181818184,18.238636363636388,18.409090909090935,19.090909090909122,20.45454545454549,21.81818181818185 ]
         standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
         standard_notation_time = [0,0.6818181818181799,1.0227272727272734,1.3636363636363669,2.0454545454545467,2.3863636363636402,2.7272727272727337,3.4090909090909136,4.0909090909090935,5.45454545454546,6.13636363636364,6.477272727272734,6.818181818181827,7.159090909090921,7.500000000000014,7.840909090909108,8.181818181818201,10.909090909090928,11.590909090909108,11.931818181818201,12.272727272727295,12.954545454545475,13.295454545454568,13.636363636363662,14.318181818181841,14.659090909090935,15.000000000000028,15.681818181818208,16.363636363636388,17.045454545454568,17.727272727272748,18.06818181818184,18.409090909090935,18.75000000000003,19.090909090909122,21.81818181818185]
-        total_score1, pitch_total_score, notation_duration_total_score, kc_duration_total_score,kc_express_total_score,fluency_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail,kc_express_sscore_detail,fluency_sscore_detail = score_all(seg0_filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time)
-        print("total_score1 is {}".format(total_score0))
+        total_score1, pitch_total_score, notation_duration_total_score, kc_duration_total_score,kc_express_total_score,fluency_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail,kc_express_sscore_detail,fluency_sscore_detail = score_all(seg1_filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time)
+        print("total_score1 is {}".format(total_score1))
         score_detail = "音高评分结果为{}，{}，音符节奏评分结果为{}，{}，歌词节奏评分结果为{}，{}，歌词表达评分结果为{}，{}，流畅度评分结果为{}，{}".format(pitch_total_score,
                                                                            pitch_score_detail,
                                                                            notation_duration_total_score,
@@ -122,7 +122,7 @@ def score_by_type(seg0_filename,seg1_filename,type):
         standard_kc_time = [0,1,2,3,3.5,4,5,6,8,9,10,11,11.5,12,16,17,17.5,18,19,19.5,20,21,22,23,24,25,26,26.5,26.75,27,28,32]
         standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
         standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28,32]
-        total_score1, pitch_total_score, notation_duration_total_score, kc_duration_total_score,kc_express_total_score,fluency_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail,kc_express_sscore_detail,fluency_sscore_detail = score_all(seg0_filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time)
+        total_score1, pitch_total_score, notation_duration_total_score, kc_duration_total_score,kc_express_total_score,fluency_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail,kc_express_sscore_detail,fluency_sscore_detail = score_all(seg1_filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time)
         print("total_score1 is {}".format(total_score0))
         score_detail = "音高评分结果为{}，{}，音符节奏评分结果为{}，{}，歌词节奏评分结果为{}，{}，歌词表达评分结果为{}，{}，流畅度评分结果为{}，{}".format(pitch_total_score,
                                                                            pitch_score_detail,
@@ -150,9 +150,11 @@ if __name__ == '__main__':
     # filename,type = 'F:/项目/花城音乐项目/样式数据/20.05.01MP3/dbg/1701/m.webm',1
     # filename,type = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/20200526-1002.webm',1
     # filename,type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准.webm',1
+    filename, type = 'F:/项目/花城音乐项目/样式数据/20.05.30MP3/test-29.webm', 1
+    filename, type = 'F:/项目/花城音乐项目/样式数据/20.06.08MP3/20200607-8028.webm', 0
 
-    filename = webm2wav(filename)
-    seg0_filename,seg1_filename = slice_file_to_segs(filename, type)
+    # filename = webm2wav(filename)
+    # seg0_filename,seg1_filename = slice_file_to_segs(filename, type)
 
     # seg0_filename,type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准1648.wav',1
     # seg1_filename, type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-标准4882.wav', 1
@@ -160,6 +162,10 @@ if __name__ == '__main__':
     # seg1_filename, type = 'F:/项目/花城音乐项目/样式数据/20.04.08MP3/2段词-不标准4882.wav', 1
     # seg0_filename, type = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/tmp-25522-1DENXMdu4JwK-.wav', 0
     # seg1_filename, type = 'F:/项目/花城音乐项目/样式数据/20.05.26MP3/tmp-25522-1JAPZZrhv9u9-.wav', 0
+    # seg0_filename, type = 'F:/项目/花城音乐项目/样式数据/20.05.30MP3/tmp-29811-yT11XjNYF4zL-.wav', 1
+    # seg1_filename, type = 'F:/项目/花城音乐项目/样式数据/20.05.30MP3/tmp-29811-8l8edmcO5KSN-.wav', 1
+    seg0_filename, type = 'F:/项目/花城音乐项目/样式数据/20.06.08MP3/tmp-4168-wTn2RvkDbr59-.wav', 0
+    seg1_filename, type = 'F:/项目/花城音乐项目/样式数据/20.06.08MP3/tmp-7558-fSK1EpEZndNV-.wav', 0
     print(seg0_filename)
     print(seg1_filename)
     total_score = score_by_type(seg0_filename, seg1_filename, type)

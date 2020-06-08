@@ -183,6 +183,7 @@ def fluency_score(standard_kc_time,first_offset,duration,intensity,pitch_score_o
     standard_kc_time_modified = [s-t for s in standard_kc_time]
     rate = values_len/duration
     standard_kc_time_changed = [int(rate * s) for s in standard_kc_time_modified]
+    stop_number = 0
     for i in range(0,len(standard_kc_time_changed)-1):
         start = standard_kc_time_changed[i]
         end = standard_kc_time_changed[i+1]
@@ -194,11 +195,14 @@ def fluency_score(standard_kc_time,first_offset,duration,intensity,pitch_score_o
         if np.min(tmp) < intensity_threshold:
             str_detail = '第{}个歌词的响度低于{}dB，出现停顿，得分为0'.format(int(i + 1),intensity_threshold)
             score_detail += str_detail + '\n'
+            stop_number += 1
         elif check_fluency(pitch_score_on_positions,notation_score_on_positions,kc_with_notations,i) is False:
             str_detail = '第{}个歌词的音高和节奏与标准有偏差，得分为0'.format(int(i + 1))
             score_detail += str_detail + '\n'
         else:
             total_score += each_score
+    if total_score / score_seted > 0.25 and stop_number > 8:
+        total_score = round(score_seted*0.24,2)
     if total_score == score_seted:
         score_detail = "演唱流畅度评分项总分{}，每个歌词的分值为{}，未存在失分的情况".format(score_seted, each_score)
     return total_score, score_detail
