@@ -6,7 +6,7 @@ import librosa
 from LscHelper import my_find_lcseque
 import scipy.signal as signal
 from xfyun.wav2pcm import *
-from pingfen_uitl import get_all_scores,get_all_scores_by_st,get_all_scores_with_5
+from pingfen_uitl import get_lcseque_and_position_with_time_offset,get_all_scores_by_st,get_all_scores_with_5
 from xfyun.iat_ws_python3 import get_iat_result
 
 FREQS = [
@@ -916,6 +916,77 @@ def get_all_numbered_musical_notation_by_moved(first_base_numbered_notation,all_
             detail.append((numbered_notation, all_times[i], all_times[i + 1]))
     return result,detail
 
+def check_moved_step(standard_notations,standard_notation_times,all_first_candidate_names,test_times,end_time=None):
+    if end_time is None:
+        test_times.append(test_times[-1] + 0.2) # 添加一个结束点
+    else:
+        test_times.append(end_time)
+    first_standard_notation = int(standard_notations.split(",")[0][0])
+    numbered_notations, numbered_notations_detail = get_all_numbered_musical_notation_by_moved(first_standard_notation,
+                                                                                               all_first_candidate_names,
+                                                                                               test_times)
+    lcseque, standard_positions, test_positions = get_lcseque_and_position_with_time_offset(standard_notations, numbered_notations, standard_notation_times, test_times)
+    return lcseque,numbered_notations
+
+def find_the_cut_point(standard_notations,standard_notation_times,all_first_candidate_names,test_times,end_time=None):
+    best_lcseque_len = 0
+    best_numbered_notations = None
+    type = 0
+
+    # 第一种情况：多2个音符（标准序列的第1个与测试序列的第3个对比）
+    #pass
+
+    # 第二种情况：多1个音符（标准序列的第1个与测试序列的第2个对比）
+    all_first_candidate_names_modified = all_first_candidate_names[1:]
+    test_times_modified = test_times[1:]
+    lcseque_second, numbered_notations_second = check_moved_step(standard_notations, standard_notation_times, all_first_candidate_names_modified, test_times_modified, end_time=None)
+    if len(lcseque_second) > best_lcseque_len:
+        best_numbered_notations = ['1'] + numbered_notations_second
+        best_lcseque_len = len(lcseque_second)
+        type = 2
+
+    # 第三种情况：对齐
+    lcseque_third, numbered_notations_third = check_moved_step(standard_notations, standard_notation_times, all_first_candidate_names, test_times, end_time=None)
+    if len(lcseque_third) > best_lcseque_len:
+        best_numbered_notations = numbered_notations_third
+        best_lcseque_len = len(lcseque_third)
+        type = 3
+
+    # 第四种情况：少1个音符（标准序列的第2个与测试序列的第1个对比）
+    surplus_note = standard_notations[0]
+    surplus_time = standard_notation_times[0]
+    standard_notations_modified = standard_notations[1:]
+    standard_notation_times_modified = standard_notation_times[1:]
+    lcseque_fourth, numbered_notations_fourth = check_moved_step(standard_notations_modified, standard_notation_times_modified, all_first_candidate_names, test_times, end_time=None)
+    if len(lcseque_fourth) > best_lcseque_len:
+        best_numbered_notations = [surplus_note] + numbered_notations_fourth
+        best_lcseque_len = len(lcseque_fourth)
+        type = 4
+
+        # 第五种情况：少2个音符（标准序列的第3个与测试序列的第1个对比）
+    # pass
+    return best_numbered_notations,type,best_lcseque_len
+
+def find_best_numbered_notations(standard_notations,standard_notation_times,all_first_candidate_names,test_times,end_time=None):
+    best_lcseque_len = 0
+    best_numbered_notations = None
+    type = 0
+
+    if end_time is None:
+        test_times.append(test_times[-1] + 0.2) # 添加一个结束点
+    else:
+        test_times.append(end_time)
+
+    for step in range(1,8):
+        first_standard_notation = step
+        numbered_notations, numbered_notations_detail = get_all_numbered_musical_notation_by_moved(first_standard_notation, all_first_candidate_names, test_times)
+        lcseque, standard_positions, test_positions = get_lcseque_and_position_with_time_offset(standard_notations, numbered_notations, standard_notation_times, test_times)
+        if len(lcseque) > best_lcseque_len:
+            best_numbered_notations = numbered_notations
+            best_lcseque_len = len(lcseque)
+            type = step
+    return best_numbered_notations,type,best_lcseque_len
+
 def get_all_numbered_notation_and_offset(pitch,onset_frames,sr=22050):
     from collections import Counter
     # 将起始帧和结束帧换算成时间点
@@ -1017,7 +1088,7 @@ def get_result_from_xfyun(filename):
 '''
     根据幅度较大的波谷判断为大概率的起始点
 '''
-def get_starts_by_parselmouth_rms(intensity,pitch):
+def get_starts_by_parselmouth_rms(intensity,pitch,standard_notation_time_diff_min):
     values = intensity.values.T.copy()
     values = list(values)
     values = [v[0] for v in values]  #原始幅度
@@ -1040,11 +1111,15 @@ def get_starts_by_parselmouth_rms(intensity,pitch):
     # must_starts = [s for s in must_starts if np.mean(pitch_values[s:s+15]) > 70]
     #相临太密的取幅度减值较大的
     result = [must_starts[0]]
+    if standard_notation_time_diff_min > 0.3:
+        threshold = 30
+    else:
+        threshold = int(standard_notation_time_diff_min * 100 / 2)
     for i in range(1,len(must_starts)):
         c = must_starts[i]
         c_on_pitch_values = int(c *len(pitch_values) / values_len)
         if np.mean(pitch_values[c_on_pitch_values:c_on_pitch_values+15]) > 70:
-            if c - result[-1] < 30:
+            if c - result[-1] < threshold:
                 selected = c if values_gap[c] > values_gap[result[-1]] else result[-1]
                 result[-1] = selected
             else:
@@ -1057,14 +1132,19 @@ def get_starts_by_parselmouth_rms(intensity,pitch):
 def merge_candidate(pitch_values,pitch_values_candidate):
     pass
 
-def merge_times_from_iat_plm_rms(iat_times,plm_times,rms_times):
+def merge_times_from_iat_plm_rms(iat_times,plm_times,rms_times,standard_notation_time_diff_min):
     tmp = plm_times + rms_times
     tmp = [round(t,2) for t in tmp]
     tmp.sort()
     result = iat_times
+
+    if standard_notation_time_diff_min > 0.3:
+        threshold = 0.2
+    else:
+        threshold = round(standard_notation_time_diff_min / 2, 2)
     for s in tmp:
         offset = [np.abs(t - s) for t in result]
-        if np.min(offset) > 0.20:
+        if np.min(offset) > threshold:
             result.append(s)
     result.sort()
     return result
@@ -1089,15 +1169,28 @@ def score_all(filename, standard_kc,standard_kc_time, standard_notations, standa
 
     snd = parselmouth.Sound(filename)
     intensity = snd.to_intensity()
-    starts_by_parselmouth_rms, starts_by_parselmouth_rms_times = get_starts_by_parselmouth_rms(intensity, pitch)
+
+    standard_notation_time_diff_min = np.min(np.diff(standard_notation_time))
+    starts_by_parselmouth_rms, starts_by_parselmouth_rms_times = get_starts_by_parselmouth_rms(intensity, pitch,standard_notation_time_diff_min)
     # 平移语音识别的时间点
     detail_time = [t - (detail_time[0] - test_onset_times[0]) for t in detail_time]
-    test_times = merge_times_from_iat_plm_rms(detail_time, test_onset_times, starts_by_parselmouth_rms_times)
+    test_times = merge_times_from_iat_plm_rms(detail_time, test_onset_times, starts_by_parselmouth_rms_times,standard_notation_time_diff_min)
     merge_frames = librosa.time_to_frames(test_times)
     all_first_candidate_names, all_first_candidates, all_offset_types = get_all_numbered_notation_and_offset(pitch,merge_frames)
     first_standard_notation = int(standard_notations.split(",")[0][0])
-    # print("3 all_first_candidate_names is {},size is {}".format(all_first_candidate_names,len(all_first_candidate_names)))
-    numbered_notations,numbered_notations_detail = get_all_numbered_musical_notation_by_moved(first_standard_notation,all_first_candidate_names,test_times)
+    # print("========== all_first_candidate_names size is {},detail is {}".format(len(all_first_candidate_names),all_first_candidate_names))
+    # print("========== standard_notations size is {},detail is {}".format(len(standard_notations),standard_notations))
+    # print("========== standard_notation_time size is {},detail is {}".format(len(standard_notation_time),standard_notation_time))
+    # print("========== test_times size is {},detail is {}".format(len(test_times), test_times))
+    # numbered_notations,numbered_notations_detail = get_all_numbered_musical_notation_by_moved(first_standard_notation,all_first_candidate_names,test_times)
+    standard_notations_list = standard_notations.split(',')
+    standard_notations_list = [s[0] for s in standard_notations_list]
+    standard_notations_list = ''.join(standard_notations_list)
+    best_numbered_notations, type, best_lcseque_len = find_best_numbered_notations(standard_notations_list, standard_notation_time,
+                                                                         all_first_candidate_names, test_times,
+                                                                         end_time=None)
+    numbered_notations = best_numbered_notations
+    # print("========== numbered_notations size is {},detail is {}".format(len(numbered_notations), numbered_notations))
     kc_express_total_score, fluency_total_score,kc_express_sscore_detail,fluency_sscore_detail = 0,0,'',''
     # total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail = get_all_scores(standard_kc,
     #                                                                                                                     standard_kc_time,
@@ -1310,19 +1403,19 @@ if __name__ == "__main__":
     standard_notation_time = [0, 1, 1.5, 2, 3, 3.5, 4, 5, 6, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 16, 17, 17.5, 18, 19,
                               19.5, 20, 21, 21.5, 22, 23, 24, 25, 26, 26.5, 27, 27.5, 28, 32]
     # ========================= end ===================
-    total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score,kc_express_total_score,fluency_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail,kc_express_sscore_detail,fluency_sscore_detail = score_all(filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time)
-    print("total_score is {}".format(total_score))
-    score_detail = "音高评分结果为{}，{}，音符节奏评分结果为{}，{}，歌词节奏评分结果为{}，{}，歌词表达评分结果为{}，{}，流畅度评分结果为{}，{}".format(pitch_total_score,
-                                                                           pitch_score_detail,
-                                                                           notation_duration_total_score,
-                                                                           notation_duration_score_detail,
-                                                                           kc_duration_total_score,
-                                                                           kc_rhythm_sscore_detail,
-                                                                           kc_express_total_score,
-                                                                           kc_express_sscore_detail,
-                                                                           fluency_total_score,
-                                                                           fluency_sscore_detail)
-    print("score detail is {}".format(score_detail))
+    # total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score,kc_express_total_score,fluency_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail,kc_express_sscore_detail,fluency_sscore_detail = score_all(filename, standard_kc,standard_kc_time, standard_notations, standard_notation_time)
+    # print("total_score is {}".format(total_score))
+    # score_detail = "音高评分结果为{}，{}，音符节奏评分结果为{}，{}，歌词节奏评分结果为{}，{}，歌词表达评分结果为{}，{}，流畅度评分结果为{}，{}".format(pitch_total_score,
+    #                                                                        pitch_score_detail,
+    #                                                                        notation_duration_total_score,
+    #                                                                        notation_duration_score_detail,
+    #                                                                        kc_duration_total_score,
+    #                                                                        kc_rhythm_sscore_detail,
+    #                                                                        kc_express_total_score,
+    #                                                                        kc_express_sscore_detail,
+    #                                                                        fluency_total_score,
+    #                                                                        fluency_sscore_detail)
+    # print("score detail is {}".format(score_detail))
     print("+++++++++++++++++++++++++++++++++++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~++++++++++++++++++++++++++++")
     # total_score, pitch_total_score, notation_duration_total_score, kc_duration_total_score, pitch_score_detail, notation_duration_score_detail, kc_rhythm_sscore_detail = score_all_by_st(filename, standard_kc, standard_kc_time, standard_notations, standard_notation_time)
     # print("total_score is {}".format(total_score))
@@ -1333,3 +1426,32 @@ if __name__ == "__main__":
     #                                                                    kc_duration_total_score,
     #                                                                    kc_rhythm_sscore_detail)
     # print("score detail is {}".format(score_detail))
+
+    # standard_notations = '5,5,5,5,3,5,1,6,5,5,5,5,5,3,2,1,3,2,2,3,5,5,3,3,2,1,1,2,3,1,1,6-,5-,6-,5-'
+    # standard_notation_times = [0, 0.17045454545454586, 0.5113636363636367, 0.6818181818181825, 1.0227272727272734, 1.1931818181818192, 1.363636363636365, 1.704545454545456, 2.0454545454545467, 2.7272727272727284, 2.8977272727272734, 3.238636363636365, 3.40909090909091, 3.7500000000000018, 3.9204545454545467, 4.090909090909092, 4.431818181818183, 4.772727272727275, 5.454545454545457, 5.7954545454545485, 5.9659090909090935, 6.306818181818185, 6.47727272727273, 6.647727272727275, 6.988636363636367, 7.159090909090912, 7.329545454545457, 7.6704545454545485, 8.01136363636364, 8.352272727272732, 8.522727272727277, 8.863636363636369, 9.034090909090914, 9.204545454545459, 9.54545454545455, 9.886363636363642, 10.568181818181824]
+    # all_first_candidate_names = ['B3', 'B3', 'B3', 'G#3', 'G#3', 'D#3', 'D3', 'E3', 'C4', 'B3', 'B3', 'B3', 'B3', 'G3', 'F#3', 'E3', 'D#3', 'D#3', 'G3', 'F#3', 'F3', 'F#3', 'G3', 'A#3', 'A#3', 'B3', 'B3', 'G3', 'G3', 'G3', 'F#3', 'D#3', 'E3', 'D#3', 'F3', 'F3', 'E3', 'D#3', 'C3', 'B2', 'A#2', 'C3', None]
+    # test_times = [0.26074144486692014, 0.7407414448669202, 0.9407414448669201, 1.23, 1.3807414448669202, 1.5807414448669204, 1.78074144486692, 1.89, 2.05, 2.24, 2.4607414448669203, 2.9407414448669202, 3.44, 3.9407414448669202, 4.14, 4.30074144486692, 4.42074144486692, 4.62074144486692, 4.88, 5.02, 5.68, 5.78074144486692, 6.21, 6.39, 6.54074144486692, 6.71, 6.9, 7.0607414448669195, 7.22074144486692, 7.41, 7.55, 7.73, 7.90074144486692, 8.14074144486692, 8.58074144486692, 8.92, 9.06, 9.37, 9.54, 9.74074144486692, 9.90074144486692, 10.08, 10.54074144486692]
+    # standard_notations = standard_notations.split(',')
+    # standard_notations = [s[0] for s in standard_notations]
+    # standard_notations = ''.join(standard_notations)
+    # lcseque = check_moved_step(standard_notations, standard_notation_times, all_first_candidate_names, test_times)
+    # print("lcseque size is {} ,detail {}".format(len(lcseque),lcseque))
+    # best_numbered_notations,type,best_lcseque_len = find_the_cut_point(standard_notations, standard_notation_times, all_first_candidate_names, test_times, end_time=None)
+    # print("best_numbered_notations size is {} ,detail {}".format(len(best_numbered_notations), best_numbered_notations))
+    # print("tpye is {}".format(type))
+    # print("best_lcseque_len is {}".format(best_lcseque_len))
+
+    standard_notations = '5,5,5,5,3,5,1,6,5,5,5,5,5,3,2,1,3,2,2,3,5,5,3,3,2,1,1,2,3,1,1,6-,5-,6-,5-'
+    standard_notation_times = [0, 0.17045454545454675, 0.5113636363636367, 0.6818181818181834, 1.0227272727272734, 1.1931818181818201, 1.3636363636363669, 1.7045454545454568, 2.0454545454545467, 2.72727272727273, 2.897727272727277, 3.238636363636367, 3.4090909090909136, 3.7500000000000036, 3.9204545454545503, 4.090909090909097, 4.431818181818187, 4.772727272727277, 5.45454545454546, 5.79545454545455, 5.965909090909097, 6.306818181818187, 6.647727272727277, 6.988636363636367, 7.159090909090914, 7.32954545454546, 7.67045454545455, 8.01136363636364, 8.35227272727273, 8.522727272727277, 8.863636363636367, 9.034090909090914, 9.20454545454546, 9.54545454545455, 9.88636363636364, 10.568181818181824]
+    all_first_candidate_names = ['A#2', None, 'B3', 'B3', 'B3', 'B3', 'B3', 'G#3', 'G#3', 'D#3', 'E3', 'C#4', 'B3', 'B3', 'B3', 'B3', 'B3', 'A#3', 'A#3', 'A3', 'F#3', 'F#3', 'D#3', 'D#3', 'D#3', 'G#3', 'F#3', 'F3', 'F3', 'F#3', 'F#3', 'F#3', 'F#3', 'A#3', 'B3', 'B3', 'B3', 'G3', 'G3', 'G3', 'G3', 'F3', 'E3', 'D#3', 'E3', 'D#3', 'D#3', 'F3', 'F3', 'D#3', 'D#3', 'D#3', 'A#2']
+    test_times = [0.020056764427625356, 0.26, 0.66, 0.8600567644276254, 1.05, 1.3400567644276253, 1.5000567644276253, 1.7000567644276252, 1.8, 1.91, 2.28, 2.3800567644276254, 2.62, 2.9000567644276254, 3.42, 3.5800567644276255, 3.78, 3.97, 4.100056764427626, 4.33, 4.420056764427626, 4.53, 4.63, 4.740056764427625, 4.97, 5.0600567644276255, 5.35, 5.740056764427625, 5.99, 6.15, 6.25, 6.420056764427626, 6.52, 6.72, 6.93, 7.05, 7.140056764427626, 7.340056764427626, 7.580056764427625, 7.73, 7.820056764427625, 7.940056764427626, 8.11, 8.21, 8.300056764427625, 8.48, 8.78, 8.9, 9.180056764427624, 9.4, 9.7, 9.860056764427625, 10.11]
+    standard_notations = standard_notations.split(',')
+    standard_notations = [s[0] for s in standard_notations]
+    standard_notations = ''.join(standard_notations)
+    lcseque = check_moved_step(standard_notations, standard_notation_times, all_first_candidate_names, test_times)
+    print("lcseque size is {} ,detail {}".format(len(lcseque),lcseque))
+    # best_numbered_notations,type,best_lcseque_len = find_the_cut_point(standard_notations, standard_notation_times, all_first_candidate_names, test_times, end_time=None)
+    best_numbered_notations,type,best_lcseque_len = find_best_numbered_notations(standard_notations, standard_notation_times, all_first_candidate_names, test_times, end_time=None)
+    print("best_numbered_notations size is {} ,detail {}".format(len(best_numbered_notations), best_numbered_notations))
+    print("tpye is {}".format(type))
+    print("best_lcseque_len is {}".format(best_lcseque_len))
