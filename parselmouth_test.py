@@ -116,13 +116,27 @@ filename, notation = 'F:/项目/花城音乐项目/样式数据/20.04.29MP3/wav/
 filename, notation = 'F:/项目/花城音乐项目/样式数据/20.05.30MP3/20200530-2202.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 
 
+
 dir_list = ['F:/项目/花城音乐项目/样式数据/20.03.16MP3/wav/']
 dir_list = ['F:/项目/花城音乐项目/样式数据/12.05MP3/wav/旋律/']
 
 # =====================================2020-05-30===================================
 filename, notation = 'F:/tmp/20200530-2202-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename, notation = 'F:/tmp/20200530-2202-3355.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename, notation = 'F:/tmp/20200530-2202-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+filename, notation = 'F:/tmp/20200530-2202-3355.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# ==========================================end=====================================
+
+# =====================================2020-06-18===================================
+filename, notation = 'F:/tmp/20200607-5493-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/tmp/20200607-5493-3355.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/tmp/20200607-8028-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/tmp/20200607-8028-3355.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/tmp/20200607-9829-1133.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/tmp/20200607-9829-3355.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 
 # ==========================================end=====================================
+
 
 #标准时间线
 standard_notation_time = [0,1,1.5,2,3,3.5,4,5,6,8,9,9.5,10,10.5,11,11.5,12,16,17,17.5,18,19,19.5,20,21,21.5,22,23,24,25,26,26.5,27,27.5,28]
@@ -130,6 +144,53 @@ standard_notation_time = [0,0.6818181818181817,1.0227272727272734,1.363636363636
 standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6- '
 sns_list = standard_notations.split(',')
 
+# =====================================2020-06-22===================================
+standard_kc = '阿树阿上两只黄鹂鸟阿嘻阿嘻哈哈在笑它葡萄成熟还早得很哪现在上来干什么'
+standard_kc_time = [0, 0.17045454545454675, 0.5113636363636367, 0.6818181818181834, 1.0227272727272734,
+                    1.1931818181818201, 1.3636363636363669, 1.7045454545454568, 2.0454545454545467, 2.72727272727273,
+                    2.897727272727277, 3.238636363636367, 3.4090909090909136, 3.7500000000000036, 3.9204545454545503,
+                    4.090909090909097, 4.431818181818187, 4.772727272727277, 5.45454545454546, 5.79545454545455,
+                    5.965909090909097, 6.306818181818187, 6.647727272727277, 6.988636363636367, 7.159090909090914,
+                    7.32954545454546, 7.67045454545455, 8.01136363636364, 8.35227272727273, 8.522727272727277,
+                    8.863636363636367, 9.20454545454546, 9.54545454545455, 9.88636363636364, 10.568181818181824]
+standard_notations = '5,5,5,5,3,5,1,6,5,5,5,5,5,3,2,1,3,2,2,3,5,5,3,3,2,1,1,2,3,1,1,6-,5-,6-,5-'
+standard_notation_time = [0, 0.17045454545454675, 0.5113636363636367, 0.6818181818181834, 1.0227272727272734,
+                          1.1931818181818201, 1.3636363636363669, 1.7045454545454568, 2.0454545454545467,
+                          2.72727272727273, 2.897727272727277, 3.238636363636367, 3.4090909090909136,
+                          3.7500000000000036, 3.9204545454545503, 4.090909090909097, 4.431818181818187,
+                          4.772727272727277, 5.45454545454546, 5.79545454545455, 5.965909090909097, 6.306818181818187,
+                          6.647727272727277, 6.988636363636367, 7.159090909090914, 7.32954545454546, 7.67045454545455,
+                          8.01136363636364, 8.35227272727273, 8.522727272727277, 8.863636363636367, 9.034090909090914,
+                          9.20454545454546, 9.54545454545455, 9.88636363636364, 10.568181818181824]
+
+filename, notation = 'F:/tmp/20200619-2547-0516.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+
+standard_kc_time = [0, 0.17045454545454675, 0.5113636363636367, 0.6818181818181834, 1.0227272727272734,
+                    1.1931818181818201, 1.3636363636363669, 1.7045454545454568, 2.0454545454545467, 2.72727272727273,
+                    2.897727272727277, 3.238636363636367, 3.4090909090909136, 3.7500000000000036, 3.9204545454545503,
+                    4.090909090909097, 4.431818181818187, 4.772727272727277, 5.45454545454546, 5.79545454545455,
+                    5.965909090909097, 6.306818181818187, 6.647727272727277, 6.988636363636367, 7.159090909090914,
+                    7.32954545454546, 7.67045454545455, 8.01136363636364, 8.35227272727273, 8.522727272727277,
+                    8.863636363636367, 9.20454545454546, 9.54545454545455, 9.88636363636364, 10.568181818181824]
+standard_notations = '5,5,5,5,3,5,1,6,5,5,5,5,5,3,2,1,3,2,2,3,5,5,3,3,2,1,1,2,3,1,1,6-,5-,6-,5-'
+standard_notation_time = [0, 0.17045454545454675, 0.5113636363636367, 0.6818181818181834, 1.0227272727272734,
+                          1.1931818181818201, 1.3636363636363669, 1.7045454545454568, 2.0454545454545467,
+                          2.72727272727273, 2.897727272727277, 3.238636363636367, 3.4090909090909136,
+                          3.7500000000000036, 3.9204545454545503, 4.090909090909097, 4.431818181818187,
+                          4.772727272727277, 5.45454545454546, 5.79545454545455, 5.965909090909097, 6.306818181818187,
+                          6.647727272727277, 6.988636363636367, 7.159090909090914, 7.32954545454546, 7.67045454545455,
+                          8.01136363636364, 8.35227272727273, 8.522727272727277, 8.863636363636367, 9.034090909090914,
+                          9.20454545454546, 9.54545454545455, 9.88636363636364, 10.568181818181824]
+
+filename, notation = 'F:/tmp/20200619-2547-1626.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# filename, notation = 'F:/tmp/20200619-2547-2635.wav', '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+sns_list = standard_notations.split(',')
+# ==========================================end=====================================
+
+standard_notation_time_diff_min = np.min(np.diff(standard_notation_time))
+print("min standard_notation_time_diff is {}".format(standard_notation_time_diff_min))
+
+first_standard_notation = int(sns_list[0])
 y,sr = librosa.load(filename)
 rms = librosa.feature.rmse(y=y)[0]
 rms = [x / np.std(rms) for x in rms]
@@ -257,23 +318,31 @@ print("pitch_values_on_test_frames is {}".format(pitch_values_on_test_frames))
 intensity = snd.to_intensity()
 draw_pitch_specified(intensity,pitch,pitch_values,draw_type=0,filename=filename.split("/")[-1],notation=notation,grain_size=1)
 plt.xlim([snd.xmin, snd.xmax])
-starts_by_parselmouth_rms,starts_by_parselmouth_rms_times = get_starts_by_parselmouth_rms(intensity,pitch)
+starts_by_parselmouth_rms,starts_by_parselmouth_rms_times = get_starts_by_parselmouth_rms(intensity,pitch,standard_notation_time_diff_min)
 print("starts_by_parselmouth_rms is {},size is {}".format(starts_by_parselmouth_rms,len(starts_by_parselmouth_rms)))
+print("starts_by_parselmouth_rms_times is {},size is {}".format(starts_by_parselmouth_rms_times,len(starts_by_parselmouth_rms_times)))
 # plt.twinx()  # 共X轴，用来画声音强度信息
 # draw_intensity(intensity)
 # 平移语音识别的时间点
-onset_times = [t - (onset_times[0] - test_onset_times[0]) for t in onset_times]
+# onset_times = [t - (onset_times[0] - test_onset_times[0]) for t in onset_times]
 plt.vlines(onset_times, 0, 40, color='y', linestyle='-.')
 # plt.vlines(test_onset_times, 0, 500, color='r', linestyle='--')
-# plt.vlines(starts_by_parselmouth_rms_times, 0, 500, color='b', linestyle='--')
+plt.vlines(starts_by_parselmouth_rms_times, 0, 500, color='b', linestyle='--')
 # plt.hlines(mean_pitchs, 0, 8, color='r', linestyle='--')
-merge_times = merge_times_from_iat_plm_rms(onset_times,test_onset_times,starts_by_parselmouth_rms_times)
-print("3 merge_times is {},size is {}".format(merge_times,len(merge_times)))
+merge_times = merge_times_from_iat_plm_rms(onset_times,test_onset_times,starts_by_parselmouth_rms_times,standard_notation_time_diff_min)
+print("3 merge_times size is {},detail is {}".format(len(merge_times),merge_times))
 merge_frames = librosa.time_to_frames(merge_times)
 plt.vlines(merge_times, 0, 30, color='b', linestyle='-')
 all_first_candidate_names, all_first_candidates, all_offset_types = get_all_numbered_notation_and_offset(pitch,merge_frames)
 print("3 all_first_candidate_names is {},size is {}".format(all_first_candidate_names,len(all_first_candidate_names)))
-numbered_notations,numbered_notations_detail = get_all_numbered_musical_notation_by_moved(3,all_first_candidate_names,merge_times)
+numbered_notations,numbered_notations_detail = get_all_numbered_musical_notation_by_moved(first_standard_notation,all_first_candidate_names,merge_times)
+standard_notations_list = standard_notations.split(',')
+standard_notations_list = [s[0] for s in standard_notations_list]
+standard_notations_list = ''.join(standard_notations_list)
+best_numbered_notations, type, best_lcseque_len = find_best_numbered_notations(standard_notations_list, standard_notation_time,
+                                                                     all_first_candidate_names, merge_times.copy(),
+                                                                     end_time=None)
+numbered_notations = best_numbered_notations
 print("3 numbered_notations is {},size is {}".format(numbered_notations,len(numbered_notations)))
 print("3 numbered_notations_detail is {},size is {}".format(numbered_notations_detail,len(numbered_notations_detail)))
 start_time,end_time = 17.1,25.78
@@ -301,7 +370,7 @@ tmp_points = [t for i,t in enumerate(merge_times) if numbered_notations[i] is no
 firt_offset = tmp_points[0]
 standard_time = [t+firt_offset for t in standard_notation_time]
 plt.vlines(standard_time, 0, 500, color='g', linestyle=':')
-standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
+# standard_notations = '3,3,2,1,1,7-,6-,6-,6-,4,4,3,2,1,2,4,3,4,4,3,2,2,4,3,3,1,6-,6-,7-,3,2,1,7-,1,6-'
 standard_notations = standard_notations.split(',')
 standard_notations_times = zip(standard_time,standard_notations)
 
