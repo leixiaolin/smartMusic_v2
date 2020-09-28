@@ -5,6 +5,7 @@ from pitch_helper import *
 import warnings
 import time
 import json
+from melody_util.pingfen_sc_util import get_score_with_absolute_pitch
 warnings.simplefilter('ignore')
 
 def write_txt(content, filename, mode='w'):
@@ -39,7 +40,8 @@ else:
     # melody_code = '[5,5,3,2,1,2,2,3,2,6-,5-]'
     # total_score,  onsets_frames,detail_content = calcalate_total_score(file_path,rhythm_code,melody_code)
     start = time.clock()
-    total_score, onsets_frames, detail_content,total_score_absolute_pitch,detail_absolute_pitch,change_points = calcalate_total_score_by_alexnet(file_path, rhythm_code, melody_code)
+    # total_score, onsets_frames, detail_content,total_score_absolute_pitch,detail_absolute_pitch,change_points = calcalate_total_score_by_alexnet(file_path, rhythm_code, melody_code)
+    total_score, onsets_frames, detail_content, total_score_absolute_pitch, detail_absolute_pitch, change_points = get_score_with_absolute_pitch(file_path, rhythm_code, melody_code)
     # print("time used is {}".format(time.clock() - start))
     # print("total_score, is {}".format(total_score))
     out_result = {'file_path': file_path, 'rhythm_code': rhythm_code, 'melody_code': melody_code,
@@ -66,3 +68,4 @@ else:
     # python grade_xl_util.py F:/项目/花城音乐项目/样式数据/6.18MP3/旋律/01，98.wav [500,250,250,500,500;250,250,250,250,500,500;500,250,250,500,500;500,250,250,1000] [5,5,6,5,3,4,5,4,5,4,2,3,3,4,3,1,2,3,5,1]
     # python grade_xl_util.py F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/小学8题20190717-2776-6.wav [1000,500,500;2000;250,250,500,500,500;2000] [6,5,3,6,3,5,3,2,1,6-]
     # python grade_xl_util.py F:/项目/花城音乐项目/样式数据/7.17MP3/旋律/test.wav [1000,250,250,250,250;2000;1000,500,500;2000] [1,3,5,1+,6,5,1,3,2,1]
+    # D:\Anaconda3\envs\tf1.14\python grade_xl_util.py F:/项目/花城音乐项目/样式数据/3.06MP3/旋律/旋3罗（80）.wav [1000,1000;500,500,1000;500,250,250,500,500;2000] [5,5,3,2,1,2,2,3,2,6-,5-]
