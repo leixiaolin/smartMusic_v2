@@ -401,6 +401,8 @@ def get_pitch_length_for_each_onset(pitch,onset_frames,grain_size=0):
             tmp = pitch_values_candidate[o:onset_frames[i+1]]
         else:
             tmp = pitch_values_candidate[o:]
+        if len(tmp) == 0:
+            continue
         # 找出tmp中出现最多的元素
         res = Counter(tmp)
         sorted(res)

@@ -234,6 +234,10 @@ def calculate_onset_score(rhythm_code,onset_frames,standard_notations,best_test_
         match_begin = onset_frames[current_index]
         match_end = match_begin + sd + duration_threshold
 
+        # 异常处理
+        if i >= len(standard_durations) or i >= len(note_match_positions):
+            continue
+
         # 获取对比区间内的可对比帧序号
         notation = standard_notations[i]
         note_match_result = note_match_positions[i]
@@ -318,7 +322,7 @@ def get_score(filename,rhythm_code,pitch_code):
     pitch_values = pitch.selected_array['frequency']
     start_end = [i for i, p in enumerate(pitch_values) if p != 0.0]
     end = start_end[-1]
-    onset_frames = [f for i, f in enumerate(onset_frames) if test_notations[i] is not None]
+    onset_frames = [f for i, f in enumerate(onset_frames) if i < len(test_notations) and test_notations[i] is not None]
     best_numbered_notations, d = get_best_candidate_names_by_moved(standard_notations, test_notations)
     threshold_score = 40
     rhythm_code = parse_rhythm_code(rhythm_code)
@@ -326,7 +330,7 @@ def get_score(filename,rhythm_code,pitch_code):
     onset_total_score, onset_detail = calculate_onset_score(rhythm_code, onset_frames, standard_notations, best_numbered_notations,start, end, note_match_positions,threshold_score)
 
     #最后一个节奏：如果音高是对的而节奏是错的，那么节奏也纠正为对的
-    if note_detail.split('.')[-2].strip() == "√" and onset_detail.split('.')[-2].strip() == "×":
+    if len(note_detail.split('.')) >= 2 and note_detail.split('.')[-2].strip() == "√" and len(onset_detail.split('.')) >= 2 and onset_detail.split('.')[-2].strip() == "×":
         onset_total_score += int(threshold_score/len(rhythm_code))
         onset_detail = onset_detail[:-3] + '√.]'
 
