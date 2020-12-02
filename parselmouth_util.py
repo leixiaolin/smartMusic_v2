@@ -663,6 +663,8 @@ def get_starts_by_absolute_pitch(pitch,small_or_big,move_gap = 0):
     #                and Counter(pitch_values_candidate[i+1:i+30]).most_common(1)[0][1] > 23
     #                and Counter(pitch_values_candidate[i+1:i+30]).most_common(1)[0][0] > 75]
     # print("test_frames is {},size is {}".format(start_frames,len(start_frames)))
+    if len(start_frames) == 0:
+        return [],[]
     first_frame = start_frames[0]
     start_frames = [start_frames[i] for i in range(1,len(start_frames)) if start_frames[i] - start_frames[i-1] > 20]
     start_frames.append(first_frame)
