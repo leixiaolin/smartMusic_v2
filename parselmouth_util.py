@@ -1101,6 +1101,10 @@ def get_starts_by_parselmouth_rms(intensity,pitch,standard_notation_time_diff_mi
     pitch_values = pitch.selected_array['frequency']
     pitch_values = signal.medfilt(pitch_values, 35)
 
+    #处理异常
+    if len([i for i in range(len(pitch_values)) if pitch_values[i] >= 50 and not np.isnan(pitch_values[i])]) < 1:
+        return [],[]
+
     # 找出第一个不为0、不为nan的元素的位置
     first_position = [i for i in range(len(pitch_values)) if pitch_values[i] >= 50 and not np.isnan(pitch_values[i])][0]
     first_position = int(first_position*values_len/len(pitch_values))
@@ -1111,6 +1115,11 @@ def get_starts_by_parselmouth_rms(intensity,pitch,standard_notation_time_diff_mi
     #判断条件：1、幅度差值大于1.5；  2、位置开始点和结束点之间；  3、起始点之后15之后要有音高线；
     must_starts = [i for i,v in enumerate(values_medfilt) if values_gap[i] > 1.6 and i > first_position and i < last_position - 40]
     # must_starts = [s for s in must_starts if np.mean(pitch_values[s:s+15]) > 70]
+
+    #处理异常
+    if len(must_starts) < 1:
+        return [],[]
+
     #相临太密的取幅度减值较大的
     result = [must_starts[0]]
     if standard_notation_time_diff_min > 0.3:
@@ -1168,6 +1177,10 @@ def score_all(filename, standard_kc,standard_kc_time, standard_notations, standa
     end_time = pitch.duration
     small_or_big = 'small'
     test_frames, test_onset_times = get_all_starts_by_absolute_pitch(pitch, small_or_big)
+
+    #处理异常
+    if len(test_frames) < 1 or len(test_onset_times) < 1:
+        return 0, 0, 0, 0, 0, 0, '音高识别未能正常返回结果，请检查音频数据是否正常', '音高识别未能正常返回结果，请检查音频数据是否正常', '音高识别未能正常返回结果，请检查音频数据是否正常', '音高识别未能正常返回结果，请检查音频数据是否正常', '音高识别未能正常返回结果，请检查音频数据是否正常'
 
     snd = parselmouth.Sound(filename)
     intensity = snd.to_intensity()
