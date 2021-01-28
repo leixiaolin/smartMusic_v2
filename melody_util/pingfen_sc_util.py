@@ -376,6 +376,6 @@ def get_score_with_absolute_pitch(filename,rhythm_code,pitch_code):
     str_detail_list = str_detail_list + "。节奏" + onset_detail
 
     # 如果绝对音高评测得分高于相对评测的结晶，则需要替换相对评测的结果，因为以更严格的评测标准为准
-    if total_score_absolute_pitch > total_score:
-        total_score, detail = total_score_absolute_pitch, str_detail_list
+    # if total_score_absolute_pitch > total_score:
+    #     total_score, detail = total_score_absolute_pitch, str_detail_list
     return total_score, all_starts, detail, total_score_absolute_pitch, str_detail_list, all_starts

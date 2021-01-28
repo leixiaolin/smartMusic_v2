@@ -515,7 +515,7 @@ def check_from_second_candidate_names(note_score_absolute_pitch,str_detail_list,
                     # 从备份音高列表中取出出错音高，记录其所在位置
                     exist_positions = [i for i in range(len(all_second_candidate_names)) if all_second_candidate_names[i][0] == pitch_name]
                     if len(exist_positions) > 0: # 如果存在于备选音高
-                        tmp = [e for e in exist_positions if np.abs(e - i) <= 3]
+                        tmp = [e for e in exist_positions if np.abs(e - i) <= 1]
                         if len(tmp) > 0:
                             note_score_absolute_pitch += each_symbol_score
                             detail_list_bak[i] = 1
