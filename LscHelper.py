@@ -88,6 +88,8 @@ def my_find_lcseque(s1, s2): #s1 为标准字符串
                             positions.append(x+split_point+len(lcsubstr))
                             raw_positions.append(i + len(lcsubstr))
                             break
+    if len(positions) < 1:
+        return lcseque, positions,raw_positions
     tmp = []
     for i in range(len(positions)-1):
         if positions[i]<np.min(positions[i+1:]):
